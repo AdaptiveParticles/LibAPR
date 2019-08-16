@@ -77,6 +77,12 @@ public:
     void killObjects();
 
     void getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num);
+
+private:
+
+    std::vector<PixelData<uint16_t>> depth_slice;
+
+
 };
 
 #ifndef M_PI
@@ -214,7 +220,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     uint64_t num_views = floor((theta_f - theta_0) / theta_delta);
 
-    cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
+    cast_views.initWithResize(imageHeight, imageWidth, num_views);
 
     uint64_t view_count = 0;
     float init_val = 0;
@@ -232,18 +238,21 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     ///
     /////////////////////////////////////
 
-    std::vector<PixelData<S>> depth_slice;
+
     depth_slice.resize(max_level + 1);
 
-    std::vector<float> depth_vec;
+    VectorData<float> depth_vec;
     depth_vec.resize(max_level + 1);
-    depth_slice[max_level].initWithValue(imageHeight, imageWidth, 1, init_val);
+
+    depth_slice[max_level].initWithResize(imageHeight, imageWidth, 1);
+    depth_slice[max_level].fill(init_val);
 
 
     for (int i = apr.level_min(); i < max_level; i++) {
         float d = pow(2, max_level - i);
-        depth_slice[i].initWithValue(ceil(depth_slice[max_level].y_num / d),
-                                     ceil(depth_slice[max_level].x_num / d), 1, init_val);
+        depth_slice[i].initWithResize(ceil(depth_slice[max_level].y_num / d),
+                                     ceil(depth_slice[max_level].x_num / d), 1);
+        depth_slice[i].fill(init_val);
         depth_vec[i] = d;
     }
 
