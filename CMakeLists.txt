@@ -160,7 +160,6 @@ if(APR_USE_CUDA)
             src/algorithm/LocalIntensityScale.cu
             src/algorithm/OVPC.cu
             src/data_structures/APR/access/GPUAccess.cu
-            test/GPUAPR.cu
             src/numerics/APRDownsampleGPU.cu
             src/numerics/APRIsoConvGPU.cu
             )
