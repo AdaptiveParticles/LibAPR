@@ -152,11 +152,11 @@ __global__ void chunked_iterate(const uint64_t* level_xz_vec,
     const size_t global_index_begin_0 = global_index_begin_0_s[row];
     const size_t global_index_end_0 = global_index_end_0_s[row];
 
-    float current_val = 0;
+    //float current_val = 0;
     int current_y = -1;
 
     if((global_index_begin_0 + threadIdx.y) < global_index_end_0) {
-        current_val = input_particles[global_index_begin_0 + threadIdx.y];
+        //current_val = input_particles[global_index_begin_0 + threadIdx.y];
         current_y = y_vec[global_index_begin_0 + threadIdx.y];
     }
 
@@ -170,7 +170,7 @@ __global__ void chunked_iterate(const uint64_t* level_xz_vec,
         if(current_y < y_chunk*chunkSize) {
             sparse_block++;
             if( (sparse_block*chunkSize + global_index_begin_0 + threadIdx.y) < global_index_end_0) {
-                current_val = input_particles[sparse_block*chunkSize + global_index_begin_0 + threadIdx.y];
+                //current_val = input_particles[sparse_block*chunkSize + global_index_begin_0 + threadIdx.y];
                 current_y = y_vec[sparse_block*chunkSize + global_index_begin_0 + threadIdx.y];
             }
         }
@@ -205,10 +205,9 @@ __global__ void sequential_iterate(const uint64_t* level_xz_vec,
     uint64_t begin_index = xz_end_vec[xz_start-1];
     uint64_t end_index = xz_end_vec[xz_start];
     uint16_t y_idx;
-    float current_val = 0;
 
     for(uint64_t i = begin_index; i < end_index; ++i) {
-        current_val = input_particles[i];
+
         y_idx = y_vec[i];
 
         output_particles[i] = z_idx + x_idx + y_idx + level;
@@ -221,8 +220,10 @@ double bench_chunked_iterate(GPUAccessHelper& access, int num_rep) {
 
     APRTimer timer(false);
 
-    std::vector<uint16_t> input(access.total_number_particles(), 0);
-    std::vector<uint16_t> output(access.total_number_particles(), 0);
+    VectorData<uint16_t> input;
+    input.resize(access.total_number_particles(), 0);
+    VectorData<uint16_t> output;
+    output.resize(access.total_number_particles(), 0);
 
     ScopedCudaMemHandler<uint16_t *, JUST_ALLOC> input_gpu(input.data(), access.total_number_particles());
     ScopedCudaMemHandler<uint16_t *, JUST_ALLOC> output_gpu(output.data(), access.total_number_particles());
@@ -280,8 +281,10 @@ double bench_sequential_iterate(GPUAccessHelper& access, int num_rep) {
 
     APRTimer timer(false);
 
-    std::vector<uint16_t> input(access.total_number_particles(), 0);
-    std::vector<uint16_t> output(access.total_number_particles(), 0);
+    VectorData<uint16_t> input;
+    input.resize(access.total_number_particles(), 0);
+    VectorData<uint16_t> output;
+    output.resize(access.total_number_particles(), 0);
 
     ScopedCudaMemHandler<uint16_t *, JUST_ALLOC> input_gpu(input.data(), access.total_number_particles());
     ScopedCudaMemHandler<uint16_t *, JUST_ALLOC> output_gpu(output.data(), access.total_number_particles());
@@ -329,7 +332,7 @@ template double bench_sequential_iterate<16>(GPUAccessHelper&, int);
 
 
 
-void compute_spatial_info_gpu(GPUAccessHelper& access, std::vector<uint16_t>& input, std::vector<uint16_t>& output){
+void compute_spatial_info_gpu(GPUAccessHelper& access, VectorData<uint16_t>& input, VectorData<uint16_t>& output){
 
     input.resize(access.total_number_particles(), 0);
     output.resize(access.total_number_particles(), 0);
@@ -378,7 +381,7 @@ __global__ void simpleKernel(T *input, uint64_t size) {
     input[idx] = idx;
 }
 
-void run_simple_test(std::vector<uint64_t>& temp, uint64_t size) {
+void run_simple_test(VectorData<uint64_t>& temp, uint64_t size) {
 
     temp.resize(size, 0);
 
@@ -415,7 +418,7 @@ __global__ void copyKernel(T *input, S* output, uint64_t size) {
     output[idx] = (S) input[idx];
 }
 
-void check_access_vectors(GPUAccessHelper& access, std::vector<uint16_t>& y_vec_out, std::vector<uint64_t>& xz_end_vec_out, std::vector<uint64_t>& level_xz_vec_out) {
+void check_access_vectors(GPUAccessHelper& access, VectorData<uint16_t>& y_vec_out, VectorData<uint64_t>& xz_end_vec_out, VectorData<uint64_t>& level_xz_vec_out) {
 
     y_vec_out.resize(access.linearAccess->y_vec.size(), 0);
     xz_end_vec_out.resize(access.linearAccess->xz_end_vec.size(), 0);

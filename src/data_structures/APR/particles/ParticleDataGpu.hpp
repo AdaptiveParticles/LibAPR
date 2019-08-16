@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <memory>
+#include "data_structures/Mesh/PixelData.hpp"
 
 template<typename DataType>
 class ParticleDataGpu {
@@ -23,7 +24,7 @@ public:
     ParticleDataGpu();
     ~ParticleDataGpu();
 
-    void init(std::vector<DataType>& cpu_data);
+    void init(VectorData<DataType>& cpu_data);
 
     DataType* getGpuData();
 

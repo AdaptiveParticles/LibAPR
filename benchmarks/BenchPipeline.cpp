@@ -122,9 +122,9 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
 
     analysisData.add_timer_avg(aprConverter.computation_timer);
 
+    analysisData.add_timer_avg(aprConverter.method_timer);
+
     analysisData.add_timer_avg(timer_steps);
-
-
 
     //Required in all benchmarks
     analysisData.add_timer(timer,apr.total_number_particles(),num_rep);

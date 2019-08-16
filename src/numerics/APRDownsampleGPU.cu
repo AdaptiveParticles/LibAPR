@@ -986,7 +986,7 @@ __global__ void down_sample_avg_interior_new(const uint64_t* level_xz_vec,
 }
 
 template<typename inputType, typename treeType>
-void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input, std::vector<treeType>& tree_data) {
+void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<treeType>& tree_data) {
 
     tree_data.resize(tree_access.total_number_particles(),0);
 
@@ -994,19 +994,21 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
 
-    std::vector<int> ne_counter;
-    std::vector<int> ne_rows;
+    VectorData<int> ne_counter;
+    VectorData<int> ne_rows;
 
     ne_counter.resize(tree_access.level_max() + 3);
 
     int z = 0;
     int x = 0;
 
+    uint64_t counter = 0;
+
     for (int level = (tree_access.level_min() + 1); level <= (tree_access.level_max() + 1); ++level) {
 
         auto level_start = tree_access.linearAccess->level_xz_vec[level - 1];
 
-        ne_counter[level] = ne_rows.size();
+        ne_counter[level] = counter;
 
         for (z = 0; z < tree_access.z_num(level - 1); z++) {
             for (x = 0; x < tree_access.x_num(level - 1); ++x) {
@@ -1019,12 +1021,38 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
                 auto end_index = tree_access.linearAccess->xz_end_vec[xz_start];
 
                 if (begin_index < end_index) {
-                    ne_rows.push_back(x + z * tree_access.x_num(level - 1));
+                    counter++;
                 }
             }
         }
     }
+
+    ne_rows.resize(counter);
     ne_counter.back() = ne_rows.size();
+    counter = 0;
+
+    for (int level = (tree_access.level_min() + 1); level <= (tree_access.level_max() + 1); ++level) {
+
+        auto level_start = tree_access.linearAccess->level_xz_vec[level - 1];
+
+        for (z = 0; z < tree_access.z_num(level - 1); z++) {
+            for (x = 0; x < tree_access.x_num(level - 1); ++x) {
+
+                auto offset = x + z * tree_access.x_num(level - 1);
+                auto xz_start = level_start + offset;
+
+//intialize
+                auto begin_index = tree_access.linearAccess->xz_end_vec[xz_start - 1];
+                auto end_index = tree_access.linearAccess->xz_end_vec[xz_start];
+
+                if (begin_index < end_index) {
+                    ne_rows[counter] = (x + z * tree_access.x_num(level - 1));
+                    counter++;
+                }
+            }
+        }
+    }
+
 
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
     ne_rows_gpu.copyH2D();
@@ -1125,7 +1153,7 @@ void downsample_avg_init_wrapper(GPUAccessHelper& access, GPUAccessHelper& tree_
 
 
 template<typename inputType, typename treeType>
-void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu,int* ne_rows,std::vector<int>& ne_offset) {
+void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu,int* ne_rows,VectorData<int>& ne_offset) {
 
     /// assumes input_gpu and tree_data_gpu are already on the device
 

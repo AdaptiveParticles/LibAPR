@@ -43,13 +43,13 @@ timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& o
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
-                                std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
+timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<inputType>&,
+                                VectorData<outputType>&, VectorData<stencilType>&, VectorData<treeType>&);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<inputType>&,
-                                std::vector<outputType>&, std::vector<stencilType>&, std::vector<treeType>&);
+timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<inputType>&,
+                                VectorData<outputType>&, VectorData<stencilType>&, VectorData<treeType>&);
 
 
 template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType>

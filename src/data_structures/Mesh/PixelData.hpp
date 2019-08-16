@@ -103,7 +103,6 @@ public :
 
     ~VectorData() = default;
 
-
     /**
      * Constructor - initialize empty using pinned memory
      * @param aSizeOfY
@@ -111,6 +110,10 @@ public :
      * @param aSizeOfZ
      */
     VectorData(bool usePinned){
+        usePinnedMemory = usePinned;
+    }
+
+    void setUsePinnedMemory(bool usePinned){
         usePinnedMemory = usePinned;
     }
 

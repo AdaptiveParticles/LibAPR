@@ -6,6 +6,7 @@
 #define LIBAPR_GPUACCESS_HPP
 
 #include "data_structures/APR/access/LinearAccess.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 //#include "data_structures/APR/GenInfo.hpp"
 
 class GPUAccess {
@@ -24,9 +25,9 @@ public:
     void copy2Device();
     void copy2Host();
 
-    void init_y_vec(std::vector<uint16_t>& y_vec_);
-    void init_xz_end_vec(std::vector<uint64_t>& xz_end_vec);
-    void init_level_xz_vec(std::vector<uint64_t>& level_xz_vec);
+    void init_y_vec(VectorData<uint16_t>& y_vec_);
+    void init_xz_end_vec(VectorData<uint64_t>& xz_end_vec);
+    void init_level_xz_vec(VectorData<uint64_t>& level_xz_vec);
 
     GenInfo* genInfo;
     uint64_t total_number_particles() { return genInfo->total_number_particles; }

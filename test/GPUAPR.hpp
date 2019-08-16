@@ -7,11 +7,11 @@
 
 #include "data_structures/APR/access/GPUAccess.hpp"
 
-void compute_spatial_info_gpu(GPUAccessHelper& access, std::vector<uint16_t>& input, std::vector<uint16_t>& output);
+void compute_spatial_info_gpu(GPUAccessHelper& access, VectorData<uint16_t>& input, VectorData<uint16_t>& output);
 
-void run_simple_test(std::vector<uint64_t>& temp, uint64_t size);
+void run_simple_test(VectorData<uint64_t>& temp, uint64_t size);
 
-void check_access_vectors(GPUAccessHelper& access, std::vector<uint16_t>& y_vec_out, std::vector<uint64_t>& xz_end_vec_out, std::vector<uint64_t>& level_xz_vec_out);
+void check_access_vectors(GPUAccessHelper& access, VectorData<uint16_t>& y_vec_out, VectorData<uint64_t>& xz_end_vec_out, VectorData<uint64_t>& level_xz_vec_out);
 
 template<int blockSize>
 double bench_sequential_iterate(GPUAccessHelper& access, int num_rep);
