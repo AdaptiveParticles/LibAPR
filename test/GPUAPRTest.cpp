@@ -387,9 +387,9 @@ TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_ROUNDTRIP_TEST) {
     gpuData.init_gpu();
     //gpuDataTree.init_gpu();
 
-    std::vector<uint16_t> y_vec;
-    std::vector<uint64_t> xz_end_vec;
-    std::vector<uint64_t> level_xz_vec;
+    VectorData<uint16_t> y_vec;
+    VectorData<uint64_t> xz_end_vec;
+    VectorData<uint64_t> level_xz_vec;
 
     check_access_vectors(gpuData, y_vec, xz_end_vec, level_xz_vec);
 
@@ -424,9 +424,9 @@ TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_ROUNDTRIP_TEST_TREE) {
     auto gpuData = test_data.apr.gpuTreeHelper();
     gpuData.init_gpu();
 
-    std::vector<uint16_t> y_vec;
-    std::vector<uint64_t> xz_end_vec;
-    std::vector<uint64_t> level_xz_vec;
+    VectorData<uint16_t> y_vec;
+    VectorData<uint64_t> xz_end_vec;
+    VectorData<uint64_t> level_xz_vec;
 
     check_access_vectors(gpuData, y_vec, xz_end_vec, level_xz_vec);
 
@@ -465,7 +465,7 @@ TEST_F(CreatDiffDimsSphereTest, APR_ACCESS_ROUNDTRIP_TEST_TREE) {
 TEST_F(CreatDiffDimsSphereTest, SIMPLE_DATA_TEST) {
 
     uint64_t size = 1000;
-    std::vector<uint64_t> temp;
+    VectorData<uint64_t> temp;
 
     run_simple_test(temp, size);
 
@@ -491,13 +491,13 @@ TEST_F(CreatDiffDimsSphereTest, APR_TEST) {
     gpuData.init_gpu();
     gpuDataTree.init_gpu();
 
-    std::vector<uint16_t> unused_input;
-    std::vector<uint16_t> spatial_info_gpu;
+    VectorData<uint16_t> unused_input;
+    VectorData<uint16_t> spatial_info_gpu;
     spatial_info_gpu.resize(apr_it.total_number_particles());
 
     compute_spatial_info_gpu(gpuData, unused_input, spatial_info_gpu);
 
-    std::vector<uint16_t> spatial_info_cpu;
+    VectorData<uint16_t> spatial_info_cpu;
     spatial_info_cpu.resize(apr_it.total_number_particles());
 
     for(unsigned int level = apr_it.level_max(); level > apr_it.level_min(); --level) {
@@ -529,7 +529,7 @@ bool test_down_sample_gpu(TestDataGPU& test_data){
     gpuData.init_gpu();
     gpuDataTree.init_gpu();
 
-    std::vector<float> tree_data;
+    VectorData<float> tree_data;
 
     downsample_avg(gpuData, gpuDataTree, test_data.particles_intensities.data, tree_data);
 
@@ -651,9 +651,10 @@ bool  test_gpu_conv_333(TestDataGPU& test_data){
     //gpuData.init_gpu();
     //gpuDataTree.init_gpu();
 
-    std::vector<float> tree_data;
-    std::vector<float> output;
-    std::vector<float> stencil(27, 0);
+    VectorData<double> tree_data;
+    VectorData<double> output;
+    VectorData<double> stencil;
+    stencil.resize(27, 0);
 
     float sum = 13.0 * 27;
     for(int i = 0; i < 27; ++i) {
@@ -765,9 +766,9 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
     gpuData.init_gpu();
     gpuDataTree.init_gpu();
 
-    std::vector<double> tree_data;
-    std::vector<double> output;
-    std::vector<double> stencil;
+    VectorData<double> tree_data;
+    VectorData<double> output;
+    VectorData<double> stencil;
 
     stencil.resize(125);
     double sum = 62.0 * 125;
@@ -891,7 +892,6 @@ TEST_F(CreatDiffDimsSphereTest, TEST_PARTIAL_ACCESS_INIT) {
     access_new.init_gpu( access_new.total_number_particles(tree_access.level_max()), tree_access);
 
     access_new.copy2Host();
-    auto y_vec_new = access_new.linearAccess->y_vec;
 
     size_t c_fail = 0;
 
@@ -899,7 +899,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_PARTIAL_ACCESS_INIT) {
         for(int z = 0; z < it.z_num(level); ++z) {
             for(int x = 0; x < it.x_num(level); ++x) {
                 for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if( (y_vec[it] != y_vec_new[it]) ) {
+                    if( (y_vec[it] != access_new.linearAccess->y_vec[it]) ) {
                         c_fail++;
                     }
                 }

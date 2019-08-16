@@ -5,6 +5,8 @@
 #ifndef PARTPLAY_APRACCESS_HPP
 #define PARTPLAY_APRACCESS_HPP
 
+#include <cstdint>
+
 constexpr uint16_t _LEVEL_DECREASE = 0;
 constexpr uint16_t _LEVEL_SAME = 1;
 constexpr uint16_t _LEVEL_INCREASE = 2;

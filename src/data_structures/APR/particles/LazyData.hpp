@@ -8,13 +8,14 @@
 #include <vector>
 #include "io/APRFile.hpp"
 #include "numerics/APRCompress.hpp"
+#include "data_structures/Mesh/PixelData.hpp"
 
 template<typename DataType>
 class LazyData {
 
     uint64_t current_offset;
 
-    std::vector<DataType> data;
+    VectorData<DataType> data;
 
     APRWriter::FileStructure* fileStructure;
     std::string parts_name;

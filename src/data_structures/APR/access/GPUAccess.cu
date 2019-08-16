@@ -43,14 +43,14 @@ GPUAccess::GPUAccess(): data{new GPUAccessImpl}{
 }
 GPUAccess::GPUAccess(GPUAccess&&) = default;
 
-void GPUAccess::init_y_vec(std::vector<uint16_t> &y_vec_) {
+void GPUAccess::init_y_vec(VectorData<uint16_t> &y_vec_) {
     data->y_vec.initialize(y_vec_.data(),y_vec_.size());
 }
 
-void GPUAccess::init_xz_end_vec(std::vector<uint64_t>& xz_end_vec){
+void GPUAccess::init_xz_end_vec(VectorData<uint64_t>& xz_end_vec){
     data->xz_end_vec.initialize(xz_end_vec.data(),xz_end_vec.size());
 }
-void GPUAccess::init_level_xz_vec(std::vector<uint64_t>& level_xz_vec){
+void GPUAccess::init_level_xz_vec(VectorData<uint64_t>& level_xz_vec){
     data->level_xz_vec.initialize(level_xz_vec.data(),level_xz_vec.size());
 }
 
@@ -134,7 +134,7 @@ ParticleDataGpu<DataType>::~ParticleDataGpu()
 {}
 
 template<typename DataType>
-void ParticleDataGpu<DataType>::init(std::vector<DataType>& cpu_data){
+void ParticleDataGpu<DataType>::init(VectorData<DataType>& cpu_data){
     data->part_data.initialize(cpu_data.data(),cpu_data.size());
 }
 

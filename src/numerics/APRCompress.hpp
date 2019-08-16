@@ -13,6 +13,7 @@
 #include "misc/APRTimer.hpp"
 #include <cmath>
 #include <vector>
+#include "data_structures/Mesh/PixelData.hpp"
 
 class APRCompress {
 
@@ -41,7 +42,7 @@ public:
     }
 
     template<typename ImageType>
-    void  compress(std::vector<ImageType>& symbols) {
+    void  compress(VectorData<ImageType>& symbols) {
 
 
         timer.start_timer("total compress");
@@ -63,9 +64,8 @@ public:
     }
 
 
-
     template<typename ImageType>
-    void decompress(std::vector<ImageType>& symbols,uint64_t start=0){
+    void decompress(VectorData<ImageType>& symbols,uint64_t start=0){
 
 
         timer.start_timer("total decompress");
@@ -104,6 +104,8 @@ private:
     int compress_type = 0;
 
     //std::vector<unsigned int> predict_directions = {1,3,5};
+
+public:
 
     template<typename S>
     S variance_stabilitzation(const S input);

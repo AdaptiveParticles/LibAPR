@@ -276,17 +276,19 @@ timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& o
     return ret;
 }
 
-void compute_ne_rows(GPUAccessHelper& tree_access,std::vector<int>& ne_counter,std::vector<int>& ne_rows) {
+void compute_ne_rows(GPUAccessHelper& tree_access,VectorData<int>& ne_counter,VectorData<int>& ne_rows) {
     ne_counter.resize(tree_access.level_max() + 3);
 
     int z = 0;
     int x = 0;
 
+    uint64_t counter = 0;
+
     for (int level = (tree_access.level_min() + 1); level <= (tree_access.level_max() + 1); ++level) {
 
         auto level_start = tree_access.linearAccess->level_xz_vec[level - 1];
 
-        ne_counter[level] = ne_rows.size();
+        ne_counter[level] = counter;
 
         for (z = 0; z < tree_access.z_num(level - 1); z++) {
             for (x = 0; x < tree_access.x_num(level - 1); ++x) {
@@ -299,26 +301,54 @@ void compute_ne_rows(GPUAccessHelper& tree_access,std::vector<int>& ne_counter,s
                 auto end_index = tree_access.linearAccess->xz_end_vec[xz_start];
 
                 if (begin_index < end_index) {
-                    ne_rows.push_back(x + z * tree_access.x_num(level - 1));
+                    counter++;
                 }
             }
         }
     }
+
+    ne_rows.resize(counter);
     ne_counter.back() = ne_rows.size();
+    counter = 0;
+
+    for (int level = (tree_access.level_min() + 1); level <= (tree_access.level_max() + 1); ++level) {
+
+        auto level_start = tree_access.linearAccess->level_xz_vec[level - 1];
+
+        for (z = 0; z < tree_access.z_num(level - 1); z++) {
+            for (x = 0; x < tree_access.x_num(level - 1); ++x) {
+
+                auto offset = x + z * tree_access.x_num(level - 1);
+                auto xz_start = level_start + offset;
+
+//intialize
+                auto begin_index = tree_access.linearAccess->xz_end_vec[xz_start - 1];
+                auto end_index = tree_access.linearAccess->xz_end_vec[xz_start];
+
+                if (begin_index < end_index) {
+                    ne_rows[counter] = (x + z * tree_access.x_num(level - 1));
+                    counter++;
+                }
+            }
+        }
+    }
+
 }
 
 
-void compute_ne_rows_interior(GPUAccessHelper& access,std::vector<int>& ne_counter,std::vector<int>& ne_rows) {
+void compute_ne_rows_interior(GPUAccessHelper& access,VectorData<int>& ne_counter,VectorData<int>& ne_rows) {
     ne_counter.resize(access.level_max()+1);
 
     int z = 0;
     int x = 0;
 
+    uint64_t counter = 0;
+
     for (int level = (access.level_min()); level <= (access.level_max() - 1); ++level) {
 
         auto level_start = access.linearAccess->level_xz_vec[level];
 
-        ne_counter[level] = ne_rows.size();
+        ne_counter[level] = counter;
 
         for (z = 0; z < access.z_num(level-1); z++) {
             for (x = 0; x < access.x_num(level-1); ++x) {
@@ -340,18 +370,53 @@ void compute_ne_rows_interior(GPUAccessHelper& access,std::vector<int>& ne_count
                 }
 
                 if (nonempty) {
-                    ne_rows.push_back(x + z * access.x_num(level-1));
+                    counter++;
                 }
             }
         }
     }
+
+    ne_rows.resize(counter);
+    counter = 0;
+
+    for (int level = (access.level_min()); level <= (access.level_max() - 1); ++level) {
+
+        auto level_start = access.linearAccess->level_xz_vec[level];
+
+        for (z = 0; z < access.z_num(level-1); z++) {
+            for (x = 0; x < access.x_num(level-1); ++x) {
+
+                bool nonempty = false;
+
+                for( int ix = 0; ix <= 1; ++ix ){
+                    for( int iz = 0; iz <= 1; ++iz ) {
+                        auto offset = 2*x + ix + (2*z + iz) * access.x_num(level);
+                        auto xz_start = level_start + offset;
+
+                        auto begin_index = access.linearAccess->xz_end_vec[xz_start - 1];
+                        auto end_index = access.linearAccess->xz_end_vec[xz_start];
+
+                        if(begin_index < end_index) {
+                            nonempty = true;
+                        }
+                    }
+                }
+
+                if (nonempty) {
+                    ne_rows[counter] = (x + z * access.x_num(level-1));
+                    counter++;
+                }
+            }
+        }
+    }
+
     ne_counter.back() = ne_rows.size();
 }
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
-                                    std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data){
+timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                    VectorData<outputType>& output, VectorData<stencilType>& stencil, VectorData<treeType>& tree_data){
     /*
      *  Perform APR Isotropic Convolution Operation on the GPU with a 3x3x3 kernel
      *
@@ -382,8 +447,10 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timer.stop_timer();
 
     timer.start_timer("compute ne rows");
-    std::vector<int> ne_rows; //non empty rows
-    std::vector<int> ne_counter; //non empty rows
+
+    VectorData<int> ne_rows; //non empty rows
+    VectorData<int> ne_counter; //non empty rows
+
     compute_ne_rows(tree_access,ne_counter,ne_rows);
     timer.stop_timer();
 
@@ -391,8 +458,9 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
 
     timer.start_timer("compute ne rows internal");
-    std::vector<int> ne_rows_interior; //non empty rows
-    std::vector<int> ne_counter_interior; //non empty rows
+    VectorData<int> ne_rows_interior; //non empty rows
+    VectorData<int> ne_counter_interior; //non empty rows
+
     compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
     timer.stop_timer();
 
@@ -589,8 +657,8 @@ void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* 
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, std::vector<inputType>& input,
-                                    std::vector<outputType>& output, std::vector<stencilType>& stencil, std::vector<treeType>& tree_data){
+timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                    VectorData<outputType>& output, VectorData<stencilType>& stencil, VectorData<treeType>& tree_data){
     /*
      *  Perform APR Isotropic Convolution Operation on the GPU with a 5x5x5 kernel
      *
@@ -609,8 +677,8 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timer.stop_timer();
 
 
-    std::vector<int> ne_rows; //non empty rows
-    std::vector<int> ne_counter; //non empty rows
+    VectorData<int> ne_rows; //non empty rows
+    VectorData<int> ne_counter; //non empty rows
 
     compute_ne_rows(tree_access,ne_counter,ne_rows);
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
@@ -2751,17 +2819,17 @@ template timings convolve_pixel_555(PixelData<uint16_t>&, PixelData<float>&, Pix
 template timings convolve_pixel_555(PixelData<uint16_t>&, PixelData<double>&, PixelData<double>&);
 template timings convolve_pixel_555(PixelData<float>&, PixelData<float>&, PixelData<float>&);
 //apr 333
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<float>&);
-template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<double>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<float>&, VectorData<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<float>&);
+template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&);
 //apr 555
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<float>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<float>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<float>&);
-template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, std::vector<uint16_t>&, std::vector<double>&, std::vector<double>&, std::vector<double>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<float>&, VectorData<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<float>&);
+template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&);
 
 /// play
 template void run_max_333_new(GPUAccessHelper&, uint16_t*, float*, float*);

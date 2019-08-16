@@ -2709,7 +2709,7 @@ bool test_pipeline_u16(TestData& test_data){
     APRParameters readPars = test_data.apr.get_apr_parameters();
 
     //read in the command line options into the parameters file
-    aprConverter.par.Ip_th = readPars.Ip_th;
+    aprConverter.par.Ip_th = 0;
     aprConverter.par.rel_error = readPars.rel_error;
     aprConverter.par.lambda = readPars.lambda;
     aprConverter.par.min_signal = readPars.min_signal;
