@@ -587,7 +587,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
     uint64_t num_views = floor((theta_f - theta_0) / theta_delta);
 
-    cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
+    cast_views.initWithResize(imageHeight, imageWidth, num_views);
 
     uint64_t view_count = 0;
     float init_val = 0;
