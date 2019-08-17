@@ -69,6 +69,11 @@ namespace {
 
     }
 
+    TEST_F(VectorDataTest, BackTest) {
+
+        ASSERT_EQ(m.back(),sz-1);
+    }
+
     TEST_F(VectorDataTest, CopyTest) {
         // Change type and compare if still OK
 
@@ -79,6 +84,7 @@ namespace {
             ASSERT_EQ(same_type[i],m[i]);
         }
 
+        //also works copying to different types
         VectorData<float> diff_type;
         diff_type.copy(m);
 
@@ -175,6 +181,7 @@ namespace {
 
 
     }
+
 
 
     TEST(MeshDataSimpleTest, ConstructorTest) {
