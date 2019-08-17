@@ -3043,6 +3043,21 @@ bool test_iterator_methods(TestData &test_data){
 
 }
 
+bool test_apr_copy(TestData &test_data){
+
+    bool success = true;
+
+    APR aprCopy(test_data.apr);
+
+    auto it_org = test_data.apr.iterator();
+    auto it_copy = aprCopy.iterator();
+
+    success = compare_two_iterators(it_org,it_copy,success);
+
+    return success;
+}
+
+
 
 std::string get_source_directory_apr(){
     // returns path to the directory where utils.cpp is stored
@@ -3246,6 +3261,9 @@ void CreateGTSmall1DTestProperties::SetUp(){
 
 #ifndef APR_USE_CUDA
 
+
+
+
 TEST_F(CreateGTSmall1DTestProperties, APR_ITERATION) {
 
 //test iteration
@@ -3348,6 +3366,10 @@ TEST_F(CreateGTSmall1DTestProperties, ITERATOR_METHODS) {
 
 }
 
+TEST_F(CreateGTSmall1DTestProperties, TEST_COPY) {
+    ASSERT_TRUE(test_apr_copy(test_data));
+}
+
 
 
 //2D tests
@@ -3447,6 +3469,12 @@ TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
     ASSERT_TRUE(test_iterator_methods(test_data));
 }
 
+
+TEST_F(CreateGTSmall2DTestProperties, TEST_COPY) {
+    ASSERT_TRUE(test_apr_copy(test_data));
+}
+
+
 #endif
 
 //3D Big Big Data
@@ -3500,7 +3528,9 @@ TEST_F(CreateBigBigData, ITERATOR_METHODS) {
 
 //3D tests
 
-
+TEST_F(CreateSmallSphereTest, ITERATOR_METHODS) {
+    ASSERT_TRUE(test_iterator_methods(test_data));
+}
 
 TEST_F(CreateSmallSphereTest, AUTO_PARAMETERS) {
 
@@ -3539,6 +3569,13 @@ ASSERT_TRUE(test_linear_iterate(test_data));
 
 }
 
+TEST_F(CreateSmallSphereTest, TEST_COPY) {
+
+//test iteration
+    ASSERT_TRUE(test_apr_copy(test_data));
+
+}
+
 TEST_F(CreatDiffDimsSphereTest, PULLING_SCHEME_SPARSE) {
     //tests the linear access geneartions and io
     ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
@@ -3569,11 +3606,6 @@ TEST_F(CreateSmallSphereTest, LINEAR_ACCESS_IO) {
 
 }
 
-TEST_F(CreateSmallSphereTest, ITERATOR_METHODS) {
-
-    ASSERT_TRUE(test_iterator_methods(test_data));
-
-}
 
 TEST_F(CreatDiffDimsSphereTest, LINEAR_ACCESS_CREATE) {
 
