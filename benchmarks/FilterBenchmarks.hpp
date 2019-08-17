@@ -324,7 +324,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
     analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
 
-    for(int i = 0; i < component_times.lvl_timings.size(); ++i) {
+    for(size_t i = 0; i < component_times.lvl_timings.size(); ++i) {
         analysisData.add_float_data(name + "_conv_dlvl_" + std::to_string(i), component_times.lvl_timings[i] / num_rep);
     }
 
@@ -348,10 +348,10 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
 
     // unique stencil elements
     float sum = 0;
-    for(int i = 0; i < stencil.mesh.size(); ++i) {
+    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencil.mesh.size(); ++i) {
+    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
         stencil.mesh[i] = ((float) i) / sum;
     }
 
@@ -432,10 +432,10 @@ inline void bench_pixel_convolve_cuda_basic(APR& apr,ParticleData<partsType>& pa
 
     // unique stencil elements
     float sum = 0;
-    for(int i = 0; i < stencil.mesh.size(); ++i) {
+    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencil.mesh.size(); ++i) {
+    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
         stencil.mesh[i] = ((float) i) / sum;
     }
 
@@ -574,10 +574,10 @@ inline void bench_333_old(APR& apr,ParticleData<partsType>& parts,int num_rep,An
 
     // unique stencil elements
     float sum = 0;
-    for(int i = 0; i < stencil.size(); ++i) {
+    for(size_t i = 0; i < stencil.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencil.size(); ++i) {
+    for(size_t i = 0; i < stencil.size(); ++i) {
         stencil[i] = ((float) i) / sum;
     }
 

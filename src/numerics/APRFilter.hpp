@@ -934,9 +934,9 @@ public:
 
         output.init(input);
 
-        auto y_num = input.y_num;
-        auto x_num = input.x_num;
-        auto z_num = input.z_num;
+        int y_num = input.y_num;
+        int x_num = input.x_num;
+        int z_num = input.z_num;
 
         const std::vector<int> stencil_shape = {(int) stencil.y_num,
                                                 (int) stencil.x_num,

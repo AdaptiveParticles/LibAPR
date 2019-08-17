@@ -51,7 +51,7 @@ public:
 
     void start_timer(const std::string &timing_name) {
         if (iUseTimer) {
-            for (int i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
+            for (size_t i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
             std::cout << "--TIME-- " << iTimerName << " [" << timing_name << "]\n";
             names.push_back(timing_name);
             std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
