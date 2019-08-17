@@ -237,10 +237,10 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
 
     // unique stencil elements
     float sum = 0;
-    for(int i = 0; i < stencil.size(); ++i) {
+    for(size_t i = 0; i < stencil.size(); ++i) {
         sum += i;
     }
-    for(int i = 0; i < stencil.size(); ++i) {
+    for(size_t i = 0; i < stencil.size(); ++i) {
         stencil[i] = ((float) i) / sum;
     }
 
@@ -291,7 +291,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             component_times.compute_ne_rows += tmp.compute_ne_rows;
             component_times.compute_ne_rows_interior += tmp.compute_ne_rows_interior;
 
-            for(int i=0; i < component_times.lvl_timings.size(); ++i) {
+            for(size_t i=0; i < component_times.lvl_timings.size(); ++i) {
                 component_times.lvl_timings[i] += tmp.lvl_timings[i];
             }
 

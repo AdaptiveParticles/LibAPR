@@ -72,7 +72,7 @@ public:
             std::chrono::duration<double> elapsedSeconds = endTime - startTime;
             auto name = names.back();
             names.pop_back();
-            for (int i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
+            for (size_t i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
             std::cout << "--TIME-- " << iTimerName << " [" << name << "] = " << elapsedSeconds.count() << "\n";
         }
     }
