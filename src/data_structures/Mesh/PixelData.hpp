@@ -210,21 +210,18 @@ public :
     void fill(T aInitVal) {
         // Fill values of new buffer in parallel
 
-        size_t size = vec.size();
-        T *array = vecMemory.get();
-
 #ifdef HAVE_OPENMP
 #pragma omp parallel
         {
             auto threadNum = omp_get_thread_num();
             auto numOfThreads = omp_get_num_threads();
-            auto chunkSize = size / numOfThreads;
-            auto begin = array + chunkSize * threadNum;
-            auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
-            std::fill(begin, end, aInitVal);
+            auto chunkSize = size() / numOfThreads;
+            auto begin_ = begin() + chunkSize * threadNum;
+            auto end_ = (threadNum == numOfThreads - 1) ? begin() + size() : begin_ + chunkSize;
+            std::fill(begin_, end_, aInitVal);
         }
 #else
-        std::fill(array, array + size, aInitVal);
+        std::fill(begin(),end(), aInitVal);
 #endif
     }
 
@@ -447,8 +444,7 @@ public :
         // Fill values of new buffer in parallel
 
         size_t size = (size_t)y_num * x_num * z_num;
-        T *array = meshMemory.get();
-
+        auto array = mesh.begin();
 #ifdef HAVE_OPENMP
 #pragma omp parallel
         {
