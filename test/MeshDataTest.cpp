@@ -7,6 +7,107 @@
 #include <random>
 
 namespace {
+
+
+    class VectorDataTest : public ::testing::Test {
+        typedef int MESH_TYPE;
+    protected:
+        void SetUp() override {
+            m.init(sz);
+            // Initialize it with some data
+            for (int y = 0; y < sz; ++y) {
+                m[y] = y;
+            }
+        }
+        const int sz = 113;
+
+        VectorData<MESH_TYPE> m;
+    };
+
+    TEST_F(VectorDataTest, InitTest) {
+        // Check initialize and resize and size are working correctly
+
+        VectorData<int> t_m;
+        t_m.resize(m.size());
+
+        uint64_t counter = 0;
+
+        for (int i = 0; i < t_m.size(); ++i) {
+            counter++;
+        }
+
+        ASSERT_EQ(counter,m.size());
+
+    }
+
+    TEST_F(VectorDataTest, resize) {
+        // Check initialize and resize and size are working correctly
+
+        //shrinking the array with not-reallocate memory when using resize
+        m.resize(sz/2);
+
+        uint64_t counter = 0;
+
+        for (int i = 0; i < m.size(); ++i) {
+            m[i] = i;
+            counter++;
+        }
+
+        ASSERT_EQ(counter,m.size());
+
+        //however growing larger then that will re-allocate the memory
+        m.resize(sz*2);
+
+        counter = 0;
+
+        for (int i = 0; i < m.size(); ++i) {
+            counter++;
+        }
+
+        ASSERT_EQ(counter,m.size());
+
+
+    }
+
+    TEST_F(VectorDataTest, CopyTest) {
+        // Change type and compare if still OK
+
+        VectorData<int> same_type;
+        same_type.copy(m);
+
+        for (int i = 0; i < same_type.size(); ++i) {
+            ASSERT_EQ(same_type[i],m[i]);
+        }
+
+        VectorData<float> diff_type;
+        diff_type.copy(m);
+
+        for (int i = 0; i < diff_type.size(); ++i) {
+            ASSERT_EQ(diff_type[i],m[i]);
+        }
+
+
+    }
+
+    TEST_F(VectorDataTest, FillTest) {
+        // Change type and compare if still OK
+        VectorData<float> v1;
+        v1.init(m.size());
+        float fill_val = 23.2;
+        v1.fill(fill_val);
+
+        VectorData<float> v2;
+        v2.resize(m.size(),fill_val);
+
+        for (int i = 0; i < v2.size(); ++i) {
+            ASSERT_EQ(v1[i],v2[i]);
+        }
+
+
+    }
+
+
+
     class MeshDataTest : public ::testing::Test {
         typedef char MESH_TYPE;
     protected:
@@ -52,6 +153,29 @@ namespace {
         const size_t sizeOfMesh = (size_t)yLen * xLen * zLen;
         PixelData<MESH_TYPE> m{yLen, xLen, zLen};
     };
+
+    TEST_F(MeshDataTest, resizeTest) {
+
+        PixelData<int> md;
+        md.initWithValue(10,10,10,1);
+
+        //this will not re-allocate
+        md.initWithResize(9,9,9);
+
+        for(int i = 0; i < md.mesh.size(); ++i) {
+            ASSERT_EQ(md.mesh[i],1);
+        }
+
+        //this will not re-allocate
+        md.initWithResize(10,10,10);
+
+        for(int i = 0; i < md.mesh.size(); ++i) {
+             ASSERT_EQ(md.mesh[i],1);
+        }
+
+
+    }
+
 
     TEST(MeshDataSimpleTest, ConstructorTest) {
         // default

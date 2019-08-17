@@ -232,7 +232,7 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
 
     APRTimer timer(true);
 
-    std::vector<float> stencil;
+    VectorData<float> stencil;
     stencil.resize(stencil_size * stencil_size * stencil_size);
 
     // unique stencil elements
@@ -250,8 +250,8 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     timings component_times;
     component_times.lvl_timings.resize(apr_it.level_max()-tree_it.level_min()+1, 0);
 
-    std::vector<float> output(apr_it.total_number_particles());
-    std::vector<float> tree_data(tree_it.total_number_particles());
+    VectorData<float> output(apr_it.total_number_particles());
+    VectorData<float> tree_data(tree_it.total_number_particles());
 
 
     /// burn-in

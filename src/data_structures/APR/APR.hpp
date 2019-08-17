@@ -169,8 +169,8 @@ public:
         //Note: GPU datastructures are not copied.
 
         //default
-        linearAccess = apr2copy.linearAccess;
-        linearAccessTree = apr2copy.linearAccessTree;
+        linearAccess.copy(apr2copy.linearAccess);
+        linearAccessTree.copy(apr2copy.linearAccessTree);
         aprInfo = apr2copy.aprInfo;
         treeInfo = apr2copy.treeInfo;
         tree_initialized = apr2copy.tree_initialized;

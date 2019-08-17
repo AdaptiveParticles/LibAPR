@@ -41,7 +41,7 @@ public:
     ParticleData(uint64_t aTotalNumberOfParticles) { init(aTotalNumberOfParticles); }
 
     ParticleData(const ParticleData& parts2Copy){
-        data = parts2Copy.data;
+        data.copy(parts2Copy.data);
         compressor = parts2Copy.compressor;
     }
 

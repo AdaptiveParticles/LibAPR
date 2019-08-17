@@ -228,12 +228,12 @@ public :
 #endif
     }
 
-
-    VectorData<T>& operator=(const VectorData<T>& ToCopy){
+    template <typename CopyType>
+    void copy(const VectorData<CopyType>& ToCopy){
         resize(ToCopy.size());
         std::copy(ToCopy.begin(),ToCopy.end(),begin());
-        return *this;
     }
+
 
 private:
 

@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include "APRBenchHelper.hpp"
-
 #define DEBUGCUDA 1
 
 #define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }

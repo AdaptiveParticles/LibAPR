@@ -21,6 +21,13 @@ class LinearAccess : public GenAccess {
 
 public:
 
+
+    void copy(const LinearAccess& access2copy){
+        y_vec.copy(access2copy.y_vec);
+        xz_end_vec.copy(access2copy.xz_end_vec);
+        level_xz_vec.copy(access2copy.level_xz_vec);
+    }
+
     //New Linear Access Structures
 
     VectorData<uint16_t> y_vec; // explicit storage of the sparse dimension (y)
