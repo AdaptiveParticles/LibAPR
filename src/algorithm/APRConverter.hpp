@@ -628,7 +628,7 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
     std::vector<uint64_t> hist_lis;
     hist_lis.resize(std::ceil(max_lis)+1,0);
 
-    for (int i = 0; i < total_required_pixels; ++i) {
+    for (uint64_t i = 0; i < total_required_pixels; ++i) {
         auto lis_val = std::floor(lis_buffer[i]);
         hist_lis[lis_val]++;
     }
@@ -651,7 +651,7 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
     grad_hist.resize(std::ceil(grad_max));
     uint64_t grad_counter = 0;
 
-    for (int i = 0; i < total_required_pixels; ++i) {
+    for (uint64_t i = 0; i < total_required_pixels; ++i) {
         auto val = lis_buffer[i];
 
         if(val <= freq_val){

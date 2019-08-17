@@ -32,7 +32,7 @@ namespace {
 
         uint64_t counter = 0;
 
-        for (int i = 0; i < t_m.size(); ++i) {
+        for (size_t i = 0; i < t_m.size(); ++i) {
             counter++;
         }
 
@@ -48,7 +48,7 @@ namespace {
 
         uint64_t counter = 0;
 
-        for (int i = 0; i < m.size(); ++i) {
+        for (size_t i = 0; i < m.size(); ++i) {
             m[i] = i;
             counter++;
         }
@@ -60,7 +60,7 @@ namespace {
 
         counter = 0;
 
-        for (int i = 0; i < m.size(); ++i) {
+        for (size_t i = 0; i < m.size(); ++i) {
             counter++;
         }
 
@@ -80,7 +80,7 @@ namespace {
         VectorData<int> same_type;
         same_type.copy(m);
 
-        for (int i = 0; i < same_type.size(); ++i) {
+        for (size_t i = 0; i < same_type.size(); ++i) {
             ASSERT_EQ(same_type[i],m[i]);
         }
 
@@ -88,7 +88,7 @@ namespace {
         VectorData<float> diff_type;
         diff_type.copy(m);
 
-        for (int i = 0; i < diff_type.size(); ++i) {
+        for (size_t i = 0; i < diff_type.size(); ++i) {
             ASSERT_EQ(diff_type[i],m[i]);
         }
 
@@ -105,7 +105,7 @@ namespace {
         VectorData<float> v2;
         v2.resize(m.size(),fill_val);
 
-        for (int i = 0; i < v2.size(); ++i) {
+        for (size_t i = 0; i < v2.size(); ++i) {
             ASSERT_EQ(v1[i],v2[i]);
         }
 
@@ -168,14 +168,14 @@ namespace {
         //this will not re-allocate
         md.initWithResize(9,9,9);
 
-        for(int i = 0; i < md.mesh.size(); ++i) {
+        for(size_t i = 0; i < md.mesh.size(); ++i) {
             ASSERT_EQ(md.mesh[i],1);
         }
 
         //this will not re-allocate
         md.initWithResize(10,10,10);
 
-        for(int i = 0; i < md.mesh.size(); ++i) {
+        for(size_t i = 0; i < md.mesh.size(); ++i) {
              ASSERT_EQ(md.mesh[i],1);
         }
 

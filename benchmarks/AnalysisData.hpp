@@ -257,9 +257,9 @@ class AnalysisData: public Data_manager {
 
         for (int i = 0; i < (int) timer.timings.size(); i++) {
 
-            int index = totals.size();
+            size_t index = totals.size();
             //find name index
-            for (int j = 0; j < unique_names.size(); ++j) {
+            for (size_t j = 0; j < unique_names.size(); ++j) {
                 if(unique_names[j] == timer.timing_names[i]){
                     index = j;
                 }
@@ -277,7 +277,7 @@ class AnalysisData: public Data_manager {
         }
 
         //now average and submit
-        for (int k = 0; k < unique_names.size(); ++k) {
+        for (size_t k = 0; k < unique_names.size(); ++k) {
             float average = totals[k]/(1.0f*counter[k]);
             add_float_data(unique_names[k]+"_avg",average);
         }

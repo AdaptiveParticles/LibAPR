@@ -507,7 +507,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
             for (x_ = 0; x_ < depth_slice[level].x_num; x_++) {
                 //both z and x are explicitly accessed in the structure
 
-                for (int y_ = 0; y_ < depth_slice[level].y_num; y_++) {
+                for (unsigned int y_ = 0; y_ < (unsigned int) depth_slice[level].y_num; y_++) {
 
                     const float curr_int = depth_slice[level].at(y_,x_,0);
 
