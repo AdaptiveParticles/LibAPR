@@ -372,7 +372,8 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
 
     test_img.init(apr.org_dims(0),apr.org_dims(1),apr.org_dims(2),true);
 
-    PixelData<float> output(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2),true);
+    PixelData<float> output;
+    output.init(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2),true);
 
     timings component_times;
 
