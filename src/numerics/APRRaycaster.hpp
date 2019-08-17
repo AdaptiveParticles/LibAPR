@@ -118,6 +118,7 @@ void
 APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num) {
     glm::vec2 pos = glmObjects->raytracedObject.worldToScreen(glmObjects->mvp, glm::vec3(x_actual, y_actual, z_actual),
                                                               x_num, y_num);
+
     dim1 = round(-pos.y);
     dim2 = round(-pos.x);
 }
@@ -244,14 +245,18 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     VectorData<float> depth_vec;
     depth_vec.resize(max_level + 1);
 
-    depth_slice[max_level].initWithResize(imageHeight, imageWidth, 1);
+    int max_threads = 1;
+
+    std::cout << max_threads << std::endl;
+
+    depth_slice[max_level].initWithResize(imageHeight, imageWidth, max_threads);
     depth_slice[max_level].fill(init_val);
 
 
     for (int i = apr.level_min(); i < max_level; i++) {
         float d = pow(2, max_level - i);
         depth_slice[i].initWithResize(ceil(depth_slice[max_level].y_num / d),
-                                     ceil(depth_slice[max_level].x_num / d), 1);
+                                     ceil(depth_slice[max_level].x_num / d), max_threads);
         depth_slice[i].fill(init_val);
         depth_vec[i] = d;
     }
@@ -295,6 +300,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         }
     }
 
+
     //main loop changing the view angle
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
@@ -323,7 +329,6 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
         //  Set up the APR parallel iterators (these are required for the parallel iteration)
 
-        float y_actual, x_actual, z_actual;
 
         //note the use of the dynamic OpenMP schedule.
         for (unsigned int level = std::min((int) max_level, (int) apr.level_max());
@@ -345,10 +350,13 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(auto) private(z, x) firstprivate(apr_iterator)
 #endif
             for (z = z_begin_l; z < z_end_l; z++) {
                 for (x = x_begin_l; x < x_end_l; ++x) {
+
+                    float y_actual, x_actual, z_actual;
+
                     for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                          apr_iterator++) {
 
@@ -381,13 +389,16 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
                             if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
                                 (dim2 < (int64_t) depth_slice[level].x_num)) {
                                 //get the particle value
-                                S temp_int = particle_data[apr_iterator];
+                                const S temp_int = particle_data[apr_iterator];
 
-                                depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
-                                                                                                       depth_slice[level].mesh[
-                                                                                                               dim1 +
-                                                                                                               (dim2) *
-                                                                                                               depth_slice[level].y_num]);
+                                depth_slice[level].at(dim1,dim2,0) = op(temp_int,
+                                                                          depth_slice[level].at(dim1,dim2,0));
+
+//                                depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
+//                                                                                                       depth_slice[level].mesh[
+//                                                                                                               dim1 +
+//                                                                                                               (dim2) *
+//                                                                                                               depth_slice[level].y_num]);
                             }
                         } else {
                             if ((apr_iterator.y() >= y_end_l)) {
@@ -427,6 +438,8 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
                 for (x = x_begin_l; x < x_end_l; ++x) {
 
+                    float y_actual, x_actual, z_actual;
+
                     for (tree_it.begin(level, z, x);
                          tree_it <
                          tree_it.end(); tree_it++) {
@@ -452,7 +465,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
                             if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
                                 (dim2 < (int64_t) depth_slice[level].x_num)) {
                                 //get the particle value
-                                S temp_int = treeData[tree_it];
+                                const S temp_int = treeData[tree_it];
 
                                 depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
                                                                                                        depth_slice[level].mesh[
@@ -473,6 +486,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
         killObjects();
 
+
         //////////////////////////////////////////////
         ///
         /// Now merge the ray-casts between the different resolutions
@@ -482,7 +496,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         int level;
         int level_min = apr.level_min();
 
-        unsigned int y_, x_, i, k;
+        unsigned int x_, i, k;
 
         for (level = (level_min); level < max_level; level++) {
 
@@ -493,9 +507,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
             for (x_ = 0; x_ < depth_slice[level].x_num; x_++) {
                 //both z and x are explicitly accessed in the structure
 
-                for (y_ = 0; y_ < depth_slice[level].y_num; y_++) {
+                for (int y_ = 0; y_ < depth_slice[level].y_num; y_++) {
 
-                    const float curr_int = depth_slice[level].mesh[y_ + (x_) * depth_slice[level].y_num];
+                    const float curr_int = depth_slice[level].at(y_,x_,0);
 
                     const unsigned int dim1 = y_ * step_size;
                     const unsigned int dim2 = x_ * step_size;
@@ -530,7 +544,6 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
                   cast_views.mesh.begin() + view_count * imageHeight * imageWidth);
 
         view_count++;
-
 
         if (view_count >= num_views) {
             break;
