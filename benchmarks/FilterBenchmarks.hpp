@@ -253,6 +253,12 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     VectorData<float> output(apr_it.total_number_particles());
     VectorData<float> tree_data(tree_it.total_number_particles());
 
+    auto access = apr.gpuAPRHelper();
+    auto tree_access = apr.gpuTreeHelper();
+
+    analysisData.add_float_data("y_vec_send",apr_it.total_number_particles(apr_it.level_max()-1));
+    analysisData.add_float_data("apr_xz_size",access.linearAccess->xz_end_vec.size());
+    analysisData.add_float_data("tree_xz_size",tree_access.linearAccess->xz_end_vec.size());
 
     /// burn-in
     if(stencil_size == 3) {
@@ -261,6 +267,11 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto tree_access = apr.gpuTreeHelper();
 
             timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+
+            if(r==0){
+                analysisData.add_float_data("ne_rows",tmp.counter_ne_rows);
+                analysisData.add_float_data("ne_rows_int",tmp.counter_ne_rows_int);
+            }
         }
     } else if(stencil_size == 5) {
         for(int r = 0; r < std::max(num_rep/50, 1); ++r) {

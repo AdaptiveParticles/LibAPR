@@ -454,6 +454,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     compute_ne_rows(tree_access,ne_counter,ne_rows);
     timer.stop_timer();
 
+    ret.counter_ne_rows = ne_rows.size();
+
     ret.compute_ne_rows = timer.timings.back();
 
 
@@ -463,6 +465,8 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
     timer.stop_timer();
+
+    ret.counter_ne_rows_int = ne_rows_interior.size();
 
     ret.compute_ne_rows_interior = timer.timings.back();
 

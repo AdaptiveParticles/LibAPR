@@ -23,6 +23,9 @@ struct timings {
     float compute_ne_rows_interior = 0;
     float init_access = 0;
     std::vector<float> lvl_timings;
+
+    uint64_t counter_ne_rows = 0;
+    uint64_t counter_ne_rows_int = 0;
 };
 
 void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty);
