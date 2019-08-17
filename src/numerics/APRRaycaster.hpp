@@ -18,11 +18,10 @@
 #include <cmath>
 
 #include "data_structures/Mesh/PixelData.hpp"
-#include "data_structures/APR/PartCellData.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/PartCellData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 
 #include "data_structures/APR/APR.hpp"
-#include "data_structures/APR/APRTree.hpp"
 #include "numerics/APRRaycaster.cpp"
 #include "vis/Camera.cpp"
 #include "vis/Object.cpp"
@@ -78,6 +77,12 @@ public:
     void killObjects();
 
     void getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num);
+
+private:
+
+    std::vector<PixelData<uint16_t>> depth_slice;
+
+
 };
 
 #ifndef M_PI
@@ -113,6 +118,7 @@ void
 APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num) {
     glm::vec2 pos = glmObjects->raytracedObject.worldToScreen(glmObjects->mvp, glm::vec3(x_actual, y_actual, z_actual),
                                                               x_num, y_num);
+
     dim1 = round(-pos.y);
     dim2 = round(-pos.x);
 }
@@ -133,9 +139,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     int max_level = apr.level_max() + reconPatch.level_delta;
 
-    int max_img_y = ceil(apr.orginal_dimensions(0) * pow(2.0, reconPatch.level_delta));
-    int max_img_x = ceil(apr.orginal_dimensions(1) * pow(2.0, reconPatch.level_delta));
-    int max_img_z = ceil(apr.orginal_dimensions(2) * pow(2.0, reconPatch.level_delta));
+    int max_img_y = ceil(apr.org_dims(0) * pow(2.0, reconPatch.level_delta));
+    int max_img_x = ceil(apr.org_dims(1) * pow(2.0, reconPatch.level_delta));
+    int max_img_z = ceil(apr.org_dims(2) * pow(2.0, reconPatch.level_delta));
 
 
     if (reconPatch.y_end == -1) {
@@ -177,8 +183,8 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         return;
     }
 
-    uint64_t imageWidth = apr.orginal_dimensions(1);
-    uint64_t imageHeight = apr.orginal_dimensions(0);
+    uint64_t imageWidth = apr.org_dims(1);
+    uint64_t imageHeight = apr.org_dims(0);
 
     if(scale_down != 1){
         imageWidth = scale_down*imageWidth;
@@ -193,7 +199,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     float height = this->height;
 
-    float radius = this->radius_factor * apr.orginal_dimensions(0);
+    float radius = this->radius_factor * apr.org_dims(0);
 
     ///////////////////////////////////////////
     //
@@ -201,13 +207,13 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     //
     ////////////////////////////////////////////
 
-    float x0 = height * apr.orginal_dimensions(1)* this->scale_x ;
-    float y0 = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0 = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0 = height * apr.org_dims(1)* this->scale_x ;
+    float y0 = apr.org_dims(0) * .5 * this->scale_y;
+    float z0 = apr.org_dims(2) * .5 * this->scale_z;
 
-    float x0f = height * apr.orginal_dimensions(1) * this->scale_x;
-    float y0f = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0f = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0f = height * apr.org_dims(1) * this->scale_x;
+    float y0f = apr.org_dims(0) * .5 * this->scale_y;
+    float z0f = apr.org_dims(2) * .5 * this->scale_z;
 
     float theta_0 = this->theta_0;
     float theta_f = this->theta_final;
@@ -215,7 +221,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     uint64_t num_views = floor((theta_f - theta_0) / theta_delta);
 
-    cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
+    cast_views.initWithResize(imageHeight, imageWidth, num_views);
 
     uint64_t view_count = 0;
     float init_val = 0;
@@ -233,18 +239,25 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     ///
     /////////////////////////////////////
 
-    std::vector<PixelData<S>> depth_slice;
+
     depth_slice.resize(max_level + 1);
 
-    std::vector<float> depth_vec;
+    VectorData<float> depth_vec;
     depth_vec.resize(max_level + 1);
-    depth_slice[max_level].initWithValue(imageHeight, imageWidth, 1, init_val);
+
+    int max_threads = 1;
+
+    std::cout << max_threads << std::endl;
+
+    depth_slice[max_level].initWithResize(imageHeight, imageWidth, max_threads);
+    depth_slice[max_level].fill(init_val);
 
 
-    for (size_t i = apr.level_min(); i < max_level; i++) {
+    for (int i = apr.level_min(); i < max_level; i++) {
         float d = pow(2, max_level - i);
-        depth_slice[i].initWithValue(ceil(depth_slice[max_level].y_num / d),
-                                     ceil(depth_slice[max_level].x_num / d), 1, init_val);
+        depth_slice[i].initWithResize(ceil(depth_slice[max_level].y_num / d),
+                                     ceil(depth_slice[max_level].x_num / d), max_threads);
+        depth_slice[i].fill(init_val);
         depth_vec[i] = d;
     }
 
@@ -259,7 +272,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     ParticleData<float> jitter_z;
 
     //initialize the iterator
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     if (jitter) {
 
@@ -274,10 +287,10 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         jitter_x[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_y[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_z[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
@@ -286,6 +299,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
             }
         }
     }
+
 
     //main loop changing the view angle
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
@@ -296,7 +310,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         ///
         //////////////////////////////
 
-        for (size_t i = apr.level_min(); i <= max_level; i++) {
+        for (int i = apr.level_min(); i <= max_level; i++) {
             std::fill(depth_slice[i].mesh.begin(), depth_slice[i].mesh.end(), init_val);
         }
 
@@ -315,7 +329,6 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
         //  Set up the APR parallel iterators (these are required for the parallel iteration)
 
-        float y_actual, x_actual, z_actual;
 
         //note the use of the dynamic OpenMP schedule.
         for (unsigned int level = std::min((int) max_level, (int) apr.level_max());
@@ -324,24 +337,27 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
             const float step_size = pow(2, max_level - level);
 
             int x_begin_l = (int) floor(x_begin / step_size);
-            int x_end_l = std::min((int) ceil(x_end / step_size), (int) apr.spatial_index_x_max(level));
+            int x_end_l = std::min((int) ceil(x_end / step_size), (int) apr_iterator.x_num(level));
 
             int z_begin_l = (int) floor(z_begin / step_size);
-            int z_end_l = std::min((int) ceil(z_end / step_size), (int) apr.spatial_index_z_max(level));
+            int z_end_l = std::min((int) ceil(z_end / step_size), (int) apr_iterator.z_num(level));
 
             int y_begin_l = (int) floor(y_begin / step_size);
-            int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr.spatial_index_y_max(level));
+            int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr_iterator.y_num(level));
 
             int z = 0;
             int x = 0;
 
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#pragma omp parallel for schedule(auto) private(z, x) firstprivate(apr_iterator)
 #endif
             for (z = z_begin_l; z < z_end_l; z++) {
                 for (x = x_begin_l; x < x_end_l; ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+
+                    float y_actual, x_actual, z_actual;
+
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                          apr_iterator++) {
 
                         if ((apr_iterator.y() >= y_begin_l) && (apr_iterator.y() < y_end_l)) {
@@ -350,18 +366,17 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
                             if (jitter) {
                                 y_actual = (apr_iterator.y() + 0.5f + jitter_y[apr_iterator]) * this->scale_y *
-                                           depth_vec[apr_iterator.level()];
-                                x_actual = (apr_iterator.x() + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
-                                           depth_vec[apr_iterator.level()];
-                                z_actual = (apr_iterator.z() + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
-                                           depth_vec[apr_iterator.level()];
+                                           depth_vec[level];
+                                x_actual = (x + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
+                                           depth_vec[level];
+                                z_actual = (z + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
+                                           depth_vec[level];
                             } else {
-                                y_actual = apr_iterator.y_global() * this->scale_y;
-                                x_actual = apr_iterator.x_global() * this->scale_x;
-                                z_actual = apr_iterator.z_global() * this->scale_z;
+                                y_actual = apr_iterator.y_global(level,apr_iterator.y()) * this->scale_y;
+                                x_actual = apr_iterator.x_global(level,x) * this->scale_x;
+                                z_actual = apr_iterator.z_global(level,z) * this->scale_z;
                             }
 
-                            const int level = apr_iterator.level();
 
                             int dim1 = 0;
                             int dim2 = 0;
@@ -374,13 +389,16 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
                             if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
                                 (dim2 < (int64_t) depth_slice[level].x_num)) {
                                 //get the particle value
-                                S temp_int = particle_data[apr_iterator];
+                                const S temp_int = particle_data[apr_iterator];
 
-                                depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
-                                                                                                       depth_slice[level].mesh[
-                                                                                                               dim1 +
-                                                                                                               (dim2) *
-                                                                                                               depth_slice[level].y_num]);
+                                depth_slice[level].at(dim1,dim2,0) = op(temp_int,
+                                                                          depth_slice[level].at(dim1,dim2,0));
+
+//                                depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
+//                                                                                                       depth_slice[level].mesh[
+//                                                                                                               dim1 +
+//                                                                                                               (dim2) *
+//                                                                                                               depth_slice[level].y_num]);
                             }
                         } else {
                             if ((apr_iterator.y() >= y_end_l)) {
@@ -403,13 +421,13 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
             const float step_size = pow(2, max_level - level);
 
             int x_begin_l = (int) floor(x_begin / step_size);
-            int x_end_l = std::min((int) ceil(x_end / step_size), (int) apr.spatial_index_x_max(level));
+            int x_end_l = std::min((int) ceil(x_end / step_size), (int) apr_iterator.x_num(level));
 
             int z_begin_l = (int) floor(z_begin / step_size);
-            int z_end_l = std::min((int) ceil(z_end / step_size), (int) apr.spatial_index_z_max(level));
+            int z_end_l = std::min((int) ceil(z_end / step_size), (int) apr_iterator.z_num(level));
 
             int y_begin_l = (int) floor(y_begin / step_size);
-            int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr.spatial_index_y_max(level));
+            int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr_iterator.y_num(level));
 
             int z = 0;
             int x = 0;
@@ -420,7 +438,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
                 for (x = x_begin_l; x < x_end_l; ++x) {
 
-                    for (tree_it.set_new_lzxy(level, z, x, y_begin_l);
+                    float y_actual, x_actual, z_actual;
+
+                    for (tree_it.begin(level, z, x);
                          tree_it <
                          tree_it.end(); tree_it++) {
 
@@ -430,11 +450,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
 
                             y_actual = (tree_it.y() + 0.5) * pow(2, apr.level_max() - level) * this->scale_y;
-                            x_actual = (tree_it.x() + 0.5) * pow(2, apr.level_max() - level) * this->scale_x;
-                            z_actual = (tree_it.z() + 0.5) * pow(2, apr.level_max() - level) * this->scale_z;
+                            x_actual = (x + 0.5) * pow(2, apr.level_max() - level) * this->scale_x;
+                            z_actual = (z + 0.5) * pow(2, apr.level_max() - level) * this->scale_z;
 
-
-                            const int level = tree_it.level();
 
                             int dim1 = 0;
                             int dim2 = 0;
@@ -447,7 +465,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
                             if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
                                 (dim2 < (int64_t) depth_slice[level].x_num)) {
                                 //get the particle value
-                                S temp_int = treeData[tree_it];
+                                const S temp_int = treeData[tree_it];
 
                                 depth_slice[level].mesh[dim1 + (dim2) * depth_slice[level].y_num] = op(temp_int,
                                                                                                        depth_slice[level].mesh[
@@ -468,17 +486,17 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
         killObjects();
 
+
         //////////////////////////////////////////////
         ///
         /// Now merge the ray-casts between the different resolutions
         ///
         ////////////////////////////////////////////////
 
-        uint64_t level;
+        int level;
+        int level_min = apr.level_min();
 
-        uint64_t level_min = apr.level_min();
-
-        unsigned int y_, x_, i, k;
+        unsigned int x_, i, k;
 
         for (level = (level_min); level < max_level; level++) {
 
@@ -489,9 +507,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
             for (x_ = 0; x_ < depth_slice[level].x_num; x_++) {
                 //both z and x are explicitly accessed in the structure
 
-                for (y_ = 0; y_ < depth_slice[level].y_num; y_++) {
+                for (unsigned int y_ = 0; y_ < (unsigned int) depth_slice[level].y_num; y_++) {
 
-                    const float curr_int = depth_slice[level].mesh[y_ + (x_) * depth_slice[level].y_num];
+                    const float curr_int = depth_slice[level].at(y_,x_,0);
 
                     const unsigned int dim1 = y_ * step_size;
                     const unsigned int dim2 = x_ * step_size;
@@ -527,7 +545,6 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
         view_count++;
 
-
         if (view_count >= num_views) {
             break;
         }
@@ -552,8 +569,8 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     //
 
 
-    uint64_t imageWidth = apr.orginal_dimensions(1);
-    uint64_t imageHeight = apr.orginal_dimensions(0);
+    uint64_t imageWidth = apr.org_dims(1);
+    uint64_t imageHeight = apr.org_dims(0);
 
     ////////////////////////////////
     //  Set up the projection stuff
@@ -561,7 +578,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
     float height = this->height;
 
-    float radius = this->radius_factor * apr.orginal_dimensions(0);
+    float radius = this->radius_factor * apr.org_dims(0);
 
     ///////////////////////////////////////////
     //
@@ -569,13 +586,13 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     //
     ////////////////////////////////////////////
 
-    float x0 = height * apr.orginal_dimensions(1) * this->scale_x;
-    float y0 = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0 = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0 = height * apr.org_dims(1) * this->scale_x;
+    float y0 = apr.org_dims(0) * .5 * this->scale_y;
+    float z0 = apr.org_dims(2) * .5 * this->scale_z;
 
-    float x0f = height * apr.orginal_dimensions(1) * this->scale_x;
-    float y0f = apr.orginal_dimensions(0) * .5 * this->scale_y;
-    float z0f = apr.orginal_dimensions(2) * .5 * this->scale_z;
+    float x0f = height * apr.org_dims(1) * this->scale_x;
+    float y0f = apr.org_dims(0) * .5 * this->scale_y;
+    float z0f = apr.org_dims(2) * .5 * this->scale_z;
 
     float theta_0 = this->theta_0;
     float theta_f = this->theta_final;
@@ -583,7 +600,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
     uint64_t num_views = floor((theta_f - theta_0) / theta_delta);
 
-    cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
+    cast_views.initWithResize(imageHeight, imageWidth, num_views);
 
     uint64_t view_count = 0;
     float init_val = 0;
@@ -626,7 +643,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     ParticleData<float> jitter_z;
 
     //initialize the iterator
-    APRIterator apr_iterator(apr.apr_access);
+    auto apr_iterator = apr.iterator();
 
     if (jitter) {
 
@@ -641,10 +658,10 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
                         jitter_x[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_y[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
                         jitter_z[apr_iterator] = jitter_factor * ((std::rand() - 500) % 1000) / 1000.0f;
@@ -691,27 +708,26 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x, y_actual, x_actual, z_actual) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
                         //get apr info
 
                         if (jitter) {
                             y_actual = (apr_iterator.y() + 0.5f + jitter_y[apr_iterator]) * this->scale_y *
-                                       depth_vec[apr_iterator.level()];
-                            x_actual = (apr_iterator.x() + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
-                                       depth_vec[apr_iterator.level()];
-                            z_actual = (apr_iterator.z() + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
-                                       depth_vec[apr_iterator.level()];
+                                       depth_vec[level];
+                            x_actual = (x + 0.5f + jitter_x[apr_iterator]) * this->scale_x *
+                                       depth_vec[level];
+                            z_actual = (z + 0.5f + jitter_z[apr_iterator]) * this->scale_z *
+                                       depth_vec[level];
                         } else {
-                            y_actual = apr_iterator.y_global() * this->scale_y;
-                            x_actual = apr_iterator.x_global() * this->scale_x;
-                            z_actual = apr_iterator.z_global() * this->scale_z;
+                            y_actual = apr_iterator.y_global(level,apr_iterator.y()) * this->scale_y;
+                            x_actual = apr_iterator.x_global(level,x) * this->scale_x;
+                            z_actual = apr_iterator.z_global(level,z) * this->scale_z;
                         }
 
-                        const int level = apr_iterator.level();
 
                         int dim1 = 0;
                         int dim2 = 0;

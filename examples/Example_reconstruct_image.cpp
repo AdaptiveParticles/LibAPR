@@ -35,7 +35,7 @@ Options:
 
 #include "data_structures/APR/APR.hpp"
 #include "io/TiffUtils.hpp"
-#include"data_structures/APR/ParticleData.hpp"
+#include"data_structures/APR/particles/ParticleData.hpp"
 #include"io/APRFile.hpp"
 #include "numerics/APRReconstruction.hpp"
 
@@ -181,16 +181,16 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-                         apr_iterator.set_iterator_to_particle_next_particle()) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
 
-                        levelp[apr_iterator] = apr_iterator.level();
+                        levelp[apr_iterator] = level;
 
-                        xp[apr_iterator] = apr_iterator.x();
+                        xp[apr_iterator] = x;
                         yp[apr_iterator] = apr_iterator.y();
-                        zp[apr_iterator] = apr_iterator.z();
+                        zp[apr_iterator] = z;
                     }
                 }
             }

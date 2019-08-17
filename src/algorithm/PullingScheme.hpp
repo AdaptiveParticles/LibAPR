@@ -8,7 +8,7 @@
 #ifndef PARTPLAY_PULLING_SCHEME_HPP
 #define PARTPLAY_PULLING_SCHEME_HPP
 
-#include "data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/access/RandomAccess.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include <vector>
 
@@ -25,6 +25,9 @@ for(jn = boundaries[0][0]; jn < boundaries[0][1]; jn++) \
     for(in = boundaries[1][0]; in < boundaries[1][1]; in++) \
         for(kn = boundaries[2][0]; kn < boundaries[2][1]; kn++)
 
+#define NEIGHBOURLOOP2(jn,in,boundaries) \
+for(jn = boundaries[0][0]; jn < boundaries[0][1]; jn++) \
+    for(in = boundaries[1][0]; in < boundaries[1][1]; in++)
 
 #define CHILDRENLOOP(jn,in,kn, children_boundaries) \
 for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
@@ -51,14 +54,21 @@ public:
     template<typename T>
     void fill(float k, const PixelData<T> &input);
     void pulling_scheme_main();
-    void initialize_particle_cell_tree(const APRAccess &apr_access);
+    void initialize_particle_cell_tree(const GenInfo &aprInfo);
     std::vector<PixelData<uint8_t>>& getParticleCellTree() { return particle_cell_tree; }
+
+    int pct_level_max(){
+        return l_max;
+    };
+    int pct_level_min(){
+        return l_min;
+    };
 
 private:
     void set_ascendant_neighbours(int level);
     void set_filler(int level);
     void fill_neighbours(int level);
-    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
+    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level);
     std::vector<PixelData<uint8_t>> particle_cell_tree;
 
     int l_min;
@@ -68,16 +78,16 @@ private:
 /**
  * Initializes particle_cell_tree up to level (max - 1)
  */
-inline void PullingScheme::initialize_particle_cell_tree(const APRAccess &apr_access) {
-    l_max = apr_access.l_max - 1;
-    l_min = apr_access.l_min;
+inline void PullingScheme::initialize_particle_cell_tree(const GenInfo &aprInfo) {
+    l_max = aprInfo.l_max - 1;
+    l_min = aprInfo.l_min;
 
     particle_cell_tree.resize(l_max + 1);
 
     for (int l = l_min; l <= l_max; ++l) {
-        particle_cell_tree[l].initWithValue(ceil(apr_access.org_dims[0] / pow(2.0, l_max - l + 1)),
-                                            ceil(apr_access.org_dims[1] / pow(2.0, l_max - l + 1)),
-                                            ceil(apr_access.org_dims[2] / pow(2.0, l_max - l + 1)),
+        particle_cell_tree[l].initWithValue(ceil(aprInfo.org_dims[0] / pow(2.0, l_max - l + 1)),
+                                            ceil(aprInfo.org_dims[1] / pow(2.0, l_max - l + 1)),
+                                            ceil(aprInfo.org_dims[2] / pow(2.0, l_max - l + 1)),
                                             EMPTY);
     }
 }
@@ -279,7 +289,7 @@ inline void PullingScheme::fill_neighbours(int level) {
     }
 }
 
-inline void PullingScheme::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level) {
+inline void PullingScheme::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level) {
     if(new_level >= l_min) {
         size_t new_x_num = ((x_num + 1) / 2);
         size_t new_y_num = ((y_num + 1) / 2);

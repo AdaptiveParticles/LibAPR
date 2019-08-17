@@ -30,7 +30,7 @@ Note: fine grained parameters can be tuned within the file, to play with lossles
 
 #include "Example_compress_apr.h"
 #include "io/TiffUtils.hpp"
-#include "data_structures/APR/ParticleData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include "io/APRFile.hpp"
 #include "numerics/APRReconstruction.hpp"
 
@@ -61,64 +61,68 @@ int main(int argc, char **argv) {
 
     aprFile.close();
 
-    apr.parameters.input_dir = options.directory;
 
     std::string name = options.input;
     //remove the file extension
     name.erase(name.end()-3,name.end());
 
-    ParticleData<uint16_t> symbols;
-
     APRFile compFile;
     compFile.open(options.directory,"WRITE");
 
-    compFile.aprCompress.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
-    compFile.aprCompress.set_compression_type(options.compress_type);
+    parts.compressor.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
+    parts.compressor.set_compression_type(options.compress_type);
 
-    std::cerr << "This will be updated soon, the options just need to be exposed through the APRFILE" << std::endl;
+    //set the background to the minimum
+    float background = *std::min_element(parts.data.begin(),parts.data.end());
+    parts.compressor.set_background(background);
+
+    compFile.write_apr(apr);
 
     //compress the APR and write to disk
     timer.start_timer("compress and write");
 
-    compFile.write_apr(apr);
-    compFile.write_particles(apr,"comp_parts",parts);
+    compFile.write_particles("comp_parts",parts);
 
     timer.stop_timer();
 
-    float time_write = (float) timer.timings.back();
+    float time_write = timer.timings.back();
 
-//    //read the APR and decompress
-//    timer.start_timer("read and decompress");
-//    apr.read_apr(options.directory + name + "_compress_apr.h5");
-//    timer.stop_timer();
-//
-//    float time_read = (float) timer.timings.back();
-//
-//    float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//    std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
-//
-//    float apr_compressed_file_size = fileSizeInfo.total_file_size;
-//
-//    std::cout << "Compressed (Lossy - WNL) APR: " << apr_compressed_file_size << " MB" << std::endl;
-//    std::cout << "Compression Ratio: " << original_pixel_image_size/apr_compressed_file_size << std::endl;
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//
-//    std::cout << "Effective Datarate Write (by original image size): " << original_pixel_image_size/time_write << " MB*/s" << std::endl;
-//    std::cout << "Effective Datarate Read (by original image size): " << original_pixel_image_size/time_read << " MB*/s" << std::endl;
-//
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//
-//    //writes the piece-wise constant reconstruction of the APR to file for comparison
-//    if(options.output_tiff) {
-//        PixelData<uint16_t> img;
-//        APRReconstruction::interp_img(apr,img, parts);
-//        std::string output = options.directory + name + "_compress.tif";
-//        TiffUtils::saveMeshAsTiff(output, img);
-//    }
+
+    float original_pixel_image_size = (2.0f*apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2))/(1000000.0);
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
+
+
+    float apr_compressed_file_size = compFile.current_file_size_MB();
+    compFile.close();
+
+    timer.start_timer("decompress and read");
+    compFile.open(options.directory,"READ");
+    compFile.read_particles(apr,"comp_parts",parts);
+    compFile.close();
+    timer.stop_timer();
+
+    float time_read = timer.timings.back();
+
+    std::cout << "Compressed (Lossy - WNL) APR: " << apr_compressed_file_size << " MB" << std::endl;
+    std::cout << "Compression Ratio: " << original_pixel_image_size/apr_compressed_file_size << std::endl;
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    std::cout << "Effective Datarate Write (by original image size): " << original_pixel_image_size/time_write << " MB*/s" << std::endl;
+    std::cout << "Effective Datarate Read (by original image size): " << original_pixel_image_size/time_read << " MB*/s" << std::endl;
+
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    //writes the piece-wise constant reconstruction of the APR to file for comparison
+    if(options.output_tiff) {
+        PixelData<uint16_t> img;
+        APRReconstruction::interp_img(apr,img, parts);
+        std::string output = options.directory + name + "_compress.tif";
+        TiffUtils::saveMeshAsTiff(output, img);
+    }
 }
 
 

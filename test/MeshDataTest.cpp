@@ -7,6 +7,113 @@
 #include <random>
 
 namespace {
+
+
+    class VectorDataTest : public ::testing::Test {
+        typedef int MESH_TYPE;
+    protected:
+        void SetUp() override {
+            m.init(sz);
+            // Initialize it with some data
+            for (int y = 0; y < sz; ++y) {
+                m[y] = y;
+            }
+        }
+        const int sz = 113;
+
+        VectorData<MESH_TYPE> m;
+    };
+
+    TEST_F(VectorDataTest, InitTest) {
+        // Check initialize and resize and size are working correctly
+
+        VectorData<int> t_m;
+        t_m.resize(m.size());
+
+        uint64_t counter = 0;
+
+        for (size_t i = 0; i < t_m.size(); ++i) {
+            counter++;
+        }
+
+        ASSERT_EQ(counter,m.size());
+
+    }
+
+    TEST_F(VectorDataTest, resize) {
+        // Check initialize and resize and size are working correctly
+
+        //shrinking the array with not-reallocate memory when using resize
+        m.resize(sz/2);
+
+        uint64_t counter = 0;
+
+        for (size_t i = 0; i < m.size(); ++i) {
+            m[i] = i;
+            counter++;
+        }
+
+        ASSERT_EQ(counter,m.size());
+
+        //however growing larger then that will re-allocate the memory
+        m.resize(sz*2);
+
+        counter = 0;
+
+        for (size_t i = 0; i < m.size(); ++i) {
+            counter++;
+        }
+
+        ASSERT_EQ(counter,m.size());
+
+
+    }
+
+    TEST_F(VectorDataTest, BackTest) {
+
+        ASSERT_EQ(m.back(),sz-1);
+    }
+
+    TEST_F(VectorDataTest, CopyTest) {
+        // Change type and compare if still OK
+
+        VectorData<int> same_type;
+        same_type.copy(m);
+
+        for (size_t i = 0; i < same_type.size(); ++i) {
+            ASSERT_EQ(same_type[i],m[i]);
+        }
+
+        //also works copying to different types
+        VectorData<float> diff_type;
+        diff_type.copy(m);
+
+        for (size_t i = 0; i < diff_type.size(); ++i) {
+            ASSERT_EQ(diff_type[i],m[i]);
+        }
+
+
+    }
+
+    TEST_F(VectorDataTest, FillTest) {
+        // Change type and compare if still OK
+        VectorData<float> v1;
+        v1.init(m.size());
+        float fill_val = 23.2;
+        v1.fill(fill_val);
+
+        VectorData<float> v2;
+        v2.resize(m.size(),fill_val);
+
+        for (size_t i = 0; i < v2.size(); ++i) {
+            ASSERT_EQ(v1[i],v2[i]);
+        }
+
+
+    }
+
+
+
     class MeshDataTest : public ::testing::Test {
         typedef char MESH_TYPE;
     protected:
@@ -52,6 +159,30 @@ namespace {
         const size_t sizeOfMesh = (size_t)yLen * xLen * zLen;
         PixelData<MESH_TYPE> m{yLen, xLen, zLen};
     };
+
+    TEST_F(MeshDataTest, resizeTest) {
+
+        PixelData<int> md;
+        md.initWithValue(10,10,10,1);
+
+        //this will not re-allocate
+        md.initWithResize(9,9,9);
+
+        for(size_t i = 0; i < md.mesh.size(); ++i) {
+            ASSERT_EQ(md.mesh[i],1);
+        }
+
+        //this will not re-allocate
+        md.initWithResize(10,10,10);
+
+        for(size_t i = 0; i < md.mesh.size(); ++i) {
+             ASSERT_EQ(md.mesh[i],1);
+        }
+
+
+    }
+
+
 
     TEST(MeshDataSimpleTest, ConstructorTest) {
         // default
@@ -300,6 +431,112 @@ namespace {
         // out of bounds
         ASSERT_STREQ(m.getStrIndex(90).c_str(), "(ErrIdx)");
         ASSERT_STREQ(m.getStrIndex(-1).c_str(), "(ErrIdx)");
+    }
+
+
+
+    TEST(MeshDataSimpleTest, PadArray) {
+
+        bool success = true;
+
+        PixelData<int> m;
+
+        std::vector<int> vals = {0,1,2,3,4,5,6,7};
+
+        std::vector<int> expected = {
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+
+                3, 2, 3, 2,
+                1, 0, 1, 0,
+                3, 2, 3, 2,
+                1, 0, 1, 0,
+
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+                7, 6, 7, 6,
+                5, 4, 5, 4,
+
+                3, 2, 3, 2,
+                1, 0, 1, 0,
+                3, 2, 3, 2,
+                1, 0, 1, 0
+        };
+
+        PixelData<int> padd_sol;
+        padd_sol.init_from_mesh(4,4,4,expected.data());
+
+        m.init_from_mesh(2,2,2,vals.data());
+
+        PixelData<int> padd;
+
+        paddPixels(m, padd, 2, 2, 2);
+
+        //check
+        for (size_t i = 0; i < padd_sol.mesh.size(); ++i) {
+            int computed_val = padd.mesh[i];
+            int expected_val = padd_sol.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+
+        PixelData<int> unpadd;
+
+        unpaddPixels(unpadd, padd, 2, 2, 2);
+
+        //check
+        for (size_t i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        // quick padd/unpad check with different dims.
+        paddPixels(m, padd, 2, 0, 1);
+        unpaddPixels(unpadd, padd, 2, 2, 2);
+
+        //check
+        for (size_t i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        // quick padd/unpad check with different dims.
+        paddPixels(m, padd, 0, 2, 1);
+        unpaddPixels(unpadd, padd, 2, 2, 2);
+
+        //check
+        for (size_t i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        // quick padd/unpad check with different dims.
+        paddPixels(m, padd, 1, 2, 0);
+        unpaddPixels(unpadd, padd, 2, 2, 2);
+
+        //check
+        for (size_t i = 0; i < unpadd.mesh.size(); ++i) {
+            int computed_val = unpadd.mesh[i];
+            int expected_val = m.mesh[i];
+            if(computed_val != expected_val){
+                success = false;
+            }
+        }
+
+        ASSERT_TRUE(success);
     }
 }
 

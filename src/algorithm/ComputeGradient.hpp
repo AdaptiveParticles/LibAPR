@@ -18,6 +18,12 @@ class ComputeGradient {
 
 public:
 
+    APRTimer timer;
+
+    template<typename ImageType,typename tempType>
+    inline void get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<tempType> &local_scale_temp, const APRParameters &par);
+
+
     template<typename T>
     void get_smooth_bspline_3D(PixelData<T> &input, float lambda);
 
@@ -61,6 +67,59 @@ public:
 
 };
 
+template<typename ImageType,typename tempType>
+inline void ComputeGradient::get_gradient(PixelData<ImageType> &image_temp, PixelData<ImageType> &grad_temp, PixelData<tempType> &local_scale_temp, const APRParameters &par) {
+    //  Bevan Cheeseman 2018
+    //  Calculate the gradient from the input image. (You could replace this method with your own)
+    //  Input: full sized image.
+    //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
+
+    timer.start_timer("smooth_bspline");
+    if(par.lambda > 0) {
+        get_smooth_bspline_3D(image_temp, par.lambda);
+    }
+    timer.stop_timer();
+
+
+#ifdef HAVE_LIBTIFF
+    if(par.output_steps){
+        TiffUtils::saveMeshAsTiff(par.output_dir + "smooth_bsplines.tif", image_temp);
+    }
+#endif
+
+    timer.start_timer("calc_bspline_fd_mag_ds");
+    calc_bspline_fd_ds_mag(image_temp,grad_temp,par.dx,par.dy,par.dz);
+    timer.stop_timer();
+
+
+    timer.start_timer("down-sample_b-spline");
+    downsample(image_temp, local_scale_temp,
+               [](const float &x, const float &y) -> float { return x + y; },
+               [](const float &x) -> float { return x / 8.0; });
+    timer.stop_timer();
+
+    if(par.lambda > 0){
+        if(image_temp.y_num > 2) {
+            timer.start_timer("calc_inv_bspline_y");
+            calc_inv_bspline_y(local_scale_temp);
+            timer.stop_timer();
+        }
+        if(image_temp.x_num > 2) {
+            timer.start_timer("calc_inv_bspline_x");
+            calc_inv_bspline_x(local_scale_temp);
+            timer.stop_timer();
+        }
+        if(image_temp.z_num > 2) {
+            timer.start_timer("calc_inv_bspline_z");
+            calc_inv_bspline_z(local_scale_temp);
+            timer.stop_timer();
+        }
+    }
+
+}
+
+
+
 template<typename T>
 void ComputeGradient::mask_gradient(PixelData<T>& grad_ds, const APRParameters& par){
     //
@@ -70,12 +129,15 @@ void ComputeGradient::mask_gradient(PixelData<T>& grad_ds, const APRParameters& 
     //
     //
 
-    PixelData<uint8_t> temp_mask;
-    PixelData<uint8_t> temp_ds;
+    //PixelData<uint16_t> temp_mask;
+    PixelData<uint16_t> temp_ds;
 
     std::string file_name = par.input_dir + par.mask_file;
 #ifdef HAVE_LIBTIFF
-    TiffUtils::getMesh(file_name, temp_mask);
+    //TiffUtils::getMesh(file_name, temp_mask);
+
+    PixelData<uint16_t> temp_mask = TiffUtils::getMesh<uint16_t>(file_name);
+
 #endif
     downsample(temp_ds, temp_mask,
                [](const T &x, const T &y) -> T { return std::max(x, y); },
@@ -117,21 +179,21 @@ void ComputeGradient::get_smooth_bspline_3D(PixelData<T>& input, float lambda) {
 
     float tol = 0.0001;
 
-    if(input.y_num > 1) {
+    if(input.y_num > 2) {
         //Y direction bspline
         spline_timer.start_timer("bspline_filt_rec_y");
         bspline_filt_rec_y(input, lambda, tol);
         spline_timer.stop_timer();
     }
 
-    if(input.x_num > 1) {
+    if(input.x_num > 2) {
         //X direction bspline
         spline_timer.start_timer("bspline_filt_rec_x");
         bspline_filt_rec_x(input, lambda, tol);
         spline_timer.stop_timer();
     }
 
-    if(input.z_num > 1) {
+    if(input.z_num > 2) {
 //    //Z direction bspline
         spline_timer.start_timer("bspline_filt_rec_z");
         bspline_filt_rec_z(input, lambda, tol);
@@ -154,6 +216,18 @@ inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,floa
 }
 
 template<typename T>
+inline T round(T val,const bool rounding){
+    if(rounding){
+        return std::round(val);
+    } else {
+        return val;
+    }
+}
+
+
+
+
+template<typename T>
 void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float tol, int k0Len) {
     //
     //  Bevan Cheeseman 2016
@@ -174,8 +248,10 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
-    const size_t minLen = y_num;
-    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),minLen);
+//    const size_t minLen = y_num;
+    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),y_num);
+
+    const size_t k0 = k0Len > 0 ? k0Len : (size_t)(ceil(std::abs(log(tol)/log(rho))));
 
 
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
@@ -198,10 +274,19 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
+    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
+    for(size_t k = (minLen); k < k0;k++){
+        bc1_vec[minLen-1] += bc1_vec[k];
+    }
+
     std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
     for (size_t k = 0; k < k0; ++k) {
         bc2_vec[k] = impulse_resp_vec_f[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc2_vec[minLen-1] += bc2_vec[k];
     }
 
     std::vector<float> bc3_vec(k0, 0);  //forward
@@ -211,6 +296,10 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
+    for(size_t k = (minLen); k < k0;k++){
+        bc3_vec[minLen-1] += bc3_vec[k];
+    }
+
     std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
     bc4_vec[0] = impulse_resp_vec_b[0];
@@ -218,8 +307,21 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
+    for(size_t k = (minLen); k < k0;k++){
+        bc4_vec[minLen-1] += bc4_vec[k];
+    }
+
     APRTimer btime;
     btime.verbose_flag = false;
+
+    bool round_flag;
+    if ((std::is_same<T, float>::value) || (std::is_same<T, double>::value)){
+        round_flag = false;
+    } else {
+        round_flag = true;
+    }
+
+    const bool rounding = round_flag;
 
     //forwards direction
     btime.start_timer("forward_loop_y");
@@ -237,13 +339,13 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
             const size_t iynum = x * y_num;
 
             //boundary conditions
-            for (size_t k = 0; k < k0; ++k) {
+            for (size_t k = 0; k < minLen; ++k) {
                 temp1 += bc1_vec[k]*image.mesh[jxnumynum + iynum + k];
                 temp2 += bc2_vec[k]*image.mesh[jxnumynum + iynum + k];
             }
 
             //boundary conditions
-            for (size_t k = 0; k < k0; ++k) {
+            for (size_t k = 0; k < minLen; ++k) {
                 temp3 += bc3_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
                 temp4 += bc4_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
             }
@@ -254,13 +356,13 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + 2); it !=  (image.mesh.begin()+jxnumynum + iynum + y_num); ++it) {
                 float  temp = temp1*b1 + temp2*b2 + *it;
-                *it = temp;
+                *it = round(temp,rounding);
                 temp2 = temp1;
                 temp1 = temp;
             }
 
-            image.mesh[jxnumynum + iynum + y_num - 2] = temp3*norm_factor;
-            image.mesh[jxnumynum + iynum + y_num - 1] = temp4*norm_factor;
+            image.mesh[jxnumynum + iynum + y_num - 2] = round(temp3*norm_factor,rounding);
+            image.mesh[jxnumynum + iynum + y_num - 1] = round(temp4*norm_factor,rounding);
 
 
         }
@@ -284,7 +386,7 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + y_num-3); it !=  (image.mesh.begin()+jxnumynum + iynum-1); --it) {
                 float temp = temp1*b1 + temp2*b2 + *it;
 
-                *it = temp*norm_factor;
+                *it = round(temp*norm_factor,rounding);
 
                 temp2 = temp1;
                 temp1 = temp;
@@ -314,9 +416,12 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
     //const size_t minLen = std::min(z_num, std::min(x_num, y_num));
-    const size_t minLen = z_num;
+    //const size_t minLen = z_num;
 
-    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), z_num);
+
+    const size_t k0 = k0Len > 0 ? k0Len :(size_t)(ceil(std::abs(log(tol)/log(rho))));
+
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 //    std::cout << "CPUz xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
 
@@ -343,10 +448,20 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
+    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
+    for(size_t k = (minLen); k < k0;k++){
+        bc1_vec[minLen-1] += bc1_vec[k];
+    }
+
+
     std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
     for(size_t k = 0; k < k0; k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc2_vec[minLen-1] += bc2_vec[k];
     }
 
     std::vector<float> bc3_vec(k0, 0);  //forward
@@ -356,6 +471,10 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
+    for(size_t k = (minLen); k < k0;k++){
+        bc3_vec[minLen-1] += bc3_vec[k];
+    }
+
     std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
     bc4_vec[0] = impulse_resp_vec_b[0];
@@ -363,11 +482,26 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
     }
 
+    for(size_t k = (minLen); k < k0;k++){
+        bc4_vec[minLen-1] += bc4_vec[k];
+    }
+
     //forwards direction
     std::vector<float> temp_vec1(y_num,0);
     std::vector<float> temp_vec2(y_num,0);
     std::vector<float> temp_vec3(y_num,0);
     std::vector<float> temp_vec4(y_num,0);
+
+    bool round_flag;
+    if ((std::is_same<T, float>::value) || (std::is_same<T, double>::value)){
+        round_flag = false;
+    } else {
+        round_flag = true;
+    }
+
+    const bool rounding = round_flag;
+
+
 
     //Initialization and boundary conditions
     #ifdef HAVE_OPENMP
@@ -382,7 +516,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 
         size_t iynum = i * y_num;
 
-        for (size_t j = 0; j < k0; ++j) {
+        for (size_t j = 0; j < minLen; ++j) {
             size_t index = j * x_num * y_num + iynum;
             #ifdef HAVE_OPENMP
 	        #pragma omp simd
@@ -401,12 +535,12 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         //initialization
         for (size_t k = 0; k < y_num; ++k) {
             //z(0)
-            image.mesh[iynum + k] = temp_vec2[k];
+            image.mesh[iynum + k] = round(temp_vec2[k],rounding);
         }
 
         for (size_t k = 0; k < y_num; ++k) {
             //y(1)
-            image.mesh[x_num*y_num  + iynum + k] = temp_vec1[k];
+            image.mesh[x_num*y_num  + iynum + k] = round(temp_vec1[k],rounding);
         }
 
         for (size_t j = 2; j < z_num; ++j) {
@@ -416,7 +550,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 	        #pragma omp simd
             #endif
             for (size_t k = 0; k < y_num; ++k) {
-                temp_vec2[k] = 1.0*image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
+                temp_vec2[k] = round(1.0*image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k],rounding);
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -427,12 +561,12 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
-            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = temp_vec4[k]*norm_factor;
+            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = round(temp_vec4[k]*norm_factor,rounding);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
-            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = temp_vec3[k]*norm_factor;
+            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = round(temp_vec3[k]*norm_factor,rounding);
         }
 
         //main loop
@@ -444,7 +578,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
             #endif
             for (int64_t k = y_num - 1; k >= 0; --k) {
                 float temp = (image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k]);
-                image.mesh[index + k] = temp*norm_factor;
+                image.mesh[index + k] = round(temp*norm_factor,rounding);
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
             }
@@ -472,8 +606,9 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
 
-    const size_t minLen = x_num;
-    const size_t k0 = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), minLen);
+//    const size_t minLen = x_num;
+    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), x_num);
+    const size_t k0 = k0Len > 0 ? k0Len : ((size_t)(ceil(std::abs(log(tol)/log(rho)))));
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
 //    std::cout << "CPUx xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
@@ -501,10 +636,19 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         bc1_vec[k] += impulse_resp_vec_f[k+1];
     }
 
+    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
+    for(size_t k = (minLen); k < k0;k++){
+        bc1_vec[minLen-1] += bc1_vec[k];
+    }
+
     std::vector<float> bc2_vec(k0, 0);  //backward
     //y(0) init
     for(size_t k = 0; k < k0;k++){
         bc2_vec[k] = impulse_resp_vec_f[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc2_vec[minLen-1] += bc2_vec[k];
     }
 
     std::vector<float> bc3_vec(k0, 0);  //forward
@@ -514,11 +658,19 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
     }
 
+    for(size_t k = (minLen); k < k0;k++){
+        bc3_vec[minLen-1] += bc3_vec[k];
+    }
+
     std::vector<float> bc4_vec(k0, 0);  //backward
     //y(N) init
     bc4_vec[0] = impulse_resp_vec_b[0];
     for(size_t k = 1; k < k0;k++){
         bc4_vec[k] += 2*impulse_resp_vec_b[k];
+    }
+
+    for(size_t k = (minLen); k < k0;k++){
+        bc4_vec[minLen-1] += bc4_vec[k];
     }
 
     //forwards direction
@@ -527,6 +679,16 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     std::vector<float> temp_vec2(y_num,0);
     std::vector<float> temp_vec3(y_num,0);
     std::vector<float> temp_vec4(y_num,0);
+
+    bool round_flag;
+    if ((std::is_same<T, float>::value) || (std::is_same<T, double>::value)){
+        round_flag = false;
+    } else {
+        round_flag = true;
+    }
+
+    const bool rounding = round_flag;
+
 
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
@@ -539,7 +701,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
 
         size_t jxnumynum = j * y_num * x_num;
 
-        for (size_t i = 0; i < k0; ++i) {
+        for (size_t i = 0; i < minLen; ++i) {
 
             for (size_t k = 0; k < y_num; ++k) {
                 //forwards boundary condition
@@ -554,12 +716,12 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(0)
-            image.mesh[jxnumynum  + k] = temp_vec2[k];
+            image.mesh[jxnumynum  + k] = round(temp_vec2[k],rounding);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(1)
-            image.mesh[jxnumynum  + y_num + k] = temp_vec1[k];
+            image.mesh[jxnumynum  + y_num + k] = round(temp_vec1[k],rounding);
         }
 
         for (size_t i = 2;i < x_num; ++i) {
@@ -569,7 +731,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
             #pragma omp simd
             #endif
             for (int64_t k = y_num - 1; k >= 0; k--) {
-                temp_vec2[k] = image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k];
+                temp_vec2[k] = round(image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k],rounding);
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -582,12 +744,12 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
-            image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = temp_vec4[k]*norm_factor;
+            image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = round(temp_vec4[k]*norm_factor,rounding);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
-            image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = temp_vec3[k]*norm_factor;
+            image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = round(temp_vec3[k]*norm_factor,rounding);
         }
 
         //main loop
@@ -599,7 +761,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
             #endif
             for (int64_t k = y_num - 1; k >= 0; k--){
                 float temp = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k]);
-                image.mesh[index + k] = temp*norm_factor;
+                image.mesh[index + k] = round(temp*norm_factor,rounding);
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
             }
@@ -803,62 +965,72 @@ void ComputeGradient::calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelDat
 
     const size_t x_num_ds = grad.x_num;
     const size_t y_num_ds = grad.y_num;
+    const size_t z_num_ds = grad.z_num;
 
     std::vector<S> temp(y_num, 0);
     const size_t xnumynum = x_num * y_num;
 
+    size_t z_d = 0;
     #ifdef HAVE_OPENMP
-    #pragma omp parallel for default(shared) firstprivate(temp)
+    #pragma omp parallel for private(z_d) default(shared) firstprivate(temp)
     #endif
-    for (size_t z = 0; z < z_num; ++z) {
-        // Belows pointers up, down... are forming stencil in X (left <-> right) and Z ( up <-> down) direction and
-        // are pointing to whole Y column. If out of bounds then 'replicate' (nearest array border value) approach is used.
-        //
-        //                 up
-        //   ...   left  center  right ...
-        //                down
-        const S *left = input.mesh.begin() + z * xnumynum + 0 * y_num; // boundary value is chosen
-        const S *center = input.mesh.begin() + z * xnumynum + 0 * y_num;
+    for (z_d = 0; z_d < z_num_ds; ++z_d) {
+        for (size_t z = 2*z_d; z <= std::min(2*z_d + 1,z_num - 1); ++z) {
+            //double loop strategy required to make the OpenMP threadsafe, with the parent access, as there can now never be a race condition. (BC)
 
-        //LHS boundary condition is accounted for wiht this initialization
-        const size_t zMinus = z > 0 ? z - 1 : 0 /* boundary */;
-        const size_t zPlus = std::min(z + 1, z_num - 1 /* boundary */);
+            // Belows pointers up, down... are forming stencil in X (left <-> right) and Z ( up <-> down) direction and
+            // are pointing to whole Y column. If out of bounds then 'replicate' (nearest array border value) approach is used.
+            //
+            //                 up
+            //   ...   left  center  right ...
+            //                down
 
-        for (size_t x = 0; x < x_num; ++x) {
-            const S *up = input.mesh.begin() + zMinus * xnumynum + x * y_num;
-            const S *down = input.mesh.begin() + zPlus * xnumynum + x * y_num;
-            const size_t xPlus = std::min(x + 1, x_num - 1 /* boundary */);
-            const S *right = input.mesh.begin() + z * xnumynum + xPlus * y_num;
+            const S *left = input.mesh.begin() + z * xnumynum + 0 * y_num; // boundary value is chosen
+            const S *center = input.mesh.begin() + z * xnumynum + 0 * y_num;
 
-            //compute the boundary values
-            if (y_num >= 2) {
-                temp[0] = sqrt(pow((right[0] - left[0]) / (2 * hx), 2.0) + pow((down[0] - up[0]) / (2 * hz), 2.0) + pow((center[1] - center[0 /* boundary */]) / (2 * hy), 2.0));
-                temp[y_num - 1] = sqrt(pow((right[y_num - 1] - left[y_num - 1]) / (2 * hx), 2.0) + pow((down[y_num - 1] - up[y_num - 1]) / (2 * hz), 2.0) + pow((center[y_num - 1 /* boundary */] - center[y_num - 2]) / (2 * hy), 2.0));
+            //LHS boundary condition is accounted for wiht this initialization
+            const size_t zMinus = z > 0 ? z - 1 : 0 /* boundary */;
+            const size_t zPlus = std::min(z + 1, z_num - 1 /* boundary */);
+
+            for (size_t x = 0; x < x_num; ++x) {
+                const S *up = input.mesh.begin() + zMinus * xnumynum + x * y_num;
+                const S *down = input.mesh.begin() + zPlus * xnumynum + x * y_num;
+                const size_t xPlus = std::min(x + 1, x_num - 1 /* boundary */);
+                const S *right = input.mesh.begin() + z * xnumynum + xPlus * y_num;
+
+                //compute the boundary values
+                if (y_num >= 2) {
+                    temp[0] = sqrt(pow((right[0] - left[0]) / (2 * hx), 2.0) + pow((down[0] - up[0]) / (2 * hz), 2.0) +
+                                   pow((center[1] - center[0 /* boundary */]) / (2 * hy), 2.0));
+                    temp[y_num - 1] = sqrt(pow((right[y_num - 1] - left[y_num - 1]) / (2 * hx), 2.0) +
+                                           pow((down[y_num - 1] - up[y_num - 1]) / (2 * hz), 2.0) +
+                                           pow((center[y_num - 1 /* boundary */] - center[y_num - 2]) / (2 * hy), 2.0));
+                } else {
+                    temp[0] = 0; // same values minus same values in x/y/z
+                }
+
+                //do the y gradient in range 1..y_num-2
+#ifdef HAVE_OPENMP
+#pragma omp simd
+#endif
+                for (size_t y = 1; y < y_num - 1; ++y) {
+                    temp[y] = sqrt(pow((right[y] - left[y]) / (2 * hx), 2.0) + pow((down[y] - up[y]) / (2 * hz), 2.0) +
+                                   pow((center[y + 1] - center[y - 1]) / (2 * hy), 2.0));
+                }
+
+                // Set as a downsampled gradient maximum from 2x2x2 gradient cubes
+                int64_t z_2 = z / 2;
+                int64_t x_2 = x / 2;
+                for (size_t k = 0; k < y_num_ds; ++k) {
+                    size_t k_s = std::min(2 * k + 1, y_num - 1);
+                    const size_t idx = z_2 * x_num_ds * y_num_ds + x_2 * y_num_ds + k;
+                    grad.mesh[idx] = std::max(temp[2 * k], std::max(temp[k_s], grad.mesh[idx]));
+                }
+
+                // move left, center to current center, right (both +1 to right)
+                std::swap(left, center);
+                std::swap(center, right);
             }
-            else {
-                temp[0] = 0; // same values minus same values in x/y/z
-            }
-
-            //do the y gradient in range 1..y_num-2
-            #ifdef HAVE_OPENMP
-            #pragma omp simd
-            #endif
-            for (size_t y = 1; y < y_num - 1; ++y) {
-                temp[y] = sqrt(pow((right[y] - left[y]) / (2 * hx), 2.0) + pow((down[y] - up[y]) / (2 * hz), 2.0) + pow((center[y + 1] - center[y - 1]) / (2 * hy), 2.0));
-            }
-
-            // Set as a downsampled gradient maximum from 2x2x2 gradient cubes
-            int64_t z_2 = z / 2;
-            int64_t x_2 = x / 2;
-            for (size_t k = 0; k < y_num_ds; ++k) {
-                size_t k_s = std::min(2 * k + 1, y_num - 1);
-                const size_t idx = z_2 * x_num_ds * y_num_ds + x_2 * y_num_ds + k;
-                grad.mesh[idx] = std::max(temp[2 * k], std::max(temp[k_s], grad.mesh[idx]));
-            }
-
-            // move left, center to current center, right (both +1 to right)
-            std::swap(left, center);
-            std::swap(center, right);
         }
     }
 }

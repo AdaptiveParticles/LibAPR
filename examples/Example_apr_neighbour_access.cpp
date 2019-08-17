@@ -21,8 +21,8 @@ neighbour iteration strategies on the APR.
 #include <iostream>
 
 #include "Example_apr_neighbour_access.hpp"
-#include"data_structures/APR/ParticleData.hpp"
-#include"io/APRFile.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "io/APRFile.hpp"
 
 
 int main(int argc, char **argv) {
@@ -61,8 +61,8 @@ int main(int argc, char **argv) {
 
     ParticleData<uint16_t> neigh_avg(apr.total_number_particles());
 
-    auto neighbour_iterator = apr.iterator();
-    auto apr_iterator = apr.iterator();
+    auto neighbour_iterator = apr.random_iterator();
+    auto apr_iterator = apr.random_iterator();
 
 
     timer.start_timer("APR serial iterator neighbours loop");
@@ -71,9 +71,9 @@ int main(int argc, char **argv) {
         int z = 0;
         int x = 0;
 
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator++) {
 
                     //now we only update the neighbours, and directly access them through a neighbour iterator
@@ -127,9 +127,9 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator,neighbour_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                for (apr_iterator.set_new_lzx(level, z, x); apr_iterator < apr_iterator.end();
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     //loop over all the neighbours and set the neighbour iterator to it
@@ -170,10 +170,10 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator,neighbour_iterator)
 #endif
-        for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-            for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+        for (z = 0; z < apr_iterator.z_num(level); z++) {
+            for (x = 0; x < apr_iterator.x_num(level); ++x) {
                 for (apr_iterator.set_new_lzx(level, z, x);
-                     apr_iterator.global_index() < apr_iterator.end_index;
+                     apr_iterator < apr_iterator.end();
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
                     const unsigned int direction = 3;

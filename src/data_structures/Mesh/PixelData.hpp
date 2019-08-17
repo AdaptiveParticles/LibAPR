@@ -32,18 +32,22 @@ template <typename T>
 class ArrayWrapper
 {
 public:
-    ArrayWrapper() : iArray(nullptr), iNumOfElements(0) {}
+    ArrayWrapper() : iArray(nullptr), iNumOfElements(0), iNumOfAllocatedElements(0) {}
     ArrayWrapper(ArrayWrapper &&aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
         iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
+        iNumOfAllocatedElements = aObj.iNumOfAllocatedElements; aObj.iNumOfAllocatedElements = 0;
     }
     ArrayWrapper& operator=(ArrayWrapper&& aObj) {
         iArray = aObj.iArray; aObj.iArray = nullptr;
         iNumOfElements = aObj.iNumOfElements; aObj.iNumOfElements = 0;
+        iNumOfAllocatedElements = aObj.iNumOfAllocatedElements; aObj.iNumOfAllocatedElements = 0;
         return *this;
     }
 
-    inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;}
+    inline void set(T *aInputArray, size_t aNumOfElements) {iArray = aInputArray; iNumOfElements = aNumOfElements;iNumOfAllocatedElements = aNumOfElements;}
+
+    inline void resize(size_t aNumOfElements) {iNumOfElements = aNumOfElements;} //no memory management
 
     inline T* begin() { return (iArray); }
     inline T* end() { return (iArray + iNumOfElements); }
@@ -54,14 +58,20 @@ public:
     inline T& operator[](size_t idx) { return iArray[idx]; }
     inline const T& operator[](size_t idx) const { return iArray[idx]; }
     inline size_t size() const { return iNumOfElements; }
-    inline size_t capacity() const { return iNumOfElements; }
+    inline size_t capacity() const { return iNumOfAllocatedElements; }
 
     inline T* get() {return iArray;}
     inline const T* get() const {return iArray;}
 
     inline void swap(ArrayWrapper<T> &aObj) {
+        std::swap(iNumOfAllocatedElements, aObj.iNumOfAllocatedElements);
         std::swap(iNumOfElements, aObj.iNumOfElements);
         std::swap(iArray, aObj.iArray);
+    }
+
+    friend std::ostream & operator<<(std::ostream &os, const ArrayWrapper<T> &obj) {
+        os << "ArrayWrapper: size:" << obj.size() << " elementSize:" << sizeof(T) << " sizeInBytes:" << obj.size() * sizeof(T);
+        return os;
     }
 
 private:
@@ -70,8 +80,172 @@ private:
 
     T *iArray;
     size_t iNumOfElements;
+    size_t iNumOfAllocatedElements;
 };
 
+
+/**
+ * Provides implementation for 1D vector with elements of given type. (interface is similar to std::vector)
+ * @tparam T type of mesh elements
+ */
+template <typename T>
+class VectorData {
+public :
+    using value_type = T;
+
+    /**
+     * Constructor -initialize empty
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    VectorData() = default;
+
+    ~VectorData() = default;
+
+    /**
+     * Constructor - initialize empty using pinned memory
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    VectorData(bool usePinned){
+        usePinnedMemory = usePinned;
+    }
+
+    void setUsePinnedMemory(bool usePinned){
+        usePinnedMemory = usePinned;
+    }
+
+    inline uint64_t size() const{
+        return vec.size();
+    }
+
+    inline T* begin(){
+        return vec.begin();
+    }
+
+    inline T* end(){
+        return vec.end();
+    }
+
+    inline const T* begin() const{
+        return vec.begin();
+    }
+
+    inline const T* end() const{
+        return vec.end();
+    }
+
+    inline T* data(){
+        return vec.begin();
+    }
+
+    inline const T* data() const{
+        return vec.begin();
+    }
+
+    inline T& back(){
+        return vec[vec.size()-1];
+    }
+
+    /**
+     * Resizes the array if there is not enough capacity. Otherwise just changes the size variable.
+     * @param size
+     */
+    inline void resize(uint64_t size){
+
+        if(size <= vec.capacity()){
+            vec.resize(size);
+        } else{
+            init(size);
+        }
+
+    }
+
+    /**
+     * Resizes the array if there is not enough capacity. Otherwise just changes the size variable.
+     * @param size
+     * @param T aInitval fills the resized array with a given value.
+     */
+    inline void resize(uint64_t size,T aInitVal){
+
+        resize(size);
+
+        fill(aInitVal);
+    }
+
+    /**
+    * initializes the array regardless if there was previosly memory allocated.
+    * @param size
+    * @param T aInitval fills the resized array with a given value.
+    */
+    inline void init(uint64_t size){
+        T *array = nullptr;
+        if (!usePinnedMemory) {
+            vecMemory.reset(new T[size]);
+            array = vecMemory.get();
+        }
+        else {
+#ifndef APR_USE_CUDA
+            vecMemory.reset(new T[size]);
+            array = vecMemory.get();
+#else
+            vecMemoryPinned.reset((T*)getPinnedMemory(size * sizeof(T)));
+            array = vecMemoryPinned.get();
+#endif
+        }
+
+        vec.set(array, size);
+    }
+
+    inline T& operator[](size_t index){
+        return vec[index];
+    };
+
+    /**
+    * Fills the array with a given value
+    * @param T aInitval fills the resized array with a given value.
+    */
+    void fill(T aInitVal) {
+        // Fill values of new buffer in parallel
+
+        size_t size = vec.size();
+        T *array = vecMemory.get();
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size / numOfThreads;
+            auto begin = array + chunkSize * threadNum;
+            auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
+            std::fill(begin, end, aInitVal);
+        }
+#else
+        std::fill(array, array + size, aInitVal);
+#endif
+    }
+
+    template <typename CopyType>
+    void copy(const VectorData<CopyType>& ToCopy){
+        resize(ToCopy.size());
+        std::copy(ToCopy.begin(),ToCopy.end(),begin());
+    }
+
+
+private:
+
+    bool usePinnedMemory = false;
+
+    std::unique_ptr<T[]> vecMemory;
+    ArrayWrapper<T> vec;
+
+#ifdef APR_USE_CUDA
+    PinnedMemoryUniquePtr<T> vecMemoryPinned;
+#endif
+};
 
 /**
  * Provides implementation for 3D mesh with elements of given type.
@@ -91,7 +265,8 @@ public :
     PinnedMemoryUniquePtr<T> meshMemoryPinned;
 #endif
     ArrayWrapper<T> mesh;
-
+    
+    uint64_t size() { return x_num * y_num * z_num * sizeof(T); }
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
@@ -265,9 +440,17 @@ public :
 
         mesh.set(array, size);
 
+        fill(aInitVal);
+    }
+
+    void fill(T aInitVal) {
         // Fill values of new buffer in parallel
-        #ifdef HAVE_OPENMP
-        #pragma omp parallel
+
+        size_t size = (size_t)y_num * x_num * z_num;
+        T *array = meshMemory.get();
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
         {
             auto threadNum = omp_get_thread_num();
             auto numOfThreads = omp_get_num_threads();
@@ -276,9 +459,9 @@ public :
             auto end = (threadNum == numOfThreads - 1) ? array + size : begin + chunkSize;
             std::fill(begin, end, aInitVal);
         }
-        #else
+#else
         std::fill(array, array + size, aInitVal);
-        #endif
+#endif
     }
 
 
@@ -329,6 +512,25 @@ public :
 #endif
         }
         mesh.set(array, size);
+    }
+
+    /**
+     * Initializes mesh with provided dimensions with default value of used type, only allocating memory if more is needed then currently, otherwise just changes the dims.
+     * @param aSizeOfY
+     * @param aSizeOfX
+     * @param aSizeOfZ
+     */
+    void initWithResize(int aSizeOfY, int aSizeOfX, int aSizeOfZ, bool aUsePinnedMemory = false) {
+        y_num = aSizeOfY;
+        x_num = aSizeOfX;
+        z_num = aSizeOfZ;
+        size_t size = (size_t)y_num * x_num * z_num;
+
+        if(size <= mesh.capacity()){
+            mesh.resize(size);
+        } else{
+            init(aSizeOfY,aSizeOfX,aSizeOfZ,aUsePinnedMemory);
+        }
     }
 
     /**
@@ -532,7 +734,7 @@ public :
     }
 
     friend std::ostream & operator<<(std::ostream &os, const PixelData<T> &obj) {
-        os << "PixelData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " vSize:" << obj.mesh.size() << " vCapacity:" << obj.mesh.capacity() << " elementSize:" << sizeof(T);
+        os << "PixelData: size(Y/X/Z)=" << obj.y_num << "/" << obj.x_num << "/" << obj.z_num << " " << obj.mesh << " ";
         return os;
     }
 
@@ -560,7 +762,7 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
 
     if (aInitializeOutput) {
         timer.start_timer("downsample_initalize");
-        aOutput.init(y_num_ds, x_num_ds, z_num_ds);
+        aOutput.initWithResize(y_num_ds, x_num_ds, z_num_ds);
         timer.stop_timer();
     }
 
@@ -682,31 +884,37 @@ void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &
     }
 }
 
-
+/**
+ * Padds an array performing reflection, first y,x,z - reflecting around the edge pixel.
+ * @tparam T - type of data
+ * @param input - source data
+ * @param output - padded image
+ * @param sz_y - desired padding size, will be bounded by y_num - 1
+ * @param sz_x- desired padding size, will be bounded by x_num - 1
+ * @param sz_z - desired padding size, will be bounded by z_num - 1
+*/
 template<typename T>
-void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
-
-    int sz_y,sz_x,sz_z;
+void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, int sz_z){
 
     if(input.y_num > 1){
-        sz_y = sz;
+        sz_y = std::min(sz_y,(int) (input.y_num-1));
     } else {
         sz_y = 0;
     }
 
     if(input.x_num > 1){
-        sz_x = sz;
+        sz_x =  std::min(sz_x,(int) (input.x_num-1));
     } else {
         sz_x = 0;
     }
 
     if(input.z_num > 1){
-        sz_z = sz;
+        sz_z =  std::min(sz_z, (int) (input.z_num-1));
     } else {
         sz_z = 0;
     }
 
-    input_pad.init(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
+    output.initWithResize(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
 
     //copy across internal
 
@@ -714,31 +922,31 @@ void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-    for (j = 0; j < input.z_num; ++j) {
-        for (int i = 0; i < input.x_num; ++i) {
-            for (int k = 0; k < input.y_num; ++k) {
-                input_pad.at(k+sz_y,i+sz_x,j+sz_z)=input.at(k,i,j);
+    for (j = 0; j < (int) input.z_num; ++j) {
+        for (int i = 0; i < (int) input.x_num; ++i) {
+            for (int k = 0; k <  (int) input.y_num; ++k) {
+                output.at(k+sz_y,i+sz_x,j+sz_z)=input.at(k,i,j);
             }
         }
     }
 
 
     if(input.y_num > 1) {
-
+        //reflect y
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < input_pad.z_num; ++j) {
-            for (int i = 0; i < input_pad.x_num; ++i) {
+        for (j = 0; j < (int) output.z_num; ++j) {
+            for (int i = 0; i < (int) output.x_num; ++i) {
 
                 for (int k = 0; k < (sz_y); ++k) {
-                    input_pad.at(k, i, j) = input_pad.at(2 * sz_y - k, i, j);
+                    output.at(k, i, j) = output.at(2 * sz_y - k, i, j);
                 }
 
-                int idx = sz_y+1;
-                for (int k = (input_pad.y_num - (sz_y)); k < input_pad.y_num; ++k) {
+                int idx = sz_y+2;
+                for (int k = ((int) output.y_num - (sz_y)); k < (int) output.y_num; ++k) {
 
-                    input_pad.at(k, i, j) = input_pad.at(input_pad.y_num - idx, i, j);
+                    output.at(k, i, j) = output.at((int) output.y_num - idx, i, j);
                     idx++;
                 }
             }
@@ -746,20 +954,20 @@ void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
     }
 
     if(input.x_num > 1) {
-
+        //reflect x
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < input_pad.z_num; ++j) {
+        for (j = 0; j < (int) output.z_num; ++j) {
             for (int i = 0; i < (sz_x); ++i) {
-                for (int k = 0; k < input_pad.y_num; ++k) {
-                    input_pad.at(k, i, j) = input_pad.at(k, 2 * sz_x - i, j);
+                for (int k = 0; k < (int) output.y_num; ++k) {
+                    output.at(k, i, j) = output.at(k, 2 * sz_x - i, j);
                 }
             }
-            int idx = sz_x+1;
-            for (int i = (input_pad.x_num - (sz_x)); i < input_pad.x_num; ++i) {
-                for (int k = 0; k < input_pad.y_num; ++k) {
-                    input_pad.at(k, i, j) = input_pad.at(k, input_pad.x_num - idx, j);
+            int idx = sz_x+2;
+            for (int i = (output.x_num - (sz_x)); i < (int) output.x_num; ++i) {
+                for (int k = 0; k < (int) output.y_num; ++k) {
+                    output.at(k, i, j) = output.at(k, output.x_num - idx, j);
 
                 }
                 idx++;
@@ -773,9 +981,9 @@ void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
         for (j = 0; j < (sz_z); ++j) {
-            for (int i = 0; i < input_pad.x_num; ++i) {
-                for (int k = 0; k < input_pad.y_num; ++k) {
-                    input_pad.at(k, i, j) = input_pad.at(k, i, 2 * sz_z - j);
+            for (int i = 0; i < (int) output.x_num; ++i) {
+                for (int k = 0; k < (int) output.y_num; ++k) {
+                    output.at(k, i, j) = output.at(k, i, 2 * sz_z - j);
                 }
             }
         }
@@ -783,11 +991,11 @@ void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (int j = (input_pad.z_num - (sz_z)); j < input_pad.z_num; ++j) {
-            auto idx = sz_z+1 + j - (input_pad.z_num - (sz_z));
-            for (int i = 0; i < input_pad.x_num; ++i) {
-                for (int k = 0; k < input_pad.y_num; ++k) {
-                    input_pad.at(k, i, j) = input_pad.at(k, i, input_pad.z_num - idx);
+        for (int j = ((int)output.z_num - (sz_z)); j < (int)output.z_num; ++j) {
+            auto idx = sz_z+2 + j - (output.z_num - (sz_z));
+            for (int i = 0; i < (int) output.x_num; ++i) {
+                for (int k = 0; k < (int) output.y_num; ++k) {
+                    output.at(k, i, j) = output.at(k, i, output.z_num - idx);
                 }
             }
 
@@ -797,40 +1005,35 @@ void padd_boundary2(PixelData<T>& input,PixelData<T>& input_pad,int sz){
 
 }
 
+
+/**
+ * unPadds an array
+ * @tparam T - type of data
+ * @param input - padded source data
+ * @param output - unpadded image
+ * @param org_dim_y - original image y_num
+ * @param org_dim_x- original image x_num
+ * @param org_dim_z - original image z_num
+*/
 template<typename T>
-void un_padd_boundary(PixelData<T>& input,PixelData<T>& input_un_pad,int sz) {
+void unpaddPixels(PixelData<T> &input, PixelData<T> &output, int org_dim_y, int org_dim_x, int org_dim_z) {
 
-    int sz_y,sz_x,sz_z;
 
-    if(input.y_num > 1){
-        sz_y = sz;
-    } else {
-        sz_y = 0;
-    }
+    output.initWithResize(org_dim_y, org_dim_x, org_dim_z);
 
-    if(input.x_num > 1){
-        sz_x = sz;
-    } else {
-        sz_x = 0;
-    }
-
-    if(input.z_num > 1){
-        sz_z = sz;
-    } else {
-        sz_z = 0;
-    }
-
-    input_un_pad.init(input.y_num - 2 * sz_y, input.x_num - 2 * sz_x, input.z_num - 2 * sz_z);
+    int sz_y = (input.y_num - org_dim_y)/2; //accounts for the resizing due to minimum dimension constraints that could occur on the first pass.
+    int sz_x = (input.x_num - org_dim_x)/2;
+    int sz_z = (input.z_num - org_dim_z)/2;
 
     int j = 0;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
     //copy across internal
-    for (j = 0; j < input_un_pad.z_num; ++j) {
-        for (int i = 0; i < input_un_pad.x_num; ++i) {
-            for (int k = 0; k < input_un_pad.y_num; ++k) {
-                input_un_pad.at(k,i,j) = input.at(k + sz_y, i + sz_x, j + sz_z);
+    for (j = 0; j < (int) output.z_num; ++j) {
+        for (int i = 0; i <  (int) output.x_num; ++i) {
+            for (int k = 0; k <  (int) output.y_num; ++k) {
+                output.at(k,i,j) = input.at(k + sz_y, i + sz_x, j + sz_z);
             }
         }
     }

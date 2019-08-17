@@ -15,7 +15,6 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 * OpenMP > 3.0 (optional, but suggested)
 * CMake 3.6 or higher
 * LibTIFF 4.0 or higher
-* SWIG 3.0.12 (optional, for generating Java wrappers)
 
 NB: This branch introduces changes to IO and iteration that are not compatable with old versions.
 
@@ -97,6 +96,8 @@ cmake --build . --config Debug
 This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5. This will create the `apr.dll` library in the `build/Debug` directory, as well as all of the examples. If you need a `Release` build, run `cmake --build . --config Release` from the `build` directory.
 
 ## Examples and Documentation
+These examples can be turned on by adding -DAPR_BUILD_EXAMPLES=ON to the cmake command.
+
 There are nine basic examples, that show how to generate and compute with the APR:
 
 | Example | How to ... |
@@ -105,8 +106,6 @@ There are nine basic examples, that show how to generate and compute with the AP
 | [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate through a given APR. |
 | [Example_neighbour_access](./examples/Example_neighbour_access.cpp) | access particle and face neighbours. |
 | [Example_compress_apr](./examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR. |
-| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute a gradient based on the stored particles in an APR. |
-| [Example_produce_paraview_file](./examples/Example_produce_paraview_file.cpp) | produce a file for visualisation in ParaView or reading in Matlab. |
 | [Example_random_access](./examples/Example_random_access.cpp) | perform random access operations on particles. |
 | [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR. |
 | [Example_reconstruct_image](./examples/Example_reconstruct_image.cpp) | reconstruct a pixel image from an APR. |
@@ -114,6 +113,14 @@ There are nine basic examples, that show how to generate and compute with the AP
 All examples except Example_get_apr require an already produced APR, such as those created by Example_get_apr.
 
 For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
+
+## LibAPR Tests
+
+The testing framework can be turned on by adding -DAPR_TESTS=ON to the cmake command. All tests can then be run by executing on the command line your build folder.
+```
+ctest
+```
+Please let us know by creating an issue, if any of these tests are failing on your machine.
 
 ## Python support
 

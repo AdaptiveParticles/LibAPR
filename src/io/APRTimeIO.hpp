@@ -49,7 +49,7 @@ struct ChangeTable{
 
     std::vector<PixelData<uint64_t>> particle_sum;
 
-    void init(APRAccess& init_access){
+    void init(RandomAccess& init_access){
         add_b.resize(init_access.l_max+1);
         add_e.resize(init_access.l_max+1);
         remove_b.resize(init_access.l_max+1);
@@ -118,7 +118,7 @@ class APRTimeIO : public APRWriter{
     }
 
     APRParameters initial_parameters;
-    APRAccess initial_access_info;
+    RandomAccess initial_access_info;
 
     std::vector<uint64_t> update_f_totals;
     std::vector<uint64_t> update_totals;
@@ -1207,8 +1207,8 @@ public:
         //copy
         //APR_buffer[current_index].apr_access = APR_buffer[previous_index].apr_access;
 
-        APRAccess &new_access = APR_buffer[current_index].apr_access;
-        APRAccess &old_access = APR_buffer[current_index].apr_access; //redundant, #FIXME is there any logic to keeping this in for future extensions?
+        RandomAccess &new_access = APR_buffer[current_index].apr_access;
+        RandomAccess &old_access = APR_buffer[current_index].apr_access; //redundant, #FIXME is there any logic to keeping this in for future extensions?
 
         uint64_t z_;
         uint64_t x_;

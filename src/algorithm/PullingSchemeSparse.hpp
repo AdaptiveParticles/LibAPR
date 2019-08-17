@@ -6,11 +6,9 @@
 #define LIBAPR_PULLINGSCHEMESPARSE_HPP
 
 #include <cassert>
-#include "../data_structures/APR/APRIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "../data_structures/APR/APR.hpp"
-#include "data_structures/APR/PartCellData.hpp"
-#include "../data_structures/APR/APRAccessStructures.hpp"
+#include "../data_structures/APR/access/APRAccessStructures.hpp"
 
 #ifdef HAVE_OPENMP
 #include "omp.h"
@@ -51,73 +49,83 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
 
 struct imagePatch {
 
-    uint64_t x_begin;
-    uint64_t x_end;
+//    uint64_t x_begin;
+//    uint64_t x_end;
     uint64_t x_offset;
 
-    uint64_t y_begin;
-    uint64_t y_end;
+//    uint64_t y_begin;
+//    uint64_t y_end;
     uint64_t y_offset;
 
-    uint64_t z_begin;
-    uint64_t z_end;
+//    uint64_t z_begin;
+//    uint64_t z_end;
     uint64_t z_offset;
 
-    uint64_t z_begin_ghost;
-    uint64_t z_end_ghost;
-
-    uint64_t x_begin_ghost;
-    uint64_t x_end_ghost;
-
-    uint64_t y_begin_ghost;
-    uint64_t y_end_ghost;
-
-    uint64_t z_begin_global;
-    uint64_t z_end_global;
-
-    uint64_t x_begin_global;
-    uint64_t x_end_global;
-
-    uint64_t y_begin_global;
-    uint64_t y_end_global;
+//    uint64_t z_begin_ghost;
+//    uint64_t z_end_ghost;
+//
+//    uint64_t x_begin_ghost;
+//    uint64_t x_end_ghost;
+//
+//    uint64_t y_begin_ghost;
+//    uint64_t y_end_ghost;
+//
+//    uint64_t z_begin_global;
+//    uint64_t z_end_global;
+//
+//    uint64_t x_begin_global;
+//    uint64_t x_end_global;
+//
+//    uint64_t y_begin_global;
+//    uint64_t y_end_global;
 
 };
-
-
 
 
 class PullingSchemeSparse {
 
 public:
 
-    PartCellData<SparseParticleCellMap> particle_cell_tree;
-    unsigned int l_min;
-    unsigned int l_max;
-    std::vector<size_t> y_num_l;
+    SparseGaps<SparseParticleCellMap> particle_cell_tree;
 
     template<typename T>
     void fill(float level, const PixelData<T> &input,imagePatch& patch);
-    void pulling_scheme_main();
     template<typename T>
-    void initialize_particle_cell_tree(APR<T>& apr);
+    void fill(float level, const PixelData<T> &input);
+
+    void pulling_scheme_main();
+
+    void initialize_particle_cell_tree(const GenInfo& aprInfo);
+
+    int pct_level_max(){
+        return l_max;
+    };
+    int pct_level_min(){
+        return l_min;
+    };
 
 private:
+
+    int l_min;
+    int l_max;
+
+    std::vector<size_t> y_num_l;
 
     void set_ascendant_neighbours(int level);
     void set_filler(int level);
     void fill_neighbours(int level);
-    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level);
+    void fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level);
 };
 
-template<typename T>
-inline void PullingSchemeSparse::initialize_particle_cell_tree(APR<T>& apr) {
+
+inline void PullingSchemeSparse::initialize_particle_cell_tree(const GenInfo& aprInfo) {
     //  Initializes the particle cell tree structure
     //
     //  Contains pc up to l_max - 1,
     //
 
-    l_max = apr.level_max() - 1;
-    l_min = apr.level_min();
+    l_max = aprInfo.l_max - 1;
+    l_min = aprInfo.l_min;
     //make so you can reference the array as l
     particle_cell_tree.data.resize(l_max + 1);
 
@@ -126,15 +134,15 @@ inline void PullingSchemeSparse::initialize_particle_cell_tree(APR<T>& apr) {
     y_num_l.resize(l_max + 1);
     particle_cell_tree.data.resize(l_max + 1);
 
-    for (unsigned int l = l_min; l < (l_max + 1) ;l ++){
+    for (int l = l_min; l < (l_max + 1) ;l ++){
 
-        particle_cell_tree.x_num[l] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1));
-        particle_cell_tree.z_num[l] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1));
+        particle_cell_tree.x_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1));
+        particle_cell_tree.z_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1));
         particle_cell_tree.data[l].resize(particle_cell_tree.z_num[l]*particle_cell_tree.x_num[l]);
-        y_num_l[l] = (uint64_t) ceil((1.0 * apr.apr_access.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1));
+        y_num_l[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1));
 
-        for (int i = 0; i < particle_cell_tree.z_num[l] ; ++i) {
-            for (int j = 0; j < particle_cell_tree.x_num[l]; ++j) {
+        for (size_t i = 0; i < particle_cell_tree.z_num[l] ; ++i) {
+            for (size_t j = 0; j < particle_cell_tree.x_num[l]; ++j) {
                 particle_cell_tree.data[l][i*particle_cell_tree.x_num[l]+j].resize(1);
             }
         }
@@ -176,6 +184,18 @@ inline void PullingSchemeSparse::pulling_scheme_main() {
         timer.stop_timer();
     }
 }
+
+template<typename T>
+inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &input){
+    imagePatch patch;
+    patch.x_offset = 0;
+    patch.y_offset = 0;
+    patch.z_offset = 0;
+
+    fill(level, input,patch);
+
+}
+
 
 template<typename T>
 inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &input,imagePatch& patch) {
@@ -324,13 +344,13 @@ inline void PullingSchemeSparse::set_filler(int level) {
 #pragma omp parallel for default(shared) schedule(dynamic) if (z_num * x_num * y_num > 10000) firstprivate(level, children_boundaries)
 #endif
     for (int64_t j = 0; j < z_num; ++j) {
-        if ( j == z_num - 1 && prev_z_num % 2 ) {
+        if ( (j == z_num - 1) && prev_z_num % 2 ) {
             children_boundaries[0] = 1;
         }
 
         for (int64_t i = 0; i < x_num; ++i) {
 
-            if ( i == x_num - 1 && prev_x_num % 2 ) {
+            if ( (i == x_num - 1) && prev_x_num % 2 ) {
                 children_boundaries[1] = 1;
             }
             else if ( i == 0 ) {
@@ -343,9 +363,9 @@ inline void PullingSchemeSparse::set_filler(int level) {
             auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
 
             //SPARSE iteration
-            for (auto it=mesh.begin(); it!=mesh.end(); ++it){
-                size_t k = it->first;
-                if ( k == y_num - 1 && prev_y_num % 2 ) {
+            for(auto it=mesh.begin(); it!=mesh.end(); ++it){
+                int64_t k = it->first;
+                if ( (k == y_num - 1) && prev_y_num % 2 ) {
                     children_boundaries[2] = 1;
                 }
                 else if ( k == 0 ) {
@@ -425,7 +445,7 @@ inline void PullingSchemeSparse::fill_neighbours(int level) {
     }
 }
 
-inline void PullingSchemeSparse::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, size_t new_level) {
+inline void PullingSchemeSparse::fill_parent(size_t j, size_t i, size_t k, size_t x_num, size_t y_num, int new_level) {
     if(new_level >= l_min) {
         size_t new_x_num = ((x_num + 1) / 2);
         //size_t new_y_num = ((y_num + 1) / 2);

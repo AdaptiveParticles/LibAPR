@@ -158,8 +158,13 @@ if(APR_USE_CUDA)
 	        src/algorithm/ComputeGradientCuda.cu
             src/data_structures/Mesh/PixelData.cu
             src/algorithm/LocalIntensityScale.cu
+            src/algorithm/OVPC.cu
+            src/data_structures/APR/access/GPUAccess.cu
+            src/numerics/APRDownsampleGPU.cu
+            src/numerics/APRIsoConvGPU.cu
             )
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+
 endif()
 
 if(APR_BUILD_STATIC_LIB)
@@ -292,6 +297,15 @@ if(APR_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif(APR_TESTS)
+
+###############################################################################
+# Performance Benchmarks
+###############################################################################
+
+if(APR_BENCHMARK)
+    message(STATUS "APR: Benchmarking performance")
+    add_subdirectory(benchmarks)
+endif(APR_BENCHMARK)
 
 ###############################################################################
 # PYTHON wrappers These are now external please ask us for access

@@ -10,7 +10,6 @@
 #include "algorithm/APRConverter.hpp"
 #include "io/APRWriter.hpp"
 
-
 struct cmdLineOptions{
     std::string gt_input = "";
     std::string output_dir = "";
@@ -33,6 +32,7 @@ struct cmdLineOptions{
     float lambda = -1;
     float min_signal = -1;
     float rel_error = 0.1;
+    float grad_th = 1;
 };
 
 bool command_option_exists(char **begin, char **end, const std::string &option);

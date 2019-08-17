@@ -11,9 +11,14 @@ buildTarget(testComputeGradient ComputeGradientTest.cpp)
 buildTarget(testLocalIntensityScale LocalIntensityScaleTest.cpp)
 buildTarget(testPullingScheme PullingSchemeTest.cpp)
 
+#APR GPU Tests
+#if(APR_USE_CUDA)
+   buildTarget(testAPRCuda APRTestCuda.cpp)
+#endif()
+
 ## Performance Benchmark Tests
 
-buildTarget(BenchmarkTest BenchmarkTest.cpp)
+#buildTarget(BenchmarkTest BenchmarkTest.cpp)
 
 # Naive python test
 # Working directory is changed to build since python module is availabe there

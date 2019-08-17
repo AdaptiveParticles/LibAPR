@@ -17,7 +17,7 @@ constexpr TypeOfRecBsplineFlags BSPLINE_Z_DIR = 0x04;
 constexpr TypeOfRecBsplineFlags BSPLINE_ALL_DIR = BSPLINE_Y_DIR | BSPLINE_X_DIR | BSPLINE_Z_DIR;
 
 template <typename T>
-void cudaFilterBsplineFull(PixelData<T> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags = BSPLINE_ALL_DIR);
+void cudaFilterBsplineFull(PixelData<T> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags = BSPLINE_ALL_DIR, int maxFilterLen = -1);
 
 using TypeOfInvBsplineFlags = uint16_t;
 constexpr TypeOfInvBsplineFlags INV_BSPLINE_Y_DIR = 0x01;
