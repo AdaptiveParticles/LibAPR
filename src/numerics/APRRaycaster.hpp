@@ -42,6 +42,9 @@ public:
     float theta_final = .1;
     float theta_delta = 0.01;
 
+    float phi = 0;
+    float phi_s = 0;
+
     float scale_y = 1.0;
     float scale_x = 1.0;
     float scale_z = 1.0;
@@ -60,7 +63,7 @@ public:
 
     template<typename S, typename V, typename T, class BinaryOperation>
     void perform_raycast_patch(APR &apr, ParticleData<S> &particle_data,
-                               ParticleData<T> &treeData, PixelData<V> &cast_views, ReconPatch &rp,
+                               ParticleData<T> &treeData, PixelData<V> &cast_views, ReconPatch rp,
                                BinaryOperation op);
 
     template<typename S, typename U>
@@ -72,7 +75,7 @@ public:
     GlmObjectsContainer *glmObjects;
 
     void initObjects(uint64_t imageWidth, uint64_t imageHeight, float radius, float theta, float x0, float y0, float z0,
-                     float x0f, float y0f, float z0f);
+                     float x0f, float y0f, float z0f,float phi_ = 0);
 
     void killObjects();
 
@@ -98,8 +101,8 @@ struct APRRaycaster::GlmObjectsContainer {
 };
 
 void APRRaycaster::initObjects(uint64_t imageWidth, uint64_t imageHeight, float radius, float theta, float x0, float y0,
-                               float z0, float x0f, float y0f, float z0f) {
-    Camera cam = Camera(glm::vec3(x0, y0 + radius * sin(theta), z0 + radius * cos(theta)),
+                               float z0, float x0f, float y0f, float z0f, float phi_) {
+    Camera cam = Camera(glm::vec3(x0 + radius*sin(phi), y0 + radius * sin(theta)*cos(phi_s), z0 + radius * cos(theta)*cos(phi_s)),
                         glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
     cam.setTargeted(glm::vec3(x0f, y0f, z0f));
     cam.setPerspectiveCamera((float) imageWidth / (float) imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f, 70.0f);
@@ -127,7 +130,7 @@ APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float
 template<typename S, typename V, typename T, class BinaryOperation>
 void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_data,
                                          ParticleData<T> &treeData, PixelData<V> &cast_views,
-                                         ReconPatch &reconPatch, BinaryOperation op) {
+                                         ReconPatch reconPatch, BinaryOperation op) {
 
     //
     //  Bevan Cheeseman 2018
@@ -216,10 +219,12 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     float z0f = apr.org_dims(2) * .5 * this->scale_z;
 
     float theta_0 = this->theta_0;
-    float theta_f = this->theta_final;
-    float theta_delta = this->theta_delta;
+//    float theta_f = this->theta_final;
+//    float theta_delta = this->theta_delta;
 
-    uint64_t num_views = floor((theta_f - theta_0) / theta_delta);
+    float phi = this->phi;
+
+    uint64_t num_views = 1;
 
     cast_views.initWithResize(imageHeight, imageWidth, num_views);
 
@@ -247,11 +252,8 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     int max_threads = 1;
 
-    std::cout << max_threads << std::endl;
-
     depth_slice[max_level].initWithResize(imageHeight, imageWidth, max_threads);
     depth_slice[max_level].fill(init_val);
-
 
     for (int i = apr.level_min(); i < max_level; i++) {
         float d = pow(2, max_level - i);
@@ -261,7 +263,11 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         depth_vec[i] = d;
     }
 
+    depth_slice[max_level].swap(cast_views);
+
     depth_vec[max_level] = 1;
+
+    float theta = theta_0;
 
     //jitter the parts to remove ray cast artifacts
     const bool jitter = this->jitter;
@@ -302,7 +308,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
 
     //main loop changing the view angle
-    for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
+    //for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
 
         //////////////////////////////
         ///
@@ -319,7 +325,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         /// Set up the new camera views
         ///
         //////////////////////////////
-        initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f);
+        initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f,phi);
 
         ///////////////////////////////////////////
         ///
@@ -347,7 +353,6 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
             int z = 0;
             int x = 0;
-
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(auto) private(z, x) firstprivate(apr_iterator)
@@ -540,20 +545,22 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
 
         //copy data across
-        std::copy(depth_slice[max_level].mesh.begin(), depth_slice[max_level].mesh.end(),
-                  cast_views.mesh.begin() + view_count * imageHeight * imageWidth);
+        //std::copy(depth_slice[max_level].mesh.begin(), depth_slice[max_level].mesh.end(),
+          //        cast_views.mesh.begin() + view_count * imageHeight * imageWidth);
+
+        depth_slice[max_level].swap(cast_views);
 
         view_count++;
 
-        if (view_count >= num_views) {
-            break;
-        }
-    }
+//        if (view_count >= num_views) {
+//            break;
+//        }
+    //}
 
     timer.stop_timer();
-    float elapsed_seconds = timer.t2 - timer.t1;
+//    float elapsed_seconds = timer.t2 - timer.t1;
 
-    std::cout << elapsed_seconds / (view_count * 1.0) << " seconds per view" << std::endl;
+//    std::cout << elapsed_seconds / (view_count * 1.0) << " seconds per view" << std::endl;
 
 }
 
