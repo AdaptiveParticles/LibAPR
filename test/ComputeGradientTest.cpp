@@ -244,7 +244,6 @@ namespace {
             cg.bspline_filt_rec_y(mCpu, 3.0, 0.0001);
             ASSERT_TRUE(compare(mCpu, expect.mesh.begin(), 0.01));
         }
-
     }
 
 
@@ -779,7 +778,7 @@ namespace {
         // Generate random mesh
         // Generate random mesh
         using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(33, 31, 3);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(33, 31, 1);
 
         APRTimer timer(true);
 
@@ -806,7 +805,7 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(5,127,128);
 
         // Filter parameters
         const float lambda = 3;
@@ -833,7 +832,7 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,5,127);
 
         // Filter parameters
         const float lambda = 3;
@@ -860,7 +859,7 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,128);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(129,127,5);
 
         // Filter parameters
         const float lambda = 3;
@@ -887,7 +886,7 @@ namespace {
 
         // Generate random mesh
         using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 128, 129);
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(15, 16, 17);
 
         // Filter parameters
         const float lambda = 3;
@@ -1050,6 +1049,7 @@ namespace {
     TEST(ComputeThreshold, CALC_THRESHOLD_RND_CUDA) {
         APRTimer timer(true);
 
+
         // Generate random mesh
         using ImgType = float;
         PixelData<ImgType> m = getRandInitializedMesh<ImgType>(31, 33, 13);
@@ -1060,7 +1060,6 @@ namespace {
         PixelData<ImgType> mCpu(g, true);
         timer.start_timer("CPU threshold");
         ComputeGradient().threshold_gradient(mCpu, m, thresholdLevel);
-
         timer.stop_timer();
 
         // Calculate bspline on GPU
@@ -1206,7 +1205,7 @@ namespace {
         // Compare GPU vs CPU
         // allow some differences since float point diffs
         // TODO: It would be much better to count number of diffs with delta==1 and allow some of these
-        EXPECT_TRUE(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01) < 29);
+        EXPECT_TRUE(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01, 100) < 29);
     }
 
 

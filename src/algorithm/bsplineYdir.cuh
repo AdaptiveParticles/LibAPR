@@ -69,6 +69,9 @@ __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t
 
     const int64_t maxXZoffset = x_num * z_num;
 
+    const size_t dirLen = y_num;
+    const size_t minLen = min(dirLen, k0);
+
     extern __shared__ float sharedMem[];
     float *bc1_vec2 = &sharedMem[0];
     float *bc2_vec2 = &bc1_vec2[k0];
@@ -92,7 +95,7 @@ __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t
     if (xzIndexOfWorker < x_num * z_num) {
         float temp1 = 0;
         float temp2 = 0;
-        for (size_t k = 0; k < k0; ++k) {
+        for (size_t k = 0; k < minLen; ++k) {
             temp1 += bc1_vec2[k] * cache[currentWorkerId * k0 + k];
             temp2 += bc2_vec2[k] * cache[currentWorkerId * k0 + k];
         }
@@ -120,7 +123,7 @@ __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t
     if (xzIndexOfWorker < x_num * z_num) {
         float temp3 = 0;
         float temp4 = 0;
-        for (size_t k = 0; k < k0; ++k) {
+        for (size_t k = 0; k < minLen; ++k) {
             temp3 += bc1_vec2[k] * cache[currentWorkerId * k0 + k];
             temp4 += bc2_vec2[k] * cache[currentWorkerId * k0 + k];
         }
@@ -235,6 +238,9 @@ template <typename T>
 void runBsplineYdir(T *cudaImage, size_t x_num, size_t y_num, size_t z_num,
                     const float *bc1, const float *bc2, const float *bc3, const float *bc4,
                     size_t k0, float b1, float b2, float norm_factor, float *boundary, cudaStream_t aStream) {
+
+    // TODO: shared memory size depends only on k0, but because of latest changes it might be smaller and equal min(k0, y_num).
+    //       rething/update allocating shared memory since it can improve performance (more blocks at same time on SM).
     dim3 threadsPerBlock(numOfThreads);
     dim3 numBlocks((x_num * z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
     size_t sharedMemSize = (2 /*bc vectors*/) * (k0) * sizeof(float) + numOfThreads * (k0) * sizeof(T);

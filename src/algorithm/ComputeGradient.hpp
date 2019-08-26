@@ -46,13 +46,13 @@ public:
 
     template<typename S>
     void
-    calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelData<S> &grad, const float hx, const float hy, const float hz);
+    calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelData<S> &grad, float hx, float hy, float hz);
 
     template<typename T>
     void mask_gradient(PixelData<T>& grad_ds,const APRParameters& par);
 
     template<typename T,typename S>
-    void threshold_gradient(PixelData<T> &grad, const PixelData<S> &img, const float Ip_th);
+    void threshold_gradient(PixelData<T> &grad, const PixelData<S> &img, float Ip_th);
 
     template<typename T>
     void bspline_filt_rec_y(PixelData<T> &image, float lambda, float tol, int k0Len = -1);
@@ -95,7 +95,7 @@ inline void ComputeGradient::get_gradient(PixelData<ImageType> &image_temp, Pixe
     timer.start_timer("down-sample_b-spline");
     downsample(image_temp, local_scale_temp,
                [](const float &x, const float &y) -> float { return x + y; },
-               [](const float &x) -> float { return x / 8.0; });
+               [](const float &x) -> float { return x / 8.0f; });
     timer.stop_timer();
 
     if(par.lambda > 0){
@@ -201,7 +201,6 @@ void ComputeGradient::get_smooth_bspline_3D(PixelData<T>& input, float lambda) {
     }
 }
 
-
 inline float ComputeGradient::impulse_resp(float k,float rho,float omg){
     //  Impulse Response Function
 
@@ -224,9 +223,6 @@ inline T round(T val,const bool rounding){
     }
 }
 
-
-
-
 template<typename T>
 void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float tol, int k0Len) {
     //
@@ -248,14 +244,11 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
-//    const size_t minLen = y_num;
+
     const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),y_num);
-
     const size_t k0 = k0Len > 0 ? k0Len : (size_t)(ceil(std::abs(log(tol)/log(rho))));
-
-
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
-//    std::cout << "CPUy xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
+    std::cout << "CPUy xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
     // for boundaries
     std::vector<float> impulse_resp_vec_f(k0+3);  //forward
     for (size_t k = 0; k < (k0+3); ++k) {
@@ -415,15 +408,11 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
-    //const size_t minLen = std::min(z_num, std::min(x_num, y_num));
-    //const size_t minLen = z_num;
 
     const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), z_num);
-
-    const size_t k0 = k0Len > 0 ? k0Len :(size_t)(ceil(std::abs(log(tol)/log(rho))));
-
+    const size_t k0 = k0Len > 0 ? k0Len : (size_t)(ceil(std::abs(log(tol)/log(rho))));
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
-//    std::cout << "CPUz xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
+    std::cout << "CPUz xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
 
     //////////////////////////////////////////////////////////////
     //
@@ -606,12 +595,11 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
 
-//    const size_t minLen = x_num;
     const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), x_num);
-    const size_t k0 = k0Len > 0 ? k0Len : ((size_t)(ceil(std::abs(log(tol)/log(rho)))));
+    const size_t k0 = k0Len > 0 ? k0Len : (size_t)(ceil(std::abs(log(tol)/log(rho))));
     const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
 
-//    std::cout << "CPUx xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
+    std::cout << "CPUx xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
 
     //////////////////////////////////////////////////////////////
     //
@@ -619,13 +607,13 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     //
     //////////////////////////////////////////////////////////////
 
-    std::vector<float> impulse_resp_vec_f(k0+3);  //forward
-    for (size_t k = 0; k < (k0+3);k++){
+    std::vector<float> impulse_resp_vec_f(k0+1);  //forward
+    for (size_t k = 0; k < (k0+1);k++){
         impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
     }
 
-    std::vector<float> impulse_resp_vec_b(k0+3);  //backward
-    for (size_t k = 0; k < (k0+3);k++){
+    std::vector<float> impulse_resp_vec_b(k0+1);  //backward
+    for (size_t k = 0; k < (k0+1);k++){
         impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
     }
 
@@ -674,7 +662,6 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     }
 
     //forwards direction
-
     std::vector<float> temp_vec1(y_num,0);
     std::vector<float> temp_vec2(y_num,0);
     std::vector<float> temp_vec3(y_num,0);
@@ -1010,9 +997,9 @@ void ComputeGradient::calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelDat
                 }
 
                 //do the y gradient in range 1..y_num-2
-#ifdef HAVE_OPENMP
-#pragma omp simd
-#endif
+                #ifdef HAVE_OPENMP
+                #pragma omp simd
+                #endif
                 for (size_t y = 1; y < y_num - 1; ++y) {
                     temp[y] = sqrt(pow((right[y] - left[y]) / (2 * hx), 2.0) + pow((down[y] - up[y]) / (2 * hz), 2.0) +
                                    pow((center[y + 1] - center[y - 1]) / (2 * hy), 2.0));

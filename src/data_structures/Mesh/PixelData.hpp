@@ -890,7 +890,7 @@ void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &
  * @param sz_z - desired padding size, will be bounded by z_num - 1
 */
 template<typename T>
-void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, int sz_z){
+void paddPixels(const PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, int sz_z){
 
     if(input.y_num > 1){
         sz_y = std::min(sz_y,(int) (input.y_num-1));
