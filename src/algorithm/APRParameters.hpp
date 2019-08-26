@@ -48,7 +48,7 @@ public:
     bool constant_intensity_scale = false;
     bool output_steps = false;
 
-    bool reflect_bc_lis = false;
+    bool reflect_bc_lis = true;
 
     std::string name;
     std::string output_dir;
