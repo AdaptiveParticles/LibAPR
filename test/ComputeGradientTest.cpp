@@ -1205,7 +1205,7 @@ namespace {
         // Compare GPU vs CPU
         // allow some differences since float point diffs
         // TODO: It would be much better to count number of diffs with delta==1 and allow some of these
-        EXPECT_TRUE(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01, 100) < 29);
+        EXPECT_TRUE(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01, 5) < 29);
     }
 
 
