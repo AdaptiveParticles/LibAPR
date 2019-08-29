@@ -449,11 +449,11 @@ namespace {
 
         LocalIntensityScale lis;
 
-        for (int boundary = 0; boundary <= 1; ++ boundary) {
+        for (int boundary = 1; boundary <= 1; ++ boundary) {
             // boundary = 0 there is no reflected boundary
             // boudnary = 1 there is boundary reflect
             std::cout << "\n\n";
-            for (int offset = 0; offset < 6; ++offset) {
+            for (int offset = 2; offset < 3; ++offset) {
                 // Run on CPU
                 PixelData<float> mCpuPadded;
                 paddPixels(m, mCpuPadded, offset * boundary, 0, 0);
@@ -470,10 +470,11 @@ namespace {
                 timer.stop_timer();
 
                 // Compare results
-                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01, 4), 0);
             }
         }
     }
+
 #endif // APR_USE_CUDA
 
 }
