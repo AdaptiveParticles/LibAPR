@@ -346,12 +346,14 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
         APRTimer timer(true);
-        PixelData<float> m = getRandInitializedMesh<float>(310, 330, 13, 25);
+        PixelData<float> m = getRandInitializedMesh<float>(128, 128, 128, 25);
+
+
 
         APRParameters params;
         params.sigma_th = 1;
         params.sigma_th_max = 2;
-        params.reflect_bc_lis = false; //#TODO: @KG: The CPU pipeline uses this to true, so needs to now be implimented.
+        params.reflect_bc_lis = true;
 
         // Run on CPU
         PixelData<float> mCpu(m, true);
@@ -453,12 +455,16 @@ namespace {
             // boundary = 0 there is no reflected boundary
             // boudnary = 1 there is boundary reflect
             std::cout << "\n\n";
-            for (int offset = 2; offset < 3; ++offset) {
+            for (int offset = 1; offset < 2; ++offset) {
                 // Run on CPU
                 PixelData<float> mCpuPadded;
                 paddPixels(m, mCpuPadded, offset * boundary, 0, 0);
                 timer.start_timer("CPU mean Y-DIR");
+                mCpuPadded.printMesh(4);
                 lis.calc_sat_mean_y(mCpuPadded, offset);
+                mCpuPadded.printMesh(4);
+                lis.calc_sat_mean_y(mCpuPadded, offset);
+                mCpuPadded.printMesh(4);
                 PixelData<float> mCpu;
                 unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
                 timer.stop_timer();
@@ -466,7 +472,12 @@ namespace {
                 // Run on GPU
                 PixelData<float> mGpu(m, true);
                 timer.start_timer("GPU mean Y-DIR");
+                mGpu.printMesh(4);
                 calcMean(mGpu, offset, MEAN_Y_DIR, (boundary > 0));
+                mGpu.printMesh(4);
+                calcMean(mGpu, offset, MEAN_Y_DIR, (boundary > 0));
+                mGpu.printMesh(4);
+
                 timer.stop_timer();
 
                 // Compare results

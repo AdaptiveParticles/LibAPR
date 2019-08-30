@@ -95,8 +95,8 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
             timer.stop_timer();
         }
 
-        timer.start_timer("second_pass_and_rescale");
-        //calculate abs and subtract from original
+//        timer.start_timer("second_pass_and_rescale");
+//        //calculate abs and subtract from original
         calc_abs_diff(local_scale_temp2, local_scale_temp);
         //Second spatial average
         if (active_y) {
@@ -108,22 +108,22 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
         if (active_z) {
             calc_sat_mean_z(local_scale_temp, win_z2);
         }
-
-        // second average for extra smoothing
-        if(par.extra_smooth) {
-            if (active_y) {
-                calc_sat_mean_y(local_scale_temp, par.extra_smooth);
-            }
-            if (active_x) {
-                calc_sat_mean_x(local_scale_temp, par.extra_smooth);
-            }
-            if (active_z) {
-                calc_sat_mean_z(local_scale_temp, par.extra_smooth);
-            }
-        }
-
-        rescale_var(local_scale_temp, var_rescale);
-        timer.stop_timer();
+//
+//        // second average for extra smoothing
+//        if(par.extra_smooth) {
+//            if (active_y) {
+//                calc_sat_mean_y(local_scale_temp, par.extra_smooth);
+//            }
+//            if (active_x) {
+//                calc_sat_mean_x(local_scale_temp, par.extra_smooth);
+//            }
+//            if (active_z) {
+//                calc_sat_mean_z(local_scale_temp, par.extra_smooth);
+//            }
+//        }
+//
+//        rescale_var(local_scale_temp, var_rescale);
+//        timer.stop_timer();
 
         if(par.reflect_bc_lis) {
 

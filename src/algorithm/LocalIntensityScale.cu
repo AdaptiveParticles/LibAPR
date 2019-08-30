@@ -57,33 +57,33 @@ __global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // Check if current value is one of the mirrored elements (boundary condition)
         int numberOfMirrorLeft = offset - workerOffset;
         int numberOfMirrorRight = workerOffset + offset - (y_num - 1);
-        if (numberOfMirrorLeft > 0 && workerOffset >= 1 && workerOffset <= numberOfMirrorLeft) { sum += v; ++countNumOfSumElements;}
-        if (numberOfMirrorRight > 0 && workerOffset < (y_num - 1) && workerOffset >= (y_num - 1 - numberOfMirrorRight)) { printf("%d ADDv %f\n", workerOffset, v); sum += v; ++countNumOfSumElements;}
-
+        if (boundaryReflect) {
+            if (numberOfMirrorLeft > 0 && workerOffset >= 1 && workerOffset <= numberOfMirrorLeft) {sum += v; ++countNumOfSumElements;}
+            if (numberOfMirrorRight > 0 && workerOffset < (y_num - 1) && workerOffset >= (y_num - 1 - numberOfMirrorRight)) {sum += v; ++countNumOfSumElements;}
+        }
         for (int off = 1; off <= offset; ++off) {
             T prevElement = __shfl_sync(active, v, workerIdx + blockDim.y - off, blockDim.y);
             T nextElement = __shfl_sync(active, v, workerIdx + off, blockDim.y);
             // LHS boundary check + don't add previous values if they were added in a previous loop execution
-            if (workerOffset >= off && !waitForNextLoop) {printf("%d=%f add- %f\n", workerOffset, sum, prevElement); sum += prevElement; ++countNumOfSumElements;}
+            if (workerOffset >= off && !waitForNextLoop) {sum += prevElement; ++countNumOfSumElements;}
 
             // RHS boundary check + don't read next values since they are not read yet
-            if (!waitForNextValues && (workerOffset + off) < y_num) {printf("%d=%f add+ %f\n", workerOffset, sum, nextElement); sum += nextElement; ++countNumOfSumElements;}
+            if (!waitForNextValues && (workerOffset + off) < y_num) {sum += nextElement; ++countNumOfSumElements;}
 
             // boundary condition (mirroring)
-            int element = workerOffset + off;
-            if (workerOffset > y_num - 2) printf("-- +%d=%f %d %d\n", workerOffset, sum, numberOfMirrorLeft, element);
-            if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {printf("%d=%f ADD+ %f\n", workerOffset, sum, nextElement); sum += nextElement; ++countNumOfSumElements;}
-            if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {printf("%d=%f ADD++ %f\n", workerOffset, sum, nextElement); sum += nextElement; ++countNumOfSumElements;}
-            element = workerOffset - off;
-            if (workerOffset > y_num - 2) printf("-- -%d=%f %d %d\n", workerOffset, sum, numberOfMirrorLeft, element);
-            if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {printf("%d=%f ADD- %f\n", workerOffset, sum, prevElement); sum += prevElement; ++countNumOfSumElements;}
-            if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {printf("%d=%f ADD-- %f\n", workerOffset, sum, prevElement); sum += prevElement; ++countNumOfSumElements;}
+            if (boundaryReflect) {
+                int element = workerOffset + off;
+                if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {sum += nextElement; ++countNumOfSumElements;}
+                if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {sum += nextElement; ++countNumOfSumElements;}
+                element = workerOffset - off;
+                if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {sum += prevElement; ++countNumOfSumElements;}
+                if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {sum += prevElement; ++countNumOfSumElements;}
+            }
         }
         waitForNextLoop = waitForNextValues;
         if (!waitForNextLoop) {
             T sumbef = sum;
             sum += v;
-            printf("%d SUM: %f %d %f %f\n", workerOffset, sum, countNumOfSumElements, v, sumbef);
             image[workersOffset + workerOffset] = sum / countNumOfSumElements;
 
             // worker is done with current element - move to next one
@@ -395,10 +395,10 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
 
     // --------- CUDA ----------------
     runCopy1D(cudaImage, cudaTemp, image.mesh.size(), aStream);
-    runMean(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR, aStream);
+    runMean(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
     runAbsDiff1D(cudaImage, cudaTemp, image.mesh.size(), aStream);
-    runMean(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream);
-    runRescaleAndThreshold(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
+    runMean(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
+//    runRescaleAndThreshold(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
 }
 
 template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>&, const APRParameters&, float*, float*, cudaStream_t);
