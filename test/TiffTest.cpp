@@ -60,7 +60,7 @@ namespace {
     }
 
     TEST(TiffTest, NotExistingFile) {
-        TiffUtils::TiffInfo t("/tmp/forSureThisFileDoesNotExists.tiff666");
+        TiffUtils::TiffInfo t("forSureThisFileDoesNotExists.tiff666");
         ASSERT_STREQ(t.toString().c_str(), "<File not opened>");
         ASSERT_EQ(t.isFileOpened(), false);
     }
@@ -73,7 +73,7 @@ namespace {
         PixelData<ImgType> mesh = TiffUtils::getMesh<ImgType>(t);
         ASSERT_EQ(t.isFileOpened(), true);
 
-        std::string fileName = "/tmp/testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
+        std::string fileName = "testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
         TiffUtils::saveMeshAsTiff(fileName, mesh);
 
         TiffUtils::TiffInfo t2(fileName);
@@ -96,7 +96,7 @@ namespace {
         ASSERT_EQ(t.isFileOpened(), true);
         PixelData<float> mesh = TiffUtils::getMesh<float>(t);
 
-        std::string fileName = "/tmp/testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
+        std::string fileName = "testAprTiffSave" + std::to_string(time(nullptr)) + ".tif";
         TiffUtils::saveMeshAsTiffUint16(fileName, mesh);
 
         TiffUtils::TiffInfo t2(fileName);
