@@ -8,6 +8,12 @@
 //Note this function sets up the domain for the APR for a given input size.
 class GenInfo {
 
+    //computes a power then uses round (this was requried due to casting differences across sytems)
+    double powr(uint64_t num,uint64_t pow2){
+        //return (uint64_t) std::round(std::pow(num,pow2));
+        return std::round(pow(num,pow2));
+    }
+
 public:
     int l_min;
     int l_max;
@@ -48,12 +54,12 @@ public:
 
         level_size.resize(levelMax + 1);
         for (int k = 0; k <= levelMax; ++k) {
-           level_size[k] = (uint64_t) pow(2,levelMax - k);
+           level_size[k] = (uint64_t) powr(2,levelMax - k);
         }
 
 
         for (int l = l_min; l <= l_max; ++l) {
-            double cellSize = pow(2.0, l_max - l);
+            double cellSize = powr(2, l_max - l);
             y_num[l] = (uint64_t) ceil(y_org / cellSize);
             x_num[l] = (uint64_t) ceil(x_org / cellSize);
             z_num[l] = (uint64_t) ceil(z_org / cellSize);
@@ -75,10 +81,10 @@ public:
         int max_dim = std::max(std::max(y_org, x_org), z_org);
         //int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
 
-        int min_dim = max_dim;
-        min_dim = y_org > 1 ? std::min(min_dim, (int) y_org) : min_dim;
-        min_dim = x_org > 1 ? std::min(min_dim, (int) x_org) : min_dim;
-        min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
+//        int min_dim = max_dim;
+//        min_dim = y_org > 1 ? std::min(min_dim, (int) y_org) : min_dim;
+//        min_dim = x_org > 1 ? std::min(min_dim, (int) x_org) : min_dim;
+//        min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
 
         int levelMax = ceil(std::log2(max_dim));
         // set to 1, so that the tree can be to 0, enabling the upper tree to always exist.
@@ -93,11 +99,11 @@ public:
 
         level_size.resize(levelMax + 1);
         for (int k = 0; k <= levelMax; ++k) {
-            level_size[k] = (uint64_t) pow(2,levelMax - k);
+            level_size[k] = (uint64_t) powr(2,levelMax - k);
         }
 
         for (int l = l_min; l <= l_max; ++l) {
-            double cellSize = pow(2.0, l_max - l + 1);
+            double cellSize = powr(2, l_max - l + 1);
             y_num[l] = (uint64_t) ceil(y_org / cellSize);
             x_num[l] = (uint64_t) ceil(x_org / cellSize);
             z_num[l] = (uint64_t) ceil(z_org / cellSize);

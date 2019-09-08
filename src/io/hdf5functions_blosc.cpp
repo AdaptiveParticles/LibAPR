@@ -163,7 +163,7 @@ void hdf5_write_data_blosc(hid_t obj_id, hid_t type_id, const char *ds_name, hsi
     H5Pset_filter(plist_id, FILTER_BLOSC, H5Z_FLAG_OPTIONAL, numOfParams, cd_values);
 
     //create write and close
-    hid_t space_id = H5Screate_simple(rank, dims, NULL);
+    hid_t space_id = H5Screate_simple(rank, dims, nullptr);
     hid_t dset_id = H5Dcreate2(obj_id, ds_name, type_id, space_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
     H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
     H5Dclose(dset_id);
