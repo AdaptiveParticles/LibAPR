@@ -28,6 +28,30 @@
 #include "misc/CudaMemory.cuh"
 #endif
 
+struct PixelDataDim {
+    size_t yLen;
+    size_t xLen;
+    size_t zLen;
+
+    size_t y() const {return yLen;}
+    size_t x() const {return xLen;}
+    size_t z() const {return zLen;}
+    size_t size() const { return yLen * xLen * zLen; }
+
+    PixelDataDim operator+(const PixelDataDim &rhs) const {return {yLen + rhs.yLen, xLen + rhs.xLen, zLen + rhs.zLen};}
+    PixelDataDim operator-(const PixelDataDim &rhs) const {return {yLen - rhs.yLen, xLen - rhs.xLen, zLen - rhs.zLen};}
+    template <typename INTEGER>
+    PixelDataDim operator+(INTEGER i) const {return {yLen + i, xLen + i, zLen + i};}
+    template <typename INTEGER>
+    PixelDataDim operator-(INTEGER i) const {return *this + (-i);}
+
+    friend std::ostream & operator<<(std::ostream &os, const PixelDataDim &obj) {
+        os << "{" << obj.yLen << ", " << obj.xLen << ", " << obj.zLen << "}";
+        return os;
+    }
+
+};
+
 template <typename T>
 class ArrayWrapper
 {
@@ -320,6 +344,13 @@ public :
         init(aMesh.y_num, aMesh.x_num, aMesh.z_num, aUsedPinnedMemory);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
     }
+
+    /**
+     * Returns dimensions of PixelData
+     */
+     PixelDataDim getDimension() const {
+         return {y_num, x_num, z_num};
+     }
 
     /**
      * Creates copy of this mesh converting each element to new type
@@ -910,7 +941,7 @@ void paddPixels(const PixelData<T> &input, PixelData<T> &output, int sz_y, int s
         sz_z = 0;
     }
 
-    output.initWithResize(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z);
+    output.initWithValue(input.y_num + 2*sz_y,input.x_num + 2*sz_x,input.z_num + 2*sz_z, 0);
 
     //copy across internal
 
@@ -925,7 +956,6 @@ void paddPixels(const PixelData<T> &input, PixelData<T> &output, int sz_y, int s
             }
         }
     }
-
 
     if(input.y_num > 1) {
         //reflect y
@@ -948,7 +978,6 @@ void paddPixels(const PixelData<T> &input, PixelData<T> &output, int sz_y, int s
             }
         }
     }
-
     if(input.x_num > 1) {
         //reflect x
 #ifdef HAVE_OPENMP
@@ -970,7 +999,6 @@ void paddPixels(const PixelData<T> &input, PixelData<T> &output, int sz_y, int s
             }
         }
     }
-
     //z loops
     if(input.z_num > 1) {
 #ifdef HAVE_OPENMP
@@ -997,8 +1025,6 @@ void paddPixels(const PixelData<T> &input, PixelData<T> &output, int sz_y, int s
 
         }
     }
-
-
 }
 
 

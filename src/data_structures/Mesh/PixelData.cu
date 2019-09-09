@@ -31,3 +31,10 @@ void downsampleMaxCuda(const PixelData<T> &input, PixelData<S> &output) {
 
     runDownsampleMax(in.get(), out.get(), input.x_num, input.y_num, input.z_num, 0);
 };
+
+template <typename T, typename S>
+void paddCuda(PixelData<T> &data, PixelDataDim padSize) {
+    ScopedCudaMemHandler<PixelData<T>, H2D | D2H> deviceData(data);
+
+    runPadd(deviceData.get(), padSize, 0);
+};

@@ -82,7 +82,6 @@ __global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_
         }
         waitForNextLoop = waitForNextValues;
         if (!waitForNextLoop) {
-            T sumbef = sum;
             sum += v;
             image[workersOffset + workerOffset] = sum / countNumOfSumElements;
 

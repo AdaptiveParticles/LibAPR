@@ -247,7 +247,7 @@ namespace {
         }
     }
 
-    TEST(LocalIntensityScaleCudaTest, 1GPU_VS_CPU_X_DIR) {
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_X_DIR) {
         APRTimer timer(true);
         PixelData<float> m = getRandInitializedMesh<float>(33, 31, 13);
 
@@ -348,8 +348,6 @@ namespace {
         APRTimer timer(true);
         PixelData<float> m = getRandInitializedMesh<float>(128, 128, 128, 25);
 
-
-
         APRParameters params;
         params.sigma_th = 1;
         params.sigma_th_max = 2;
@@ -445,8 +443,8 @@ namespace {
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Y_DIR) {
         APRTimer timer(true);
-        PixelData<float> m(13, 1, 1, 0);
-        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
+        PixelData<float> m(4, 4, 1, 0);
+        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
         initFromZYXarray(m, dataIn);
 
         LocalIntensityScale lis;
@@ -458,13 +456,9 @@ namespace {
             for (int offset = 1; offset < 2; ++offset) {
                 // Run on CPU
                 PixelData<float> mCpuPadded;
-                paddPixels(m, mCpuPadded, offset * boundary, 0, 0);
+                paddPixels(m, mCpuPadded, offset * boundary, offset * boundary, 0);
                 timer.start_timer("CPU mean Y-DIR");
-                mCpuPadded.printMesh(4);
                 lis.calc_sat_mean_y(mCpuPadded, offset);
-                mCpuPadded.printMesh(4);
-                lis.calc_sat_mean_y(mCpuPadded, offset);
-                mCpuPadded.printMesh(4);
                 PixelData<float> mCpu;
                 unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
                 timer.stop_timer();
@@ -472,11 +466,7 @@ namespace {
                 // Run on GPU
                 PixelData<float> mGpu(m, true);
                 timer.start_timer("GPU mean Y-DIR");
-                mGpu.printMesh(4);
                 calcMean(mGpu, offset, MEAN_Y_DIR, (boundary > 0));
-                mGpu.printMesh(4);
-                calcMean(mGpu, offset, MEAN_Y_DIR, (boundary > 0));
-                mGpu.printMesh(4);
 
                 timer.stop_timer();
 

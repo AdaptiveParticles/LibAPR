@@ -166,7 +166,7 @@ void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_sc
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      BsplineParams &px, BsplineParams &py, BsplineParams &pz, float *bc1x, float *bc2x, float *bc3x, float *bc4x, float *bc1y, float *bc2y, float *bc3y, float *bc4y, float *bc1z, float *bc2z, float *bc3z, float *bc4z, float *boundary,
                      float bspline_offset, const APRParameters &par, cudaStream_t aStream) {
-
+// TODO: thresholdin is removed from gradient pipeline in APRConverter - to be investigated where it should be done
 //    runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
 
     runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1y, bc2y, bc3y, bc4y, py.k0, py.b1, py.b2, py.norm_factor, boundary, aStream);

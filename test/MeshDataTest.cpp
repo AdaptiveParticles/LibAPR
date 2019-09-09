@@ -156,7 +156,6 @@ namespace {
         const int yLen = 10;
         const int xLen = 20;
         const int zLen = 30;
-        const size_t sizeOfMesh = (size_t)yLen * xLen * zLen;
         PixelData<MESH_TYPE> m{yLen, xLen, zLen};
     };
 
@@ -219,6 +218,54 @@ namespace {
                 ASSERT_EQ(testedMesh.mesh[i], (char)i + 1);
             }
         }
+    }
+
+    TEST(MeshDataSimpleTest, PixelDataDimTest) {
+        // size provided
+        {
+            PixelData<int> md(10, 20, 30);
+            auto d = md.getDimension();
+
+            ASSERT_EQ(d.y(), 10);
+            ASSERT_EQ(d.x(), 20);
+            ASSERT_EQ(d.z(), 30);
+            ASSERT_EQ(d.size(), 10*20*30);
+        }
+        { // adding int to all dims
+
+            PixelDataDim x = {1,2,3};
+            auto d = x + 1;
+            ASSERT_EQ(d.y(), 2);
+            ASSERT_EQ(d.x(), 3);
+            ASSERT_EQ(d.z(), 4);
+        }
+        { // subtract int from all dims
+
+            const PixelDataDim x = {1,2,3};
+            auto d = x - 1;
+            ASSERT_EQ(d.y(), 0);
+            ASSERT_EQ(d.x(), 1);
+            ASSERT_EQ(d.z(), 2);
+        }
+        { // adding another PixelDataDim
+
+            PixelDataDim x = {1,2,3};
+            const PixelDataDim y = {5, 10, 15};
+            auto d = x + y;
+            ASSERT_EQ(d.y(), 6);
+            ASSERT_EQ(d.x(), 12);
+            ASSERT_EQ(d.z(), 18);
+        }
+        { // subtract another PixelDataDim
+
+            const PixelDataDim x = {5, 10, 15};
+            PixelDataDim y = {1, 2, 3};
+            auto d = x - y;
+            ASSERT_EQ(d.y(), 4);
+            ASSERT_EQ(d.x(), 8);
+            ASSERT_EQ(d.z(), 12);
+        }
+
     }
 
     TEST_F(MeshDataTest, ToTypeTest) {
@@ -586,6 +633,7 @@ namespace {
         return m;
     }
 }
+
 TEST(MeshDataSimpleTest, DownSampleCuda) {
     {   // reduce/constant_operator calculate maximum value when downsampling
         PixelData<float> m(5, 6, 4);
@@ -661,6 +709,15 @@ TEST(MeshDataSimpleTest, DownSampleCuda) {
         EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
     }
 }
+
+TEST(MeshDataSimpleTest, PaddPixelsCuda) {
+    {   // 1D - yDir
+        PixelData<float> m(4, 1, 1);
+        for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
+        m.printMesh(4);
+    }
+}
+
 #endif
 
 int main(int argc, char **argv) {
