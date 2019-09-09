@@ -33,6 +33,8 @@ struct PixelDataDim {
     size_t xLen;
     size_t zLen;
 
+    PixelDataDim(size_t y, size_t x, size_t z) : yLen(y), xLen(x), zLen(z) {}
+
     size_t y() const {return yLen;}
     size_t x() const {return xLen;}
     size_t z() const {return zLen;}
@@ -896,8 +898,6 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
 }
 
 
-
-
 template<typename T>
 void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
     downsampled.resize(l_max + 1); // each level is kept at same index
@@ -1060,10 +1060,6 @@ void unpaddPixels(PixelData<T> &input, PixelData<T> &output, int org_dim_y, int 
         }
     }
 }
-
-
-
-
 
 
 #endif //PIXEL_DATA_HPP

@@ -710,11 +710,15 @@ TEST(MeshDataSimpleTest, DownSampleCuda) {
     }
 }
 
-TEST(MeshDataSimpleTest, PaddPixelsCuda) {
+TEST(MeshDataSimpleTest, PadPixelsCuda) {
     {   // 1D - yDir
-        PixelData<float> m(4, 1, 1);
+        PixelData<float> m(2, 3, 1);
         for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
-        m.printMesh(4);
+        PixelData<float> p(4, 7, 3);
+        padCuda(m, p, PixelDataDim(1,2,1));
+
+        m.printMesh(2);
+        p.printMesh(2);
     }
 }
 

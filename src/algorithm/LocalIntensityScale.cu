@@ -397,7 +397,7 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
     runMean(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
     runAbsDiff1D(cudaImage, cudaTemp, image.mesh.size(), aStream);
     runMean(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
-//    runRescaleAndThreshold(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
+    runRescaleAndThreshold(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
 }
 
 template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>&, const APRParameters&, float*, float*, cudaStream_t);
