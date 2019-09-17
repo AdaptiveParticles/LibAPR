@@ -80,10 +80,12 @@ int main(int argc, char **argv) {
     apr_raycaster.jitter = (options.jitter > 0);
     apr_raycaster.jitter_factor = options.jitter;
 
+    apr_raycaster.phi = 0;
+
     apr_raycaster.name = apr.name;
 
     PixelData<uint16_t> views;
-
+    PixelData<uint16_t> views1;
     /////////////
     ///
     ///  Compute APR (maximum projection) raycast
@@ -96,6 +98,10 @@ int main(int argc, char **argv) {
     rp.level_delta = -2;
 
     apr_raycaster.scale_down = pow(2,rp.level_delta);
+
+    apr_raycaster.perform_raycast_patch(apr,parts,treeData,views1,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+
+    rp.level_delta = -2;
 
     apr_raycaster.perform_raycast_patch(apr,parts,treeData,views,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 

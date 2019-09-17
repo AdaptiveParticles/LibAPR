@@ -319,6 +319,14 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             component_times.run_kernels += tmp.run_kernels;
             component_times.fill_tree += tmp.fill_tree;
             component_times.transfer_D2H += tmp.transfer_D2H;
+            component_times.init_access += tmp.init_access;
+            component_times.allocation += tmp.allocation;
+            component_times.compute_ne_rows += tmp.compute_ne_rows;
+            component_times.compute_ne_rows_interior += tmp.compute_ne_rows_interior;
+
+            for(size_t i=0; i < component_times.lvl_timings.size(); ++i) {
+                component_times.lvl_timings[i] += tmp.lvl_timings[i];
+            }
         }
     } else {
         std::cerr << "APR cuda convolution for stencil_size = " << stencil_size << " is not yet implemented" << std::endl;
