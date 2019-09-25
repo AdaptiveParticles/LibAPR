@@ -19,10 +19,22 @@
 #include "io/APRFile.hpp"
 
 #ifdef APR_USE_CUDA
+#include "numerics/APRDownsampleGPU.hpp"
+#include "numerics/APRIsoConvGPU.hpp"
 
-    #include "numerics/APRDownsampleGPU.hpp"
-    #include "numerics/APRIsoConvGPU.hpp"
+#define DEBUGCUDA 1
 
+#define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+#ifdef DEBUGCUDA
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+#endif
+}
 #endif
 
 struct TestDataGPU{
@@ -542,11 +554,9 @@ TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333) {
 
 }
 
-
 TEST_F(CreateCR1, TEST_GPU_CONV_333) {
     ASSERT_TRUE(test_gpu_conv_333(test_data));
 }
-
 
 TEST_F(CreateCR3, TEST_GPU_CONV_333) {
     ASSERT_TRUE(test_gpu_conv_333(test_data));
@@ -584,6 +594,85 @@ TEST_F(CreateCR1000, TEST_GPU_CONV_333) {
     ASSERT_TRUE(test_gpu_conv_333(test_data));
 }
 
+
+bool test_gpu_conv_333_notransfer(TestDataGPU& test_data){
+
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+
+    tree_access.init_gpu();
+    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    error_check( cudaDeviceSynchronize() )
+
+    VectorData<float> tree_data;
+    VectorData<float> output;
+    VectorData<float> stencil;
+
+    tree_data.resize(tree_access.total_number_particles());
+    output.resize(access.total_number_particles());
+    stencil.resize(27);
+
+    float sum = 13.0 * 27;
+    for(int i = 0; i < 27; ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> input_gpu(test_data.particles_intensities.data.data(), test_data.particles_intensities.data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    input_gpu.copyH2D();
+    output_gpu.copyH2D();
+    tree_data_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    isotropic_convolve_333(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get());
+
+    output_gpu.copyD2H();
+
+    std::vector<PixelData<float>> stencils;
+    stencils.resize(1);
+
+    stencils[0].init(3, 3, 3);
+    std::copy(stencil.begin(), stencil.end(), stencils[0].mesh.begin());
+
+    APRFilter filterfns;
+    filterfns.boundary_cond = false; // zero padding
+
+    ParticleData<float> output_gt;
+    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+
+    size_t pass_count = 0;
+    size_t total_count = 0;
+
+    auto it = test_data.apr.iterator();
+
+    for(int level = it.level_max(); level >= it.level_min(); --level) {
+        for(int z = 0; z < it.z_num(level); ++z) {
+            for(int x = 0; x < it.x_num(level); ++x) {
+                for(it.begin(level, z, x); it < it.end(); ++it) {
+                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
+                        pass_count++;
+                    } else {
+                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
+                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
+                    }
+                    total_count++;
+                }
+            }
+        }
+    }
+
+    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
+
+    return (pass_count == total_count);
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333_NOTF) {
+    ASSERT_TRUE(test_gpu_conv_333_notransfer(test_data));
+}
 
 
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {

@@ -63,8 +63,6 @@ public:
     uint64_t* get_xz_end_vec_ptr();
     uint64_t* get_level_xz_vec_ptr();
 
-
-
     void init_gpu(){
         gpuAccess->init_y_vec(linearAccess->y_vec);
         gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);

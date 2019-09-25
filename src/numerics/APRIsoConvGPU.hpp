@@ -57,6 +57,10 @@ template<typename inputType, typename outputType, typename stencilType, typename
 timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<inputType>&,
                                 VectorData<outputType>&, VectorData<stencilType>&, VectorData<treeType>&);
 
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
+                            outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data);
+
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<inputType>&,

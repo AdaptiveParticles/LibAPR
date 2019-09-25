@@ -8,7 +8,6 @@
 #define DEBUGCUDA 1
 
 #define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
 #ifdef DEBUGCUDA
@@ -590,6 +589,124 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     return ret;
 }
+
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
+                            outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu){
+    /*
+     *  Perform APR Isotropic Convolution Operation on the GPU with a 3x3x3 kernel
+     *
+     *  conv_stencil needs to have 27 entries
+     */
+
+    //VectorData<stencilType> tree_data(tree_access.total_number_particles());
+    //output.resize(access.total_number_particles());
+
+    tree_access.init_gpu();
+    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    error_check( cudaDeviceSynchronize() )
+
+    VectorData<int> ne_rows; //non empty rows
+    VectorData<int> ne_counter; //non empty rows
+
+    compute_ne_rows(tree_access,ne_counter,ne_rows);
+
+    VectorData<int> ne_rows_interior; //non empty rows
+    VectorData<int> ne_counter_interior; //non empty rows
+
+    compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
+
+    /// allocate GPU memory
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_interior_gpu(ne_rows_interior.data(), ne_rows_interior.size());
+
+    error_check( cudaDeviceSynchronize() )
+
+    ne_rows_gpu.copyH2D();
+    ne_rows_interior_gpu.copyH2D();
+
+    error_check( cudaDeviceSynchronize() )
+
+    /// Fill the APR Tree by average downsampling
+    downsample_avg(access, tree_access, input_gpu, tree_data_gpu, ne_rows_gpu.get(), ne_counter);
+
+    error_check( cudaDeviceSynchronize() )
+
+    const int blockSize = 4;
+    const int chunkSize = 32;
+
+    for (int level = access.level_max(); level > access.level_min(); --level) {
+
+        if (level == access.level_max()) {
+
+            size_t ne_sz = ne_counter[level+1] - ne_counter[level];
+            size_t offset = ne_counter[level];
+
+            dim3 blocks_l(ne_sz, 1, 1);
+
+            dim3 threads_l(chunkSize, blockSize, blockSize);
+
+            conv_max_333_chunked
+                    <chunkSize, blockSize>
+                    << < blocks_l, threads_l >> >
+                                   ( access.get_level_xz_vec_ptr(),
+                                           access.get_xz_end_vec_ptr(),
+                                           access.get_y_vec_ptr(),
+                                           input_gpu,
+                                           output_gpu,
+                                           stencil_gpu,
+                                           access.z_num(level),
+                                           access.x_num(level),
+                                           access.y_num(level),
+                                           tree_access.z_num(level-1),
+                                           tree_access.x_num(level-1),
+                                           level,
+                                           ne_rows_gpu.get() + offset );
+
+        } else {
+
+            size_t ne_sz = ne_counter_interior[level+1] - ne_counter_interior[level];
+            size_t offset = ne_counter_interior[level];
+
+            if( ne_sz == 0) {
+                continue;
+            }
+
+            dim3 blocks_l(ne_sz, 1, 1);
+            dim3 threads_l(chunkSize, blockSize, blockSize);
+
+            conv_interior_333_chunked
+                    <chunkSize, blockSize>
+                    <<< blocks_l, threads_l >>>
+                                  (access.get_level_xz_vec_ptr(),
+                                          access.get_xz_end_vec_ptr(),
+                                          access.get_y_vec_ptr(),
+                                          input_gpu,
+                                          output_gpu,
+                                          stencil_gpu,
+                                          tree_access.get_level_xz_vec_ptr(),
+                                          tree_access.get_xz_end_vec_ptr(),
+                                          tree_access.get_y_vec_ptr(),
+                                          tree_data_gpu,
+                                          access.z_num(level),
+                                          access.x_num(level),
+                                          access.y_num(level),
+                                          tree_access.z_num(level - 1),
+                                          tree_access.x_num(level - 1),
+                                          level,
+                                          ne_rows_interior_gpu.get() + offset);
+        }
+
+        error_check( cudaDeviceSynchronize() )
+        error_check( cudaGetLastError() )
+
+    }
+
+    error_check( cudaDeviceSynchronize() )
+
+}
+
 
 
 template<typename inputType, typename outputType, typename stencilType>
@@ -2828,6 +2945,10 @@ template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, Vect
 template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<float>&, VectorData<float>&);
 template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<float>&);
 template timings isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&);
+
+template void isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, float*, float*);
+template void isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, float*, float*, float*, float*);
+
 //apr 555
 template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
 template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
