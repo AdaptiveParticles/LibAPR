@@ -12,9 +12,9 @@ buildTarget(testLocalIntensityScale LocalIntensityScaleTest.cpp)
 buildTarget(testPullingScheme PullingSchemeTest.cpp)
 
 #APR GPU Tests
-#if(APR_USE_CUDA)
+if(APR_USE_CUDA)
    buildTarget(testAPRCuda APRTestCuda.cpp)
-#endif()
+endif()
 
 ## Performance Benchmark Tests
 

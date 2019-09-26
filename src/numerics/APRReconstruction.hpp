@@ -133,6 +133,74 @@ public:
     }
 
 
+    template<typename U,typename V>
+    static void interp_img(APR& apr, PixelData<U>& img,VectorData<V>& parts){
+        //
+        //  Bevan Cheeseman 2016
+        //
+        //  Takes in a APR and creates piece-wise constant image
+        //
+
+        //parts.init(apr.total_number_particles());
+
+        auto apr_iterator = apr.iterator();
+
+        img.initWithValue(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 0);
+
+        int max_dim = std::max(std::max(apr.org_dims(1), apr.org_dims(0)), apr.org_dims(2));
+
+        int max_level = ceil(std::log2(max_dim));
+
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+            const float step_size = pow(2, max_level - level);
+
+            const bool l_max (level==apr.level_max());
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
+#endif
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
+                         apr_iterator++) {
+                        //
+                        //  Parallel loop over level
+                        //
+                        if(l_max){
+                            img.at(apr_iterator.y(),x,z)=parts[apr_iterator];
+                        } else {
+                            int dim1 = apr_iterator.y() * step_size;
+                            int dim2 = x * step_size;
+                            int dim3 = z * step_size;
+
+                            float temp_int;
+                            //add to all the required rays
+
+                            temp_int = parts[apr_iterator];
+
+                            const int offset_max_dim1 = std::min((int) img.y_num, (int) (dim1 + step_size));
+                            const int offset_max_dim2 = std::min((int) img.x_num, (int) (dim2 + step_size));
+                            const int offset_max_dim3 = std::min((int) img.z_num, (int) (dim3 + step_size));
+
+                            for (int64_t q = dim3; q < offset_max_dim3; ++q) {
+
+                                for (int64_t k = dim2; k < offset_max_dim2; ++k) {
+                                    for (int64_t i = dim1; i < offset_max_dim1; ++i) {
+                                        img.mesh[i + (k) * img.y_num + q * img.y_num * img.x_num] = temp_int;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
 
     template<typename U,typename V>
     static void interp_img_us_smooth(APR& apr, PixelData<U>& img,ParticleData<V>& parts,bool smooth,int delta = 0){

@@ -50,6 +50,12 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
 
 class PullingScheme {
 
+    double powr(uint64_t num,uint64_t pow2){
+        //return (uint64_t) std::round(std::pow(num,pow2));
+        return std::round(pow(num,pow2));
+    }
+
+
 public:
     template<typename T>
     void fill(float k, const PixelData<T> &input);
@@ -85,9 +91,9 @@ inline void PullingScheme::initialize_particle_cell_tree(const GenInfo &aprInfo)
     particle_cell_tree.resize(l_max + 1);
 
     for (int l = l_min; l <= l_max; ++l) {
-        particle_cell_tree[l].initWithValue(ceil(aprInfo.org_dims[0] / pow(2.0, l_max - l + 1)),
-                                            ceil(aprInfo.org_dims[1] / pow(2.0, l_max - l + 1)),
-                                            ceil(aprInfo.org_dims[2] / pow(2.0, l_max - l + 1)),
+        particle_cell_tree[l].initWithValue(ceil(aprInfo.org_dims[0] / powr(2.0, l_max - l + 1)),
+                                            ceil(aprInfo.org_dims[1] / powr(2.0, l_max - l + 1)),
+                                            ceil(aprInfo.org_dims[2] / powr(2.0, l_max - l + 1)),
                                             EMPTY);
     }
 }

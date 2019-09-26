@@ -19,6 +19,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 #endif
 }
 
+#ifdef __CUDACC__
+    #define L(x,y) __launch_bounds__(x,y)
+#else
+    #define L(x,y)
+#endif
+
 
 #define LOCALPATCHCONV333(particle_output,index,z,x,y,neighbour_sum)\
 neighbour_sum=0;\
@@ -66,6 +72,41 @@ neighbour_sum  +=  local_stencil[q][0][0]*local_patch[z + q - 1][x + 0 - 1][(y+N
 //                 + stencil[q*9+7]*local_patch[z + q - 1][x + 2 - 1][(y+N-1)%N]\
 //                 + stencil[q*9+8]*local_patch[z + q - 1][x + 2 - 1][(y+N+1)%N];\
 
+#define LOCALPATCHCONV555_N(particle_output,index,z,x,y,neighbour_sum)\
+neighbour_sum=0;\
+if (not_ghost) {\
+for (int q = 0; q < 5; ++q) {\
+            neighbour_sum +=\
+                local_stencil[q][0][0]*local_patch[z + q - 2][x + 0 - 2][(y+N-2)%N]\
+                 + local_stencil[q][0][1]*local_patch[z + q - 2][x + 0 - 2][(y+N-1)%N]\
+                 + local_stencil[q][0][2]*local_patch[z + q - 2][x + 0 - 2][(y+N)%N]\
+                 + local_stencil[q][0][3]*local_patch[z + q - 2][x + 0 - 2][(y+N+1)%N]\
+                 + local_stencil[q][0][4]*local_patch[z + q - 2][x + 0 - 2][(y+N+2)%N]\
+                 + local_stencil[q][1][0]*local_patch[z + q - 2][x + 1 - 2][(y+N-2)%N]\
+                 + local_stencil[q][1][1]*local_patch[z + q - 2][x + 1 - 2][(y+N-1)%N]\
+                 + local_stencil[q][1][2]*local_patch[z + q - 2][x + 1 - 2][(y+N)%N]\
+                 + local_stencil[q][1][3]*local_patch[z + q - 2][x + 1 - 2][(y+N+1)%N]\
+                 + local_stencil[q][1][4]*local_patch[z + q - 2][x + 1 - 2][(y+N+2)%N]\
+                 + local_stencil[q][2][0]*local_patch[z + q - 2][x + 2 - 2][(y+N-2)%N]\
+                 + local_stencil[q][2][1]*local_patch[z + q - 2][x + 2 - 2][(y+N-1)%N]\
+                 + local_stencil[q][2][2]*local_patch[z + q - 2][x + 2 - 2][(y+N)%N]\
+                 + local_stencil[q][2][3]*local_patch[z + q - 2][x + 2 - 2][(y+N+1)%N]\
+                 + local_stencil[q][2][4]*local_patch[z + q - 2][x + 2 - 2][(y+N+2)%N]\
+                 + local_stencil[q][3][0]*local_patch[z + q - 2][x + 3 - 2][(y+N-2)%N]\
+                 + local_stencil[q][3][1]*local_patch[z + q - 2][x + 3 - 2][(y+N-1)%N]\
+                 + local_stencil[q][3][2]*local_patch[z + q - 2][x + 3 - 2][(y+N)%N]\
+                 + local_stencil[q][3][3]*local_patch[z + q - 2][x + 3 - 2][(y+N+1)%N]\
+                 + local_stencil[q][3][4]*local_patch[z + q - 2][x + 3 - 2][(y+N+2)%N]\
+                 + local_stencil[q][4][0]*local_patch[z + q - 2][x + 4 - 2][(y+N-2)%N]\
+                 + local_stencil[q][4][1]*local_patch[z + q - 2][x + 4 - 2][(y+N-1)%N]\
+                 + local_stencil[q][4][2]*local_patch[z + q - 2][x + 4 - 2][(y+N)%N]\
+                 + local_stencil[q][4][3]*local_patch[z + q - 2][x + 4 - 2][(y+N+1)%N]\
+                 + local_stencil[q][4][4]*local_patch[z + q - 2][x + 4 - 2][(y+N+2)%N];\
+}\
+particle_output[index] = neighbour_sum;\
+}\
+
+
 #define LOCALPATCHCONV555(particle_output,index,z,x,y,neighbour_sum)\
 neighbour_sum=0;\
 if (not_ghost) {\
@@ -100,7 +141,6 @@ for (int q = 0; q < 5; ++q) {\
 particle_output[index] = neighbour_sum;\
 }\
 
-
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
@@ -110,7 +150,9 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
     APRTimer timer(false);
 
     timer.start_timer("init output");
-    output.init(input);
+    if(output.size() < input.size()) {
+        output.init(input);
+    }
     timer.stop_timer();
 
     timer.start_timer("allocation");
@@ -173,7 +215,9 @@ timings convolve_pixel_333_basic(PixelData<inputType>& input, PixelData<outputTy
     APRTimer timer(false);
 
     timer.start_timer("init output");
-    output.init(input);
+    if(output.size() < input.size()) {
+        output.init(input);
+    }
     timer.stop_timer();
 
     timer.start_timer("allocation");
@@ -220,6 +264,62 @@ timings convolve_pixel_333_basic(PixelData<inputType>& input, PixelData<outputTy
 }
 
 
+//template<typename inputType, typename outputType, typename stencilType>
+//timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
+//
+//    assert(stencil.mesh.size() == 125);
+//
+//    timings ret;
+//    APRTimer timer(false);
+//
+//    timer.start_timer("init output");
+//    output.init(input);
+//    timer.stop_timer();
+//
+//    timer.start_timer("transfer H2D");
+//
+//    /// allocate GPU memory
+//    ScopedCudaMemHandler<PixelData<inputType>, JUST_ALLOC> input_gpu(input);
+//    ScopedCudaMemHandler<PixelData<outputType>, JUST_ALLOC> output_gpu(output);
+//    ScopedCudaMemHandler<PixelData<stencilType>, JUST_ALLOC> stencil_gpu(stencil);
+//
+//    /// copy input and stencil to the GPU
+//    input_gpu.copyH2D();
+//    stencil_gpu.copyH2D();
+//
+//    cudaDeviceSynchronize();
+//
+//    timer.stop_timer();
+//
+//    ret.transfer_H2D = timer.timings.back();
+//
+//    timer.start_timer("run kernels");
+//
+//    dim3 threads_l(12, 1, 12);
+//
+//    int x_blocks = (input.x_num + 8 - 1) / 8;
+//    int z_blocks = (input.z_num + 8 - 1) / 8;
+//
+//    dim3 blocks_l(x_blocks, 1, z_blocks);
+//
+//    conv_pixel_555<<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
+//
+//    error_check( cudaDeviceSynchronize() )
+//    error_check( cudaPeekAtLastError() )
+//
+//    timer.stop_timer();
+//    ret.run_kernels = timer.timings.back();
+//
+//    /// transfer the results back to the host
+//    timer.start_timer("transfer D2H");
+//    output_gpu.copyD2H();
+//    timer.stop_timer();
+//    ret.transfer_D2H = timer.timings.back();
+//
+//    return ret;
+//}
+
+
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil) {
 
@@ -229,36 +329,43 @@ timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& o
     APRTimer timer(false);
 
     timer.start_timer("init output");
-    output.init(input);
+    if(output.size() < input.size()) {
+        output.init(input);
+    }
     timer.stop_timer();
 
-    timer.start_timer("transfer H2D");
-
+    timer.start_timer("allocation");
     /// allocate GPU memory
     ScopedCudaMemHandler<PixelData<inputType>, JUST_ALLOC> input_gpu(input);
     ScopedCudaMemHandler<PixelData<outputType>, JUST_ALLOC> output_gpu(output);
     ScopedCudaMemHandler<PixelData<stencilType>, JUST_ALLOC> stencil_gpu(stencil);
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
 
+    ret.allocation = timer.timings.back();
+
+    timer.start_timer("transfer H2D");
     /// copy input and stencil to the GPU
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-
-    cudaDeviceSynchronize();
-
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
 
     ret.transfer_H2D = timer.timings.back();
 
-    timer.start_timer("run kernels");
+    timer.start_timer("run kernel");
 
-    dim3 threads_l(12, 1, 12);
+    const int chunkSize = 16;
+    const int blockSize = 8;
 
-    int x_blocks = (input.x_num + 8 - 1) / 8;
-    int z_blocks = (input.z_num + 8 - 1) / 8;
+    int x_blocks = (input.x_num + blockSize - 5) / (blockSize-4);
+    int z_blocks = (input.z_num + blockSize - 5) / (blockSize-4);
 
     dim3 blocks_l(x_blocks, 1, z_blocks);
+    dim3 threads_l(chunkSize, blockSize, blockSize);
 
-    conv_pixel_555<<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
+
+    conv_pixel_555_chunked<chunkSize, blockSize><<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
 
     error_check( cudaDeviceSynchronize() )
     error_check( cudaPeekAtLastError() )
@@ -269,11 +376,14 @@ timings convolve_pixel_555(PixelData<inputType>& input, PixelData<outputType>& o
     /// transfer the results back to the host
     timer.start_timer("transfer D2H");
     output_gpu.copyD2H();
+    error_check( cudaDeviceSynchronize() )
+    error_check( cudaGetLastError() )
     timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
     return ret;
 }
+
 
 void compute_ne_rows(GPUAccessHelper& tree_access,VectorData<int>& ne_counter,VectorData<int>& ne_rows) {
     ne_counter.resize(tree_access.level_max() + 3);
@@ -779,150 +889,354 @@ void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
-                                    VectorData<outputType>& output, VectorData<stencilType>& stencil, VectorData<treeType>& tree_data){
+                               VectorData<outputType>& output, VectorData<stencilType>& stencil, VectorData<treeType>& tree_data){
     /*
      *  Perform APR Isotropic Convolution Operation on the GPU with a 5x5x5 kernel
      *
      *  conv_stencil needs to have 125 entries
      */
 
+    APRTimer timer(false);
+    APRTimer timer2(false);
+
+    timings ret;
+
+    timer.start_timer("initialize GPU access (apr and tree)");
+    //access.init_gpu();
+    tree_access.init_gpu();
+    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
+    ret.init_access = timer.timings.back();
+
+    ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
+
     assert(input.size() == access.total_number_particles());
     assert(stencil.size() == 125);
 
-    timings ret;
-    APRTimer timer(false);
-
-    timer.start_timer("init arrays");
+    timer.start_timer("host data resize");
     tree_data.resize(tree_access.total_number_particles());
     output.resize(access.total_number_particles());
     timer.stop_timer();
 
-
+    timer.start_timer("compute ne rows");
     VectorData<int> ne_rows; //non empty rows
     VectorData<int> ne_counter; //non empty rows
-
     compute_ne_rows(tree_access,ne_counter,ne_rows);
+    timer.stop_timer();
+    ret.counter_ne_rows = ne_rows.size();
+    ret.compute_ne_rows = timer.timings.back();
+
+    timer.start_timer("compute ne rows internal");
+    VectorData<int> ne_rows_interior; //non empty rows
+    VectorData<int> ne_counter_interior; //non empty rows
+    compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
+    timer.stop_timer();
+    ret.counter_ne_rows_int = ne_rows_interior.size();
+    ret.compute_ne_rows_interior = timer.timings.back();
+
+    timer.start_timer("allocate GPU memory");
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
-
-    timer.start_timer("transfer H2D");
-
-    /// allocate GPU memory
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_interior_gpu(ne_rows_interior.data(), ne_rows_interior.size());
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
+    ret.allocation = timer.timings.back();
 
-    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
-    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
-
-    /// copy input and stencil to the GPU
+    timer.start_timer("transfer H2D");
     ne_rows_gpu.copyH2D();
-
+    ne_rows_interior_gpu.copyH2D();
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-
-    cudaDeviceSynchronize();
-
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.transfer_H2D = timer.timings.back();
 
     /// Fill the APR Tree by average downsampling
     timer.start_timer("fill tree");
     downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
-    cudaDeviceSynchronize();
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
-
     ret.fill_tree = timer.timings.back();
 
     timer.start_timer("run kernels");
 
-    for (int level = access.level_max(); level >= access.level_min(); --level) {
+    const int blockSize = 8;
+    const int chunkSize = 16;
 
-        int x_blocks = (access.x_num(level) + 8 - 1) / 8;
-        int z_blocks = (access.z_num(level) + 8 - 1) / 8;
+    for (int level = access.level_max(); level > access.level_min(); --level) {
 
-        dim3 blocks_l(x_blocks, 1, z_blocks);
-        dim3 thd_l(8, 1, 8);
+        timer2.start_timer("convolve_dlvl_" + std::to_string(access.level_max() - level));
 
-        check_blocks<8><<<blocks_l, thd_l>>>(access.get_level_xz_vec_ptr(),
-                                        access.get_xz_end_vec_ptr(),
-                                        blocks_empty.get(),
-                                        level,
-                                        access.x_num(level));
+        if (level == access.level_max()) {
 
-        dim3 threads_l(12, 1, 12);
+//            size_t ne_sz = ne_counter[level+1] - ne_counter[level];
+            size_t offset = ne_counter[level];
+//            dim3 blocks_l(4 * ne_sz, 1, 1);
 
-        if (level == access.level_min()) {
-            conv_min_555 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
-                    access.get_xz_end_vec_ptr(),
-                    access.get_y_vec_ptr(),
-                    input_gpu.get(),
-                    output_gpu.get(),
-                    stencil_gpu.get(),
-                    tree_access.get_level_xz_vec_ptr(),
-                    tree_access.get_xz_end_vec_ptr(),
-                    tree_access.get_y_vec_ptr(),
-                    tree_data_gpu.get(),
-                    access.z_num(level),
-                    access.x_num(level),
-                    access.y_num(level),
-                    tree_access.z_num(level-1),
-                    tree_access.x_num(level-1),
-                    tree_access.y_num(level-1),
-                    level,
-                    blocks_empty.get());
+            const int block_x = (access.x_num(level) + blockSize - 5) / (blockSize - 4);
+            const int block_z = (access.z_num(level) + blockSize - 5) / (blockSize - 4);
+            dim3 blocks_l(block_x, 1, block_z);
 
-        } else if (level == access.level_max()) {
-            conv_max_555 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
-                    access.get_xz_end_vec_ptr(),
-                    access.get_y_vec_ptr(),
-                    input_gpu.get(),
-                    output_gpu.get(),
-                    stencil_gpu.get(),
-                    access.z_num(level),
-                    access.x_num(level),
-                    access.y_num(level),
-                    tree_access.z_num(level-1),
-                    tree_access.x_num(level-1),
-                    tree_access.y_num(level-1),
-                    level,
-                    blocks_empty.get());
+            dim3 threads_l(chunkSize, blockSize, blockSize);
+
+            conv_max_555_chunked
+                    <chunkSize, blockSize>
+                    << < blocks_l, threads_l >> >
+                                     ( access.get_level_xz_vec_ptr(),
+                                       access.get_xz_end_vec_ptr(),
+                                       access.get_y_vec_ptr(),
+                                       input_gpu.get(),
+                                       output_gpu.get(),
+                                       stencil_gpu.get(),
+                                       access.z_num(level),
+                                       access.x_num(level),
+                                       access.y_num(level),
+                                       tree_access.z_num(level-1),
+                                       tree_access.x_num(level-1),
+                                       level,
+                                       ne_rows_gpu.get() + offset );
 
         } else {
-            conv_interior_555 << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
-                    access.get_xz_end_vec_ptr(),
-                    access.get_y_vec_ptr(),
-                    input_gpu.get(),
-                    output_gpu.get(),
-                    stencil_gpu.get(),
-                    tree_access.get_level_xz_vec_ptr(),
-                    tree_access.get_xz_end_vec_ptr(),
-                    tree_access.get_y_vec_ptr(),
-                    tree_data_gpu.get(),
-                    access.z_num(level),
-                    access.x_num(level),
-                    access.y_num(level),
-                    tree_access.z_num(level-1),
-                    tree_access.x_num(level-1),
-                    tree_access.y_num(level-1),
-                    level,
-                    blocks_empty.get());
+
+//            size_t ne_sz = ne_counter_interior[level+1] - ne_counter_interior[level];
+            size_t offset = ne_counter_interior[level];
+//
+//            if( ne_sz == 0) {
+//                continue;
+//            }
+//
+//            dim3 blocks_l(ne_sz, 1, 1);
+//            dim3 threads_l(chunkSize, blockSize, blockSize);
+
+            const int block_x = (access.x_num(level) + blockSize - 5) / (blockSize - 4);
+            const int block_z = (access.z_num(level) + blockSize - 5) / (blockSize - 4);
+            dim3 blocks_l(block_x, 1, block_z);
+
+            dim3 threads_l(chunkSize, blockSize, blockSize);
+
+            conv_interior_555_chunked
+                    <chunkSize, blockSize>
+                    <<< blocks_l, threads_l >>>
+                                  (access.get_level_xz_vec_ptr(),
+                                          access.get_xz_end_vec_ptr(),
+                                          access.get_y_vec_ptr(),
+                                          input_gpu.get(),
+                                          output_gpu.get(),
+                                          stencil_gpu.get(),
+                                          tree_access.get_level_xz_vec_ptr(),
+                                          tree_access.get_xz_end_vec_ptr(),
+                                          tree_access.get_y_vec_ptr(),
+                                          tree_data_gpu.get(),
+                                          access.z_num(level),
+                                          access.x_num(level),
+                                          access.y_num(level),
+                                          tree_access.z_num(level - 1),
+                                          tree_access.x_num(level - 1),
+                                          level,
+                                          ne_rows_interior_gpu.get() + offset);
         }
+
         error_check( cudaDeviceSynchronize() )
         error_check( cudaPeekAtLastError() )
+
+        timer2.stop_timer();
+        ret.lvl_timings[access.level_max() - level] = timer2.timings.back();
     }
 
     timer.stop_timer();
+
     ret.run_kernels = timer.timings.back();
 
+    error_check( cudaDeviceSynchronize() )
     /// transfer the results back to the host
     timer.start_timer("transfer D2H");
     output_gpu.copyD2H();
+    error_check( cudaDeviceSynchronize() )
+    error_check( cudaGetLastError() )
     timer.stop_timer();
     ret.transfer_D2H = timer.timings.back();
 
     return ret;
 }
+
+
+//template<typename inputType, typename outputType, typename stencilType, typename treeType>
+//timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+//                                    VectorData<outputType>& output, VectorData<stencilType>& stencil, VectorData<treeType>& tree_data){
+//    /*
+//     *  Perform APR Isotropic Convolution Operation on the GPU with a 5x5x5 kernel
+//     *
+//     *  conv_stencil needs to have 125 entries
+//     */
+//
+//    assert(input.size() == access.total_number_particles());
+//    assert(stencil.size() == 125);
+//
+//    timings ret;
+//    APRTimer timer(false);
+//
+//    timer.start_timer("init arrays");
+//    tree_data.resize(tree_access.total_number_particles());
+//    output.resize(access.total_number_particles());
+//    timer.stop_timer();
+//
+//
+//    VectorData<int> ne_rows; //non empty rows
+//    VectorData<int> ne_counter; //non empty rows
+//
+//    compute_ne_rows(tree_access,ne_counter,ne_rows);
+//    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
+//
+//    timer.start_timer("transfer H2D");
+//
+//    /// allocate GPU memory
+//    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+//    ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+//    ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
+//    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+//
+//    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
+//    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
+//
+//    /// copy input and stencil to the GPU
+//    ne_rows_gpu.copyH2D();
+//
+//    input_gpu.copyH2D();
+//    stencil_gpu.copyH2D();
+//
+//    cudaDeviceSynchronize();
+//
+//    timer.stop_timer();
+//    ret.transfer_H2D = timer.timings.back();
+//
+//    /// Fill the APR Tree by average downsampling
+//    timer.start_timer("fill tree");
+//    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
+//    cudaDeviceSynchronize();
+//    timer.stop_timer();
+//
+//    ret.fill_tree = timer.timings.back();
+//
+//    timer.start_timer("run kernels");
+//
+//    const int blockSize = 5;
+//    const int chunkSize = 32;//512/(blockSize*blockSize);
+//
+//    for (int level = access.level_max(); level >= access.level_min(); --level) {
+//
+//        int x_blocks = (access.x_num(level) + 8 - 1) / 8;
+//        int z_blocks = (access.z_num(level) + 8 - 1) / 8;
+//
+//        dim3 blocks_l(x_blocks, 1, z_blocks);
+//        dim3 thd_l(8, 1, 8);
+//
+//        check_blocks<8><<<blocks_l, thd_l>>>(access.get_level_xz_vec_ptr(),
+//                                        access.get_xz_end_vec_ptr(),
+//                                        blocks_empty.get(),
+//                                        level,
+//                                        access.x_num(level));
+//
+//        dim3 threads_l(12, 1, 12);
+//
+//        if (level == access.level_min()) {
+//            conv_min_555 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
+//                    access.get_xz_end_vec_ptr(),
+//                    access.get_y_vec_ptr(),
+//                    input_gpu.get(),
+//                    output_gpu.get(),
+//                    stencil_gpu.get(),
+//                    tree_access.get_level_xz_vec_ptr(),
+//                    tree_access.get_xz_end_vec_ptr(),
+//                    tree_access.get_y_vec_ptr(),
+//                    tree_data_gpu.get(),
+//                    access.z_num(level),
+//                    access.x_num(level),
+//                    access.y_num(level),
+//                    tree_access.z_num(level-1),
+//                    tree_access.x_num(level-1),
+//                    tree_access.y_num(level-1),
+//                    level,
+//                    blocks_empty.get());
+//
+//        } else if (level == access.level_max()) {
+//
+//            size_t ne_sz = ne_counter[level+1] - ne_counter[level];
+//            size_t offset = ne_counter[level];
+//
+//            dim3 blocks_l2(access.x_num(level), 1, access.z_num(level));//(ne_sz, 1, 1);
+//            dim3 threads_l2(chunkSize, blockSize, blockSize);
+//
+//            conv_max_555_chunked
+//                    <chunkSize, blockSize>
+//                    << < blocks_l2, threads_l2 >> >
+//                                   ( access.get_level_xz_vec_ptr(),
+//                                           access.get_xz_end_vec_ptr(),
+//                                           access.get_y_vec_ptr(),
+//                                           input_gpu.get(),
+//                                           output_gpu.get(),
+//                                           stencil_gpu.get(),
+//                                           access.z_num(level),
+//                                           access.x_num(level),
+//                                           access.y_num(level),
+//                                           tree_access.z_num(level-1),
+//                                           tree_access.x_num(level-1),
+//                                           level,
+//                                           ne_rows_gpu.get() + offset );
+//
+////            conv_max_555 << < blocks_l, threads_l >> >( access.get_level_xz_vec_ptr(),
+////                    access.get_xz_end_vec_ptr(),
+////                    access.get_y_vec_ptr(),
+////                    input_gpu.get(),
+////                    output_gpu.get(),
+////                    stencil_gpu.get(),
+////                    access.z_num(level),
+////                    access.x_num(level),
+////                    access.y_num(level),
+////                    tree_access.z_num(level-1),
+////                    tree_access.x_num(level-1),
+////                    tree_access.y_num(level-1),
+////                    level,
+////                    blocks_empty.get());
+//
+//        } else {
+//            conv_interior_555 << < blocks_l, threads_l >> >(access.get_level_xz_vec_ptr(),
+//                    access.get_xz_end_vec_ptr(),
+//                    access.get_y_vec_ptr(),
+//                    input_gpu.get(),
+//                    output_gpu.get(),
+//                    stencil_gpu.get(),
+//                    tree_access.get_level_xz_vec_ptr(),
+//                    tree_access.get_xz_end_vec_ptr(),
+//                    tree_access.get_y_vec_ptr(),
+//                    tree_data_gpu.get(),
+//                    access.z_num(level),
+//                    access.x_num(level),
+//                    access.y_num(level),
+//                    tree_access.z_num(level-1),
+//                    tree_access.x_num(level-1),
+//                    tree_access.y_num(level-1),
+//                    level,
+//                    blocks_empty.get());
+//        }
+//        error_check( cudaDeviceSynchronize() )
+//        error_check( cudaPeekAtLastError() )
+//    }
+//
+//    timer.stop_timer();
+//    ret.run_kernels = timer.timings.back();
+//
+//    /// transfer the results back to the host
+//    timer.start_timer("transfer D2H");
+//    output_gpu.copyD2H();
+//    timer.stop_timer();
+//    ret.transfer_D2H = timer.timings.back();
+//
+//    return ret;
+//}
 
 
 void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty) {
@@ -2368,7 +2682,8 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                                      const int y_num,
                                      const int z_num_parent,
                                      const int x_num_parent,
-                                     const int level,const int* offset_ind) {
+                                     const int level,
+                                     const int* offset_ind) {
 
     const int block_dim = 4;
 
@@ -2402,7 +2717,6 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
 
     const bool not_ghost = (threadIdx.y > 0) && (threadIdx.y < (block_dim - 1)) &&
                            (threadIdx.z > 0) && (threadIdx.z < (block_dim - 1));
-                           //(threadIdx.y > 0) && (threadIdx.y < (blockDim.y - 1));
 
     const int row = threadIdx.y + threadIdx.z * block_dim;
 
@@ -2478,7 +2792,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         chunkSizeInternal = chunkSize-2;
 
         chunk_start = max(((int)y_0)/chunkSizeInternal-1,0);
-        number_y_chunks = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal - 1)/ chunkSizeInternal ;
+        number_y_chunks = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal - 1)/ chunkSizeInternal;
     }
 
     __syncthreads();
@@ -2528,27 +2842,6 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
             float neighbour_sum = 0;
             LOCALPATCHCONV333_N(output_particles, update_index, threadIdx.z, threadIdx.y, y_0 + 1, neighbour_sum)
 
-            //LOCALPATCHCONV333(output_particles, update_index, threadIdx.z, threadIdx.y, y_0 + 1, neighbour_sum)
-
-//            float neigh_sum = 0;
-//            if (not_ghost) {
-//                for (int q = 0; q < 3; ++q) {
-//                    for (int w = 0; w < 3; ++w) {
-//                        for (int r = 0; r < 3; ++r) {
-//
-//                            neigh_sum += local_stencil[q][w][r] *
-//                                         local_patch[threadIdx.z + q - 1][threadIdx.y + w - 1][(y_0 + r) % N];
-//                        }
-//
-//                    }
-//
-//                }
-//                output_particles[update_index] = neigh_sum;
-//            }
-
-
-            //output_particles[update_index] = local_patch[threadIdx.z][threadIdx.x][(y_0+1)% chunkSize];
-
         }
 
         __syncthreads();
@@ -2577,11 +2870,8 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
                                           const int level,
                                           const int* offset_ind) {
 
-
     const int block_dim = 4;
 
-//    const int x_index = blockIdx.x * (block_dim-2) + threadIdx.x - 1;
-//    const int z_index = blockIdx.z * (block_dim-2) + threadIdx.z - 1;
     const int index = offset_ind[blockIdx.x];
 
     const int z_p = index/x_num_parent;
@@ -2600,15 +2890,12 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
         local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 9 + threadIdx.x * 3 + threadIdx.y];
     }
 
+    local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
     if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
         // out of bounds --> zero pad and return
-        local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
         return;
     }
-
-
-
-    local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
 
     const bool not_ghost = (threadIdx.y > 0) && (threadIdx.y < (block_dim - 1)) &&
                            (threadIdx.z > 0) && (threadIdx.z < (block_dim - 1));
@@ -2632,7 +2919,6 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
         global_index_begin_0_s[row] = xz_end_vec[xz_start - 1];
         global_index_end_0_s[row] = xz_end_vec[xz_start];
     }
-    __syncthreads();
 
     if(threadIdx.x == 1) {
         size_t xz_start = x_index_p + z_index_p * x_num_parent + level_xz_vec[level - 1];
@@ -2693,11 +2979,6 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
     __shared__ int chunkSizeInternal;
     __shared__ int number_y_chunks[4];
     __shared__ int chunk_start[4];
-
-    if((threadIdx.z == 1) && (threadIdx.y == 1) && (threadIdx.x < 4)) {
-        chunk_start[threadIdx.y] = INT32_MAX;
-        number_y_chunks[threadIdx.y] = 0;
-    }
 
     __syncthreads();
 
@@ -2785,6 +3066,465 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
 }
 
 
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
+__global__ void
+L(1024, 2)
+conv_max_555_chunked(const uint64_t* level_xz_vec,
+                                     const uint64_t* xz_end_vec,
+                                     const uint16_t* y_vec,
+                                     const inputType* input_particles,
+                                     outputType* output_particles,
+                                     const stencilType* stencil,
+                                     const int z_num,
+                                     const int x_num,
+                                     const int y_num,
+                                     const int z_num_parent,
+                                     const int x_num_parent,
+                                     const int level,
+                                     const int* offset_ind) {
+
+//    const int index = offset_ind[blockIdx.x / 4];
+//
+//    const int z_p = index/x_num_parent;
+//    const int x_p = index - z_p*x_num_parent;
+//
+//    const int x_index = 2*x_p + threadIdx.y - 2 + (blockIdx.x % 2);
+//    const int z_index = 2*z_p + threadIdx.z - 2 + (blockIdx.x % 4) / 2;
+
+    const int x_index = blockIdx.x * (blockSize - 4) + threadIdx.y - 2;
+    const int z_index = blockIdx.z * (blockSize - 4) + threadIdx.z - 2;
+
+    const unsigned int N = chunkSize;
+
+    __shared__ stencilType local_stencil[5][5][5];
+
+    if((threadIdx.y < 5) && (threadIdx.x < 5) && (threadIdx.z < 5)){
+        local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 25 + threadIdx.x * 5 + threadIdx.y];
+    }
+
+    __shared__ stencilType local_patch[blockSize][blockSize][N];
+
+    local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
+
+        // out of bounds --> zero pad and return
+        return;
+    }
+
+    const bool not_ghost = (threadIdx.y > 1) && (threadIdx.y < (blockSize - 2)) &&
+                           (threadIdx.z > 1) && (threadIdx.z < (blockSize - 2));
+
+    const int row = threadIdx.y + threadIdx.z * blockSize;
+
+    __shared__ size_t global_index_begin_0_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_0_s[blockSize*blockSize];
+
+    __shared__ size_t global_index_begin_p_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_p_s[blockSize*blockSize];
+
+    const int x_index_p = x_index / 2;
+    const int z_index_p = z_index / 2;
+
+    if(threadIdx.x == 0) {
+        size_t xz_start = x_index + z_index * x_num + level_xz_vec[level];
+        global_index_begin_0_s[row] = xz_end_vec[xz_start - 1];
+        global_index_end_0_s[row] = xz_end_vec[xz_start];
+    }
+
+    if(threadIdx.x == 1) {
+        size_t xz_start = x_index_p + z_index_p * x_num_parent + level_xz_vec[level - 1];
+        global_index_begin_p_s[row] = xz_end_vec[xz_start - 1];
+        global_index_end_p_s[row] = xz_end_vec[xz_start];
+    }
+
+    inputType f_0;
+    uint16_t y_0;
+    size_t update_index = global_index_begin_0_s[row] + threadIdx.x;
+
+    __syncthreads();
+
+    if((update_index) < global_index_end_0_s[row]) {
+
+        f_0 = input_particles[update_index];
+        y_0 = y_vec[update_index];
+
+    } else {
+        f_0 = 0;
+        y_0 = y_num*2;
+    }
+
+    inputType f_p;
+    uint16_t y_p;
+
+    __syncthreads();
+
+    if((global_index_begin_p_s[row] + threadIdx.x/2) < global_index_end_p_s[row]) {
+        f_p = input_particles[global_index_begin_p_s[row] + threadIdx.x/2];
+        y_p = y_vec[global_index_begin_p_s[row] + threadIdx.x/2];
+    } else {
+        f_p = 0;
+        y_p = y_num*2;
+    }
+
+
+    const int y_offset_p = threadIdx.x % 2;
+
+    // overlapping y chunks
+
+    int sparse_block = 0;
+    int sparse_block_p = 0;
+
+    __shared__ int chunkSizeInternal;
+    __shared__ int number_y_chunks[(blockSize-4)*(blockSize-4)];
+    __shared__ int chunk_start[(blockSize-4)*(blockSize-4)];
+
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && (threadIdx.y == 2) && (threadIdx.z == 2) ) {
+        chunkSizeInternal = chunkSize-4;
+    }
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && not_ghost ) {
+        chunk_start[threadIdx.y - 2 + (threadIdx.z - 2)*(blockSize-4)] = max(((int)y_0)/chunkSizeInternal-1,0);
+        number_y_chunks[threadIdx.y - 2 + (threadIdx.z - 2)*(blockSize-4)] = (y_vec[global_index_end_0_s[row]-1] + chunkSizeInternal - 1)/ chunkSizeInternal ;
+    }
+
+    ///
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && not_ghost ) {
+        int i = threadIdx.y - 2 + (threadIdx.z - 2)*(blockSize-4);
+
+        if( ((i % 2) == 0) ) {
+            chunk_start[i] = min(chunk_start[i], chunk_start[i+1]);
+            number_y_chunks[i] = max(number_y_chunks[i], number_y_chunks[i+1]);
+        }
+    }
+
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && not_ghost ) {
+        int i = threadIdx.y - 2 + (threadIdx.z - 2)*(blockSize-4);
+
+        if( ((i % 4) == 0) ) {
+            chunk_start[i] = min(chunk_start[i], chunk_start[i+2]);
+            number_y_chunks[i] = max(number_y_chunks[i], number_y_chunks[i+2]);
+        }
+    }
+
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && (threadIdx.y == 2) && (threadIdx.z == 2)) {
+        chunk_start[0] = min( min(chunk_start[0], chunk_start[4]), min(chunk_start[8], chunk_start[12]) );
+        number_y_chunks[0] = max( max(number_y_chunks[0], number_y_chunks[4]), max(number_y_chunks[8], number_y_chunks[12]) );
+    }
+
+    __syncthreads();
+
+
+    for(int y_chunk = chunk_start[0]; y_chunk < number_y_chunks[0]; ++y_chunk) {
+
+        __syncthreads();
+
+        if( y_0 < (y_chunk*chunkSizeInternal - 2) ) {
+            sparse_block++;
+            if( (sparse_block*N + global_index_begin_0_s[row] + threadIdx.x) < global_index_end_0_s[row] ) {
+
+                update_index = sparse_block*N + global_index_begin_0_s[row] + threadIdx.x;
+
+                y_0 = y_vec[update_index];
+                f_0 = input_particles[update_index];
+            } else {
+
+                y_0 = y_num*2;
+            }
+        }
+
+        __syncthreads();
+        if( ((2*y_p+y_offset_p) < (y_chunk*chunkSizeInternal - 2)) ) {
+            sparse_block_p++;
+            if( (global_index_begin_p_s[row] + (sparse_block_p*(N/2) + threadIdx.x/2)) < global_index_end_p_s[row] ) {
+                y_p = y_vec[global_index_begin_p_s[row] + (sparse_block_p*(N/2) + threadIdx.x/2)];
+                f_p = input_particles[global_index_begin_p_s[row] + (sparse_block_p*(N/2) + threadIdx.x/2)];
+            } else{
+                y_p = y_num*2;
+            }
+        }
+
+        __syncthreads();
+        if( (y_0 >= (y_chunk*chunkSizeInternal - 2)) && (y_0 <= ((y_chunk+1)*chunkSizeInternal+1)) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_0+2) % N] = f_0;
+        }
+
+        __syncthreads();
+        if( ((2*y_p + y_offset_p) >= ((y_chunk*(chunkSizeInternal) - 2))) && ((2*y_p+y_offset_p) <= ((y_chunk+1)*(chunkSizeInternal)+1)) ) {
+            local_patch[threadIdx.z][threadIdx.y][(2*y_p + y_offset_p + 2) % N] = f_p;
+        }
+
+        __syncthreads();
+
+        if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < ((y_chunk+1)*(chunkSizeInternal))) ) {
+
+            float neighbour_sum = 0;
+            LOCALPATCHCONV555_N(output_particles, update_index, threadIdx.z, threadIdx.y, y_0 + 2, neighbour_sum)
+
+        }
+
+        __syncthreads();
+        local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    } // end for y_chunk
+}
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
+__global__ void
+L(1024, 2)
+conv_interior_555_chunked(const uint64_t* level_xz_vec,
+                         const uint64_t* xz_end_vec,
+                         const uint16_t* y_vec,
+                         const inputType* input_particles,
+                         outputType* output_particles,
+                         const stencilType* stencil,
+                         const uint64_t* level_xz_vec_tree,
+                         const uint64_t* xz_end_vec_tree,
+                         const uint16_t* y_vec_tree,
+                         const treeType* tree_data,
+                         const int z_num,
+                         const int x_num,
+                         const int y_num,
+                         const int z_num_parent,
+                         const int x_num_parent,
+                         const int level,
+                         const int* offset_ind) {
+
+//    const int index = offset_ind[blockIdx.x / 4];
+//
+//    const int z_p = index/x_num_parent;
+//    const int x_p = index - z_p*x_num_parent;
+//
+//    const int x_index = 2*x_p + threadIdx.y - 2 + (blockIdx.x % 2);
+//    const int z_index = 2*z_p + threadIdx.z - 2 + (blockIdx.x % 4) / 2;
+
+    const int x_index = blockIdx.x * (blockSize-4) + threadIdx.y - 2;
+    const int z_index = blockIdx.z * (blockSize-4) + threadIdx.z - 2;
+
+    const unsigned int N = chunkSize;
+
+    __shared__ stencilType local_stencil[5][5][5];
+
+    if((threadIdx.y < 5) && (threadIdx.x < 5) && (threadIdx.z < 5)){
+        local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 25 + threadIdx.x * 5 + threadIdx.y];
+    }
+
+    __shared__ stencilType local_patch[blockSize][blockSize][N];
+
+    local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
+
+        // out of bounds --> zero pad and return
+        return;
+    }
+
+    const bool not_ghost = (threadIdx.y > 1) && (threadIdx.y < (blockSize - 2)) &&
+                           (threadIdx.z > 1) && (threadIdx.z < (blockSize - 2));
+
+    const int row = threadIdx.y + threadIdx.z * blockSize;
+
+    __shared__ size_t global_index_begin_0_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_0_s[blockSize*blockSize];
+
+    __shared__ size_t global_index_begin_t_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_t_s[blockSize*blockSize];
+
+    __shared__ size_t global_index_begin_p_s[blockSize*blockSize];
+    __shared__ size_t global_index_end_p_s[blockSize*blockSize];
+
+    __syncthreads();
+
+    const int x_index_p = x_index / 2;
+    const int z_index_p = z_index / 2;
+
+    if(threadIdx.x == 0) {
+        size_t xz_start = x_index + z_index * x_num + level_xz_vec[level];
+        global_index_begin_0_s[row] = xz_end_vec[xz_start - 1];
+        global_index_end_0_s[row] = xz_end_vec[xz_start];
+    }
+
+    if(threadIdx.x == 1) {
+        size_t xz_start = x_index_p + z_index_p * x_num_parent + level_xz_vec[level - 1];
+        global_index_begin_p_s[row] = xz_end_vec[xz_start - 1];
+        global_index_end_p_s[row] = xz_end_vec[xz_start];
+    }
+
+    if(threadIdx.x == 2) {
+        size_t xz_start = x_index + z_index * x_num + level_xz_vec_tree[level];
+        global_index_begin_t_s[row] = xz_end_vec_tree[xz_start - 1];
+        global_index_end_t_s[row] = xz_end_vec_tree[xz_start];
+    }
+
+    __syncthreads();
+
+    stencilType f_0, f_t, f_p;
+    int y_0, y_t, y_p;
+
+    size_t update_index = global_index_begin_0_s[row] + threadIdx.x;
+
+    if( (update_index < global_index_end_0_s[row]) ) {
+
+        f_0 = input_particles[update_index];
+        y_0 = y_vec[update_index];
+
+    } else {
+        y_0 = INT32_MAX/2;
+    }
+
+    __syncthreads();
+
+    if( ((global_index_begin_t_s[row] + threadIdx.x) < global_index_end_t_s[row]) ) {
+        f_t = tree_data[global_index_begin_t_s[row] + threadIdx.x];
+        y_t = y_vec_tree[global_index_begin_t_s[row] + threadIdx.x];
+    } else {
+        y_t = INT32_MAX/2;
+    }
+
+    __syncthreads();
+
+    const int y_offset_p = threadIdx.x % 2;
+
+    if((global_index_begin_p_s[row] + threadIdx.x/2) < global_index_end_p_s[row]) {
+        f_p = input_particles[global_index_begin_p_s[row] + threadIdx.x/2];
+        y_p = min(2*y_vec[global_index_begin_p_s[row] + threadIdx.x/2] + y_offset_p, y_num-1);
+    } else {
+        y_p = INT32_MAX/2;
+    }
+
+    // overlapping y chunks
+
+    int sparse_block = 0;
+    int sparse_block_p = 0;
+    int sparse_block_t = 0;
+
+    __shared__ int chunkSizeInternal;
+    __shared__ int number_y_chunks[(blockSize-4)*(blockSize-4)];
+    __shared__ int chunk_start[(blockSize-4)*(blockSize-4)];
+
+    if((threadIdx.z == 2) && (threadIdx.y == 2) && (threadIdx.x == 0)) {
+        chunkSizeInternal = N-4;
+    }
+    __syncthreads();
+
+    if( ((threadIdx.x == 0) && not_ghost) ) {
+        chunkSizeInternal = chunkSize-4;
+
+        chunk_start[threadIdx.y-2 + (threadIdx.z-2)*(blockSize-4)] = max(((int)y_0)/chunkSizeInternal-1,0);
+        number_y_chunks[threadIdx.y-2 + (threadIdx.z-2)*(blockSize-4)] = (y_vec[max(global_index_end_0_s[row], (size_t)1)-1]) / chunkSizeInternal + 1;
+    }
+
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && not_ghost ) {
+        int i = threadIdx.y - 2 + (threadIdx.z - 2)*(blockSize-4);
+
+        if( ((i % 2) == 0) ) {
+            chunk_start[i] = min(chunk_start[i], chunk_start[i+1]);
+            number_y_chunks[i] = max(number_y_chunks[i], number_y_chunks[i+1]);
+        }
+    }
+
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && not_ghost ) {
+        int i = threadIdx.y - 2 + (threadIdx.z - 2)*(blockSize-4);
+
+        if( ((i % 4) == 0) ) {
+            chunk_start[i] = min(chunk_start[i], chunk_start[i+2]);
+            number_y_chunks[i] = max(number_y_chunks[i], number_y_chunks[i+2]);
+        }
+    }
+
+    __syncthreads();
+
+    if( (threadIdx.x == 0) && (threadIdx.y == 2) && (threadIdx.z == 2)) {
+        chunk_start[0] = min( min(chunk_start[0], chunk_start[4]), min(chunk_start[8], chunk_start[12]) );
+        number_y_chunks[0] = max( max(number_y_chunks[0], number_y_chunks[4]), max(number_y_chunks[8], number_y_chunks[12]) );
+    }
+
+    __syncthreads();
+
+    for(int y_chunk = chunk_start[0]; y_chunk < number_y_chunks[0]; ++y_chunk) {
+
+        __syncthreads();
+
+        if( y_0 < (y_chunk*chunkSizeInternal - 2) ) {
+            sparse_block++;
+            if( (sparse_block*N + global_index_begin_0_s[row] + threadIdx.x) < global_index_end_0_s[row] ) {
+
+                update_index = sparse_block*N + global_index_begin_0_s[row] + threadIdx.x;
+
+                y_0 = y_vec[update_index];
+                f_0 = input_particles[update_index];
+            } else {
+                y_0 = INT32_MAX/2;
+            }
+        }
+
+        __syncthreads();
+        if( y_t < (y_chunk*chunkSizeInternal - 2) ) {
+            sparse_block_t++;
+            if( (sparse_block_t*N + global_index_begin_t_s[row] + threadIdx.x) < global_index_end_t_s[row] ) {
+                y_t = y_vec_tree[sparse_block_t*N + global_index_begin_t_s[row] + threadIdx.x];
+                f_t = tree_data[sparse_block_t*N + global_index_begin_t_s[row] + threadIdx.x];
+            } else {
+                y_t = INT32_MAX/2;
+            }
+        }
+
+        __syncthreads();
+        if( (y_p < (y_chunk*chunkSizeInternal - 2)) ) {
+            sparse_block_p++;
+            if( (global_index_begin_p_s[row] + (sparse_block_p*(N/2) + threadIdx.x/2)) < global_index_end_p_s[row] ) {
+                y_p = min(2*y_vec[global_index_begin_p_s[row] + sparse_block_p*(N/2) + threadIdx.x/2] + y_offset_p, y_num-1);
+                f_p = input_particles[global_index_begin_p_s[row] + sparse_block_p*(N/2) + threadIdx.x/2];
+            } else{
+                y_p = INT32_MAX/2;
+            }
+        }
+
+        __syncthreads();
+        if( (y_0 >= (y_chunk*chunkSizeInternal - 2)) && (y_0 <= ((y_chunk+1)*chunkSizeInternal+1)) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_0+2) % N] = f_0;
+        }
+
+        __syncthreads();
+        if( (y_t >= (y_chunk*chunkSizeInternal - 2)) && (y_t <= ((y_chunk+1)*chunkSizeInternal+1)) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_t+2) % N] = f_t;
+        }
+
+        __syncthreads();
+        if( ((y_p >= (y_chunk*(chunkSizeInternal) - 2)) && (y_p <= (y_chunk+1)*chunkSizeInternal+1)) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_p+2) % N] = f_p;
+        }
+
+        __syncthreads();
+
+        if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < ((y_chunk+1)*chunkSizeInternal)) ) {
+
+            float neigh_sum;
+            LOCALPATCHCONV555_N(output_particles, update_index, threadIdx.z, threadIdx.y, y_0 + 2, neigh_sum)
+
+        }
+
+        __syncthreads();
+        local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    } // end for y_chunk
+}
+
+
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void conv_pixel_333_chunked(const inputType* input_image,
@@ -2830,16 +3570,6 @@ __global__ void conv_pixel_333_chunked(const inputType* input_image,
 
     int y_0;
 
-//    size_t update_index;
-//    inputType f_0;
-//    int sparse_block = 0;
-//
-//    if( (threadIdx.x < y_num) ) {
-//        y_0 = threadIdx.x;
-//        update_index = row_begin + threadIdx.x;
-//        f_0 = input_image[update_index];
-//    }
-
     // overlapping y chunks
 
     const int chunkSizeInternal = chunkSize-2;
@@ -2857,25 +3587,6 @@ __global__ void conv_pixel_333_chunked(const inputType* input_image,
             local_patch[threadIdx.z][threadIdx.y][(y_0+1) % N] = input_image[row_begin + y_0];
         }
 
-//        if( (y_0 < (y_chunk*chunkSizeInternal - 1)) ) {
-//            sparse_block++;
-//            if( (sparse_block*chunkSize + threadIdx.x) < y_num ) {
-//
-//                update_index = row_begin + sparse_block*chunkSize + threadIdx.x;
-//
-//                y_0 = sparse_block*chunkSize + threadIdx.x;
-//                f_0 = input_image[update_index];
-//            } else {
-//                y_0 = INT32_MAX/2;
-//            }
-//        }
-//
-//        __syncthreads();
-//
-//        if( (y_0 >= ((y_chunk*(chunkSizeInternal) - 1))) && (y_0 <= ((y_chunk+1)*(chunkSizeInternal))) ) {
-//            local_patch[threadIdx.z][threadIdx.y][(y_0+1) % N] = f_0;
-//        }
-
         __syncthreads();
 
         if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < min(((y_chunk+1)*(chunkSizeInternal)), y_num)) ) {
@@ -2890,6 +3601,85 @@ __global__ void conv_pixel_333_chunked(const inputType* input_image,
 
     } // end for y_chunk
 }
+
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
+__global__ void
+L(1024, 2)
+conv_pixel_555_chunked(const inputType* input_image,
+                                       outputType* output_image,
+                                       const stencilType* stencil,
+                                       const int z_num,
+                                       const int x_num,
+                                       const int y_num) {
+
+    //const int block_dim = 4;
+
+    const int x_index = blockIdx.x * (blockSize-4) + threadIdx.y - 2;
+    const int z_index = blockIdx.z * (blockSize-4) + threadIdx.z - 2;
+
+    const unsigned int N = chunkSize;
+
+    __shared__ stencilType local_stencil[5][5][5];
+
+    if((threadIdx.y < 5) && (threadIdx.x < 5) && (threadIdx.z < 5)){
+        local_stencil[threadIdx.z][threadIdx.x][threadIdx.y] = stencil[threadIdx.z * 25 + threadIdx.x * 5 + threadIdx.y];
+    }
+
+    __syncthreads();
+
+    __shared__ stencilType local_patch[blockSize][blockSize][N];
+
+    local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    if( (x_index < 0) || (x_index >= x_num) || (z_index < 0) || (z_index >= z_num) ) {
+
+        // out of bounds --> return
+        return;
+    }
+
+    const bool not_ghost = (threadIdx.y > 1) && (threadIdx.y < (blockSize - 2)) &&
+                           (threadIdx.z > 1) && (threadIdx.z < (blockSize - 2));
+
+    const size_t row_begin = x_index * y_num + z_index * x_num * y_num;
+
+    __syncthreads();
+
+    int y_0;
+
+    // overlapping y chunks
+
+    const int chunkSizeInternal = chunkSize-4;
+    const int number_y_chunks = (y_num + chunkSizeInternal - 1) / chunkSizeInternal;
+
+    __syncthreads();
+
+    for(int y_chunk = 0; y_chunk < number_y_chunks; ++y_chunk) {
+
+        __syncthreads();
+
+        y_0 = y_chunk * chunkSizeInternal - 2 + threadIdx.x;
+
+        if( (y_0 >= 0) && (y_0 < y_num) ) {
+            local_patch[threadIdx.z][threadIdx.y][(y_0+2) % N] = input_image[row_begin + y_0];
+        }
+
+        __syncthreads();
+
+        if( (y_0 >= (y_chunk*(chunkSizeInternal))) && (y_0 < min(((y_chunk+1)*(chunkSizeInternal)), y_num)) ) {
+
+            float neighbour_sum = 0;
+            LOCALPATCHCONV555_N(output_image, (row_begin+y_0), threadIdx.z, threadIdx.y, (y_0+2), neighbour_sum)
+
+        }
+
+        __syncthreads();
+        local_patch[threadIdx.z][threadIdx.y][threadIdx.x] = 0;
+
+    } // end for y_chunk
+}
+
 
 
 template<typename inputType, typename outputType, typename stencilType>

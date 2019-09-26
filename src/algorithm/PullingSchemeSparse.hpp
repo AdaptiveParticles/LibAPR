@@ -84,6 +84,11 @@ struct imagePatch {
 
 class PullingSchemeSparse {
 
+    double powr(uint64_t num,uint64_t pow2){
+        //return (uint64_t) std::round(std::pow(num,pow2));
+        return std::round(pow(num,pow2));
+    }
+
 public:
 
     SparseGaps<SparseParticleCellMap> particle_cell_tree;
@@ -136,10 +141,10 @@ inline void PullingSchemeSparse::initialize_particle_cell_tree(const GenInfo& ap
 
     for (int l = l_min; l < (l_max + 1) ;l ++){
 
-        particle_cell_tree.x_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[1]) / pow(2.0, 1.0 * l_max - l + 1));
-        particle_cell_tree.z_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[2]) / pow(2.0, 1.0 * l_max - l + 1));
+        particle_cell_tree.x_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[1]) / powr(2, 1 * l_max - l + 1));
+        particle_cell_tree.z_num[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[2]) / powr(2, 1 * l_max - l + 1));
         particle_cell_tree.data[l].resize(particle_cell_tree.z_num[l]*particle_cell_tree.x_num[l]);
-        y_num_l[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[0]) / pow(2.0, 1.0 * l_max - l + 1));
+        y_num_l[l] = (uint64_t) ceil((1.0 * aprInfo.org_dims[0]) / powr(2, 1 * l_max - l + 1));
 
         for (size_t i = 0; i < particle_cell_tree.z_num[l] ; ++i) {
             for (size_t j = 0; j < particle_cell_tree.x_num[l]; ++j) {
@@ -208,9 +213,9 @@ inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &inp
     const size_t x_num = particle_cell_tree.x_num[level];
    // const size_t y_num = y_num_l[level];
 
-    const size_t offset_x = patch.x_offset/((int)pow(2,(int)l_max + 1 - level));
-    const size_t offset_y = patch.y_offset/((int)pow(2,(int)l_max + 1 - level));
-    const size_t offset_z = patch.z_offset/((int)pow(2,(int)l_max + 1 - level));
+    const size_t offset_x = patch.x_offset/((int)powr(2,(int)l_max + 1 - level));
+    const size_t offset_y = patch.y_offset/((int)powr(2,(int)l_max + 1 - level));
+    const size_t offset_z = patch.z_offset/((int)powr(2,(int)l_max + 1 - level));
 
     //
     // Need offset and original x,y,z nums
