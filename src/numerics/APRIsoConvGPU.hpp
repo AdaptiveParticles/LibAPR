@@ -28,25 +28,14 @@ struct timings {
     uint64_t counter_ne_rows_int = 0;
 };
 
-void run_check_blocks(GPUAccessHelper& access, bool* blocks_empty);
 
-
-/// new 333 max method
-template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_new(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu);
-
-/// old 333 max method
-template<typename inputType, typename outputType, typename stencilType>
-void run_max_333_old(GPUAccessHelper& access, inputType* input_gpu, outputType* output_gpu, stencilType* stencil_gpu, bool* blocks_empty);
-/// end of new stuff
+template<typename T>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<T>& input,
+                     VectorData<T>& output, VectorData<T>& psf, int niter);
 
 
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
-
-
-template<typename inputType, typename outputType, typename stencilType>
-timings convolve_pixel_333_basic(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
 
 
 template<typename inputType, typename outputType, typename stencilType>
@@ -65,6 +54,10 @@ void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_acces
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<inputType>&,
                                 VectorData<outputType>&, VectorData<stencilType>&, VectorData<treeType>&);
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
+                            outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu);
 
 
 template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
@@ -320,5 +313,21 @@ __global__ void conv_pixel_333_basic_kernel(const inputType* input_image,
                                              const int z_num,
                                              const int x_num,
                                              const int y_num);
+
+template<typename T>
+__global__ void elementWiseMult(T* in1,
+                                const T* in2,
+                                const size_t size);
+
+template<typename T>
+__global__ void elementWiseDiv(const T* in1,
+                               const T* in2,
+                               T* out,
+                               const size_t size);
+
+template<typename T>
+__global__ void copyKernel(const T* in,
+                           T* out,
+                           const size_t size);
 
 #endif //LIBAPR_APRISOCONVGPU_HPP
