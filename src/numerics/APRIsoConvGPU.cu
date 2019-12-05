@@ -1,6 +1,7 @@
 //
 // Created by cheesema on 09.04.18.
 //
+#include "io/TiffUtils.hpp"
 
 #include "APRIsoConvGPU.hpp"
 #include <cuda_runtime_api.h>
@@ -747,8 +748,8 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timer.stop_timer();
 
     timer.start_timer("compute ne rows");
-    VectorData<int> ne_rows; //non empty rows
-    VectorData<int> ne_counter; //non empty rows
+    VectorData<int> ne_rows;
+    VectorData<int> ne_counter;
     compute_ne_rows(tree_access,ne_counter,ne_rows);
     timer.stop_timer();
     ret.counter_ne_rows = ne_rows.size();
@@ -888,6 +889,308 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     ret.transfer_D2H = timer.timings.back();
 
     return ret;
+}
+
+
+// TODO: fix so that this can be imported from APRFilter.hpp
+template<typename T, typename S>
+static void downsample_stencil_new(const PixelData<T>& aInput, PixelData<S>& aOutput, const int level_delta, bool normalize = false) {
+
+    const size_t z_num = aInput.z_num;
+    const size_t x_num = aInput.x_num;
+    const size_t y_num = aInput.y_num;
+
+    const int ndim = (z_num > 1) + (x_num > 1) + (y_num > 1);
+    const int step_size = (int)std::pow(2.0f, (float)level_delta);
+    const int factor = (int)std::pow((float)step_size, (float)ndim);
+
+    size_t z_num_ds = std::max((z_num + step_size - 1) / step_size, (size_t)3);
+    size_t x_num_ds = std::max((x_num + step_size - 1) / step_size, (size_t)3);
+    size_t y_num_ds = std::max((y_num + step_size - 1) / step_size, (size_t)3);
+
+    //std::cout << "level delta = " << level_delta << ", size = " << z_num_ds << std::endl;
+
+    aOutput.initWithValue(y_num_ds, x_num_ds, z_num_ds, 0);
+
+    for (int dz = 0; dz < step_size; ++dz) {
+        for (int dx = 0; dx < step_size; ++dx) {
+            for (int dy = 0; dy < step_size; ++dy) {
+
+                for (int iz = 0; iz < z_num; ++iz) {
+                    // center of DS stencil in original coords + delta + original stencil coord (origin at center)
+                    int z_ds = ((z_num_ds / 2) * step_size + dz + iz - z_num / 2) / step_size;
+
+                    for (int ix = 0; ix < x_num; ++ix) {
+
+                        int x_ds = ((x_num_ds / 2) * step_size + dx + ix - x_num / 2) / step_size;
+
+                        for (int iy = 0; iy < y_num; ++iy) {
+
+                            int y_ds = ((y_num_ds / 2) * step_size + dy + iy - y_num / 2) / step_size;
+
+                            aOutput.at(y_ds, x_ds, z_ds) += aInput.at(iy, ix, iz);
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    float sum = 0;
+    for(int i = 0; i < aOutput.mesh.size(); ++i) {
+        aOutput.mesh[i] /= factor;
+        sum += aOutput.mesh[i];
+    }
+
+    if (normalize) {
+        float nfactor = 1.0f / sum;
+        for (int i = 0; i < aOutput.mesh.size(); ++i) {
+            aOutput.mesh[i] *= nfactor;
+        }
+    }
+}
+
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                               VectorData<outputType>& output, PixelData<stencilType>& stencil, VectorData<treeType>& tree_data, const bool downsample_stencil){
+    /*
+     *  Perform APR Isotropic Convolution Operation on the GPU with a 5x5x5 kernel
+     *
+     *  conv_stencil needs to have 125 entries
+     */
+
+    APRTimer timer(false);
+    APRTimer timer2(false);
+
+    timings ret;
+
+    timer.start_timer("initialize GPU access (apr and tree)");
+    //access.init_gpu();
+    tree_access.init_gpu();
+    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
+    ret.init_access = timer.timings.back();
+
+    ret.lvl_timings.resize(access.level_max() - access.level_min() + 1);
+
+    assert(input.size() == access.total_number_particles());
+    //assert(stencil.mesh.size() == 125);
+
+    timer.start_timer("host data resize");
+    tree_data.resize(tree_access.total_number_particles());
+    output.resize(access.total_number_particles());
+    timer.stop_timer();
+
+    int stencil_size = 125;
+    if(downsample_stencil) {
+        stencil_size += (access.level_max() - access.level_min() - 1) * 27;
+    }
+
+    VectorData<stencilType> stencil_vec;
+    stencil_vec.resize(stencil_size);
+
+    for(int i = 0; i < 125; ++i) {
+        stencil_vec[i] = stencil.mesh[i];
+    }
+
+    if(downsample_stencil) {
+        int c = 125;
+        PixelData<stencilType> stencil_ds;
+        for (int level = access.level_max() - 1; level > access.level_min(); --level) {
+            downsample_stencil_new(stencil, stencil_ds, access.level_max() - level, true);
+            for(int i = 0; i < 27; ++i) {
+                stencil_vec[c+i] = stencil_ds.mesh[i];
+            }
+            std::cout << stencil_vec[c + 14] << std::endl;
+            c += 27;
+        }
+    }
+
+    timer.start_timer("compute ne rows");
+    VectorData<int> ne_rows;
+    VectorData<int> ne_counter;
+    compute_ne_rows(tree_access,ne_counter,ne_rows);
+    timer.stop_timer();
+    ret.counter_ne_rows = ne_rows.size();
+    ret.compute_ne_rows = timer.timings.back();
+
+    timer.start_timer("compute ne rows internal");
+    VectorData<int> ne_rows_interior; //non empty rows
+    VectorData<int> ne_counter_interior; //non empty rows
+    compute_ne_rows_interior(access,ne_counter_interior,ne_rows_interior);
+    timer.stop_timer();
+    ret.counter_ne_rows_int = ne_rows_interior.size();
+    ret.compute_ne_rows_interior = timer.timings.back();
+
+    timer.start_timer("allocate GPU memory");
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_interior_gpu(ne_rows_interior.data(), ne_rows_interior.size());
+    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+    ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil_vec.data(), stencil_vec.size());
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
+    ret.allocation = timer.timings.back();
+
+    timer.start_timer("transfer H2D");
+    ne_rows_gpu.copyH2D();
+    ne_rows_interior_gpu.copyH2D();
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
+    ret.transfer_H2D = timer.timings.back();
+
+    /// Fill the APR Tree by average downsampling
+    timer.start_timer("fill tree");
+    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(),ne_rows_gpu.get(),ne_counter);
+    error_check( cudaDeviceSynchronize() )
+    timer.stop_timer();
+    ret.fill_tree = timer.timings.back();
+
+    timer.start_timer("run kernels");
+
+    size_t stencil_offset = 0;
+
+    for (int level = access.level_max(); level > access.level_min(); --level) {
+
+        timer2.start_timer("convolve_dlvl_" + std::to_string(access.level_max() - level));
+
+        if (level == access.level_max()) {
+
+            const int blockSize = 8;
+            const int chunkSize = 16;
+
+//            size_t ne_sz = ne_counter[level+1] - ne_counter[level];
+            size_t offset = ne_counter[level];
+//            dim3 blocks_l(4 * ne_sz, 1, 1);
+
+            const int block_x = (access.x_num(level) + blockSize - 5) / (blockSize - 4);
+            const int block_z = (access.z_num(level) + blockSize - 5) / (blockSize - 4);
+            dim3 blocks_l(block_x, 1, block_z);
+
+            dim3 threads_l(chunkSize, blockSize, blockSize);
+
+            conv_max_555_chunked
+                    <chunkSize, blockSize>
+                    << < blocks_l, threads_l >> >
+                                   ( access.get_level_xz_vec_ptr(),
+                                           access.get_xz_end_vec_ptr(),
+                                           access.get_y_vec_ptr(),
+                                           input_gpu.get(),
+                                           output_gpu.get(),
+                                           stencil_gpu.get(),
+                                           access.z_num(level),
+                                           access.x_num(level),
+                                           access.y_num(level),
+                                           tree_access.z_num(level-1),
+                                           tree_access.x_num(level-1),
+                                           level,
+                                           ne_rows_gpu.get() + offset );
+
+            if(downsample_stencil) {
+                stencil_offset += 125;
+            }
+
+        } else {
+
+            if(downsample_stencil) {
+
+                size_t ne_sz = ne_counter_interior[level+1] - ne_counter_interior[level];
+                size_t offset = ne_counter_interior[level];
+
+                if( ne_sz == 0) {
+                    continue;
+                }
+
+                const int blockSize = 4;
+                const int chunkSize = 32;
+
+                dim3 blocks_l(ne_sz, 1, 1);
+                dim3 threads_l(chunkSize, blockSize, blockSize);
+
+                conv_interior_333_chunked
+                        <chunkSize, blockSize>
+                        <<< blocks_l, threads_l >>>
+                                      (access.get_level_xz_vec_ptr(),
+                                              access.get_xz_end_vec_ptr(),
+                                              access.get_y_vec_ptr(),
+                                              input_gpu.get(),
+                                              output_gpu.get(),
+                                              stencil_gpu.get() + stencil_offset,
+                                              tree_access.get_level_xz_vec_ptr(),
+                                              tree_access.get_xz_end_vec_ptr(),
+                                              tree_access.get_y_vec_ptr(),
+                                              tree_data_gpu.get(),
+                                              access.z_num(level),
+                                              access.x_num(level),
+                                              access.y_num(level),
+                                              tree_access.z_num(level - 1),
+                                              tree_access.x_num(level - 1),
+                                              level,
+                                              ne_rows_interior_gpu.get() + offset);
+
+                stencil_offset += 27;
+
+            } else {
+
+                const int blockSize = 8;
+                const int chunkSize = 16;
+
+                size_t offset = ne_counter_interior[level];
+
+                const int block_x = (access.x_num(level) + blockSize - 5) / (blockSize - 4);
+                const int block_z = (access.z_num(level) + blockSize - 5) / (blockSize - 4);
+                dim3 blocks_l(block_x, 1, block_z);
+
+                dim3 threads_l(chunkSize, blockSize, blockSize);
+
+                conv_interior_555_chunked
+                        <chunkSize, blockSize>
+                        << < blocks_l, threads_l >> >
+                                       (access.get_level_xz_vec_ptr(),
+                                               access.get_xz_end_vec_ptr(),
+                                               access.get_y_vec_ptr(),
+                                               input_gpu.get(),
+                                               output_gpu.get(),
+                                               stencil_gpu.get(),
+                                               tree_access.get_level_xz_vec_ptr(),
+                                               tree_access.get_xz_end_vec_ptr(),
+                                               tree_access.get_y_vec_ptr(),
+                                               tree_data_gpu.get(),
+                                               access.z_num(level),
+                                               access.x_num(level),
+                                               access.y_num(level),
+                                               tree_access.z_num(level - 1),
+                                               tree_access.x_num(level - 1),
+                                               level,
+                                               ne_rows_interior_gpu.get() + offset);
+            }
+        }
+
+        error_check( cudaDeviceSynchronize() )
+        error_check( cudaPeekAtLastError() )
+
+        timer2.stop_timer();
+        ret.lvl_timings[access.level_max() - level] = timer2.timings.back();
+    }
+
+    timer.stop_timer();
+
+    ret.run_kernels = timer.timings.back();
+
+    error_check( cudaDeviceSynchronize() )
+    /// transfer the results back to the host
+    timer.start_timer("transfer D2H");
+    output_gpu.copyD2H();
+    error_check( cudaDeviceSynchronize() )
+    error_check( cudaGetLastError() )
+    timer.stop_timer();
+    ret.transfer_D2H = timer.timings.back();
 }
 
 
@@ -3484,6 +3787,8 @@ template timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, Vect
 
 template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, float*, float*);
 template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, float*, float*, float*, float*);
+
+template void isotropic_convolve_555_ds(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&,VectorData<float>&, PixelData<float>&, VectorData<float>&, bool);
 
 /// deconv
 template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, int);

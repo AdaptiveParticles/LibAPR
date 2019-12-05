@@ -6,6 +6,8 @@
 #define LIBAPR_APRISOCONVGPU_HPP
 
 #include "APRDownsampleGPU.hpp"
+#include "io/TiffUtils.hpp"
+//#include "APRFilter.hpp"
 
 #ifdef __CUDACC__
     #define L(x,y) __launch_bounds__(x,y)
@@ -59,6 +61,14 @@ template<typename inputType, typename outputType, typename stencilType, typename
 void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
                             outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu);
 
+//template<typename inputType, typename outputType, typename stencilType, typename treeType>
+//void isotropic_convolve_555_ds_stencil(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+//                                       VectorData<outputType>& output, PixelData<stencilType>& stencil, VectorData<treeType>& tree_data);
+
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                               VectorData<outputType>& output, PixelData<stencilType>& stencil, VectorData<treeType>& tree_data, bool downsample_stencil);
 
 template<unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void conv_max_333(const uint64_t* level_xz_vec,
@@ -231,7 +241,8 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                                      const int y_num,
                                      const int z_num_parent,
                                      const int x_num_parent,
-                                     const int level,const int* offset_ind);
+                                     const int level,
+                                     const int* offset_ind);
 
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>

@@ -892,6 +892,55 @@ bool test_gpu_conv_555_notransfer(TestDataGPU& test_data){
 }
 
 
+//TEST_F(CreateCR1, TEST_LR) {
+//
+//    auto access = test_data.apr.gpuAPRHelper();
+//    auto tree_access = test_data.apr.gpuTreeHelper();
+//
+//    tree_access.init_gpu();
+//    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+//
+//    VectorData<float> blurred_input;
+//    VectorData<float> tree_data;
+//    VectorData<float> output;
+//    VectorData<float> psf;
+//
+//    blurred_input.resize(access.total_number_particles());
+//    output.resize(access.total_number_particles());
+//    tree_data.resize(tree_access.total_number_particles());
+//    psf.resize(125, 1.0f/125.0f);
+//
+//
+//    PixelData<float> stenc(5, 5, 1, 1.0f);
+//    TiffUtils::saveMeshAsTiff("/Users/joeljonsson/Documents/STUFF/stencil.tif", stenc);
+//
+//    PixelData<float> stenc_ds;
+//
+//    APRFilter fl;
+//    fl.downsample_stencil_alt_2(stenc, stenc_ds, false, true);
+//    TiffUtils::saveMeshAsTiff("/Users/joeljonsson/Documents/STUFF/stencil_ds.tif", stenc_ds);
+//
+////    /// blur the image
+////    isotropic_convolve_555(access, tree_access, test_data.particles_intensities.data, blurred_input, psf, tree_data);
+////
+////    /// restore by RL deconv
+////    richardson_lucy(access, tree_access, blurred_input, output, psf, 10);
+////
+////    PixelData<float> tmp(test_data.apr.org_dims(0), test_data.apr.org_dims(1), test_data.apr.org_dims(2));
+////
+////    APRReconstruction::interp_img(test_data.apr, tmp, test_data.particles_intensities);
+////    TiffUtils::saveMeshAsTiff("/home/joel/Documents/original.tif", tmp);
+////
+////    APRReconstruction::interp_img(test_data.apr, tmp, blurred_input);
+////    TiffUtils::saveMeshAsTiff("/home/joel/Documents/blurred.tif", tmp);
+////
+////    APRReconstruction::interp_img(test_data.apr, tmp, output);
+////    TiffUtils::saveMeshAsTiff("/home/joel/Documents/restored.tif", tmp);
+//
+//
+//}
+
+
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555_NOTF) {
     ASSERT_TRUE(test_gpu_conv_555_notransfer(test_data));
 }
@@ -947,29 +996,6 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333) {
     }
 
     convolve_pixel_333(test_data.img_original, output, stencil);
-
-    PixelData<float> output_gt;
-
-    APRFilter filterfns;
-    filterfns.convolve_pixel(test_data.img_original, output_gt, stencil);
-
-    auto c_fail = compareMeshes(output_gt, output, /*error threshold*/ 1e-2);
-
-    ASSERT_EQ(c_fail, 0);
-}
-
-
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333_BASIC) {
-
-    PixelData<float> output;
-    PixelData<float> stencil(3, 3, 3);
-
-    float sum = 13.0 * 27;
-    for(int i = 0; i < 27; ++i) {
-        stencil.mesh[i] = ((float) i) / sum;
-    }
-
-    convolve_pixel_333_basic(test_data.img_original, output, stencil);
 
     PixelData<float> output_gt;
 
@@ -1038,6 +1064,64 @@ TEST_F(CreatDiffDimsSphereTest, TEST_PARTIAL_ACCESS_INIT) {
     }
 
     ASSERT_EQ(c_fail, 0);
+}
+
+
+TEST_F(CreatDiffDimsSphereTest, TEST_KERNELS) {
+
+    auto gpuData = test_data.apr.gpuAPRHelper();
+    auto gpuDataTree = test_data.apr.gpuTreeHelper();
+
+    gpuData.init_gpu();
+    gpuDataTree.init_gpu();
+
+    VectorData<float> tree_data;
+    VectorData<float> output;
+    PixelData<float> stencil;
+    VectorData<float> stencil_vec;
+
+    int stencil_size = 125 + (gpuData.level_max() - gpuData.level_min() - 1) * 27;
+    stencil_vec.resize(stencil_size);
+
+    PixelData<float> rc;
+    APRReconstruction::interp_img(test_data.apr, rc, test_data.particles_intensities);
+    TiffUtils::saveMeshAsTiff("/Users/joeljonsson/Documents/STUFF/input.tif", rc);
+
+
+    APRFilter::create_gaussian_filter(stencil, 1.0f, 5);
+    TiffUtils::saveMeshAsTiff("/Users/joeljonsson/Documents/STUFF/stencil_orig.tif", stencil);
+
+    isotropic_convolve_555_ds(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data, true);
+
+    APRReconstruction::interp_img(test_data.apr, rc, output);
+    TiffUtils::saveMeshAsTiff("/Users/joeljonsson/Documents/STUFF/output.tif", rc);
+
+    //std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_vec.begin());
+//    TiffUtils::saveMeshAsTiff("/Users/joeljonsson/Documents/STUFF/stencil_max.tif", stencil);
+//
+//    stencil.init(3, 3, 3);
+//    int c = 125;
+//    for(int level = gpuData.level_max()-1; level > gpuData.level_min(); --level) {
+//        std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_vec.begin()+c);
+//        std::string fname = "/Users/joeljonsson/Documents/STUFF/stencil" + std::to_string(level) + "_after.tif";
+//        TiffUtils::saveMeshAsTiff(fname, stencil);
+//        c+=27;
+//    }
+//
+//    PixelData<float> stenc_ds;
+//
+//    for(int level = test_data.apr.level_max(); level > test_data.apr.level_min(); --level){
+//
+//        std::string fname = "/Users/joeljonsson/Documents/STUFF/stencil_lvl" + std::to_string(level) + ".tif";
+//
+//        if(level < test_data.apr.level_max()) {
+//            APRFilter::downsample_stencil_new(stencil, stenc_ds, test_data.apr.level_max() - level, false);
+//            TiffUtils::saveMeshAsTiff(fname, stenc_ds);
+//
+//        } else {
+//            TiffUtils::saveMeshAsTiff(fname, stencil);
+//        }
+//    }
 }
 
 #endif
