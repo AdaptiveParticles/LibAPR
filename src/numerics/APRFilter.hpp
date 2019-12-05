@@ -4,9 +4,9 @@
 
 #ifndef APR_TIME_APRFILTER_HPP
 #define APR_TIME_APRFILTER_HPP
-#include "data_structures/APR/APR.hpp"
-#include "numerics/APRReconstruction.hpp"
-#include "numerics/APRTreeNumerics.hpp"
+#include "APRReconstruction.hpp"
+
+#include<math.h>
 
 #define ZERO_PAD 0
 #define REFLECT_PAD 1
@@ -634,6 +634,84 @@ public:
             float factor = 1.0f / sum;
             for (int i = 0; i < aOutput.mesh.size(); ++i) {
                 aOutput.mesh[i] *= factor;
+            }
+        }
+    }
+
+
+    template<typename T, typename S>
+    static void downsample_stencil_new(const PixelData<T>& aInput, PixelData<S>& aOutput, const int level_delta, bool normalize = false) {
+
+        const size_t z_num = aInput.z_num;
+        const size_t x_num = aInput.x_num;
+        const size_t y_num = aInput.y_num;
+
+        const int ndim = (z_num > 1) + (x_num > 1) + (y_num > 1);
+        const int step_size = (int)std::pow(2.0f, (float)level_delta);
+        const int factor = (int)std::pow((float)step_size, (float)ndim);
+
+        size_t z_num_ds = std::max((z_num + step_size - 1) / step_size, (size_t)3);
+        size_t x_num_ds = std::max((x_num + step_size - 1) / step_size, (size_t)3);
+        size_t y_num_ds = std::max((y_num + step_size - 1) / step_size, (size_t)3);
+
+        aOutput.initWithValue(y_num_ds, x_num_ds, z_num_ds, 0);
+
+        for (int dz = 0; dz < step_size; ++dz) {
+            for (int dx = 0; dx < step_size; ++dx) {
+                for (int dy = 0; dy < step_size; ++dy) {
+
+                    for (int iz = 0; iz < z_num; ++iz) {
+                        //        center of DS stencil in US coords + delta + US stencil coord (origin at center)
+                        int z_ds = ((z_num_ds / 2) * step_size + dz + iz - z_num / 2) / step_size;
+
+                        for (int ix = 0; ix < x_num; ++ix) {
+
+                            int x_ds = ((x_num_ds / 2) * step_size + dx + ix - x_num / 2) / step_size;
+
+                            for (int iy = 0; iy < y_num; ++iy) {
+
+                                int y_ds = ((y_num_ds / 2) * step_size + dy + iy - y_num / 2) / step_size;
+
+                                aOutput.at(y_ds, x_ds, z_ds) += (S) aInput.at(iy, ix, iz);
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        float sum = 0;
+        for(int i = 0; i < aOutput.mesh.size(); ++i) {
+            aOutput.mesh[i] /= factor;
+            sum += aOutput.mesh[i];
+        }
+
+        if (normalize) {
+            float nfactor = 1.0f / sum;
+            for (int i = 0; i < aOutput.mesh.size(); ++i) {
+                aOutput.mesh[i] *= nfactor;
+            }
+        }
+    }
+
+    template<typename T>
+    static void create_gaussian_filter(PixelData<T>& stencil, float sigma, int size) {
+
+        stencil.init(size, size, size);
+
+        float gauss[size];
+        int c = 0;
+
+        for(int i = -size/2; i <= size/2; ++i) {
+            gauss[c++] = exp(-i*i / (2*sigma*sigma)) / (sigma * sqrtf(2*M_PI));
+        }
+
+        for(int i = 0; i < size; ++i) {
+            for(int j = 0; j < size; ++j) {
+                for(int k = 0; k < size; ++k) {
+                    stencil.at(i, j, k) = gauss[i] * gauss[j] * gauss[k];
+                }
             }
         }
 
