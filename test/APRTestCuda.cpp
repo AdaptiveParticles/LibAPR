@@ -380,7 +380,6 @@ bool test_down_sample_gpu(TestDataGPU& test_data){
 
     auto tree_it = test_data.apr.tree_iterator();
 
-
     uint64_t counter = 0;
     uint64_t rows = 0;
     uint64_t rows_filled = 0;
@@ -412,13 +411,11 @@ bool test_down_sample_gpu(TestDataGPU& test_data){
                         std::cout << "x: " << x << " z: " << z << std::endl;
                     }
                 }
-
             }
         }
     }
 
-    std::cout << rows << std::endl;
-    std::cout << rows_filled << std::endl;
+    std::cout << "successes: " << successes << " / " << tree_it.total_number_particles() << std::endl;
 
     return (successes == counter);
 }
@@ -765,6 +762,23 @@ bool test_gpu_conv_555(TestDataGPU& test_data) {
             }
         }
     }
+
+    PixelData<float> recon;
+    PixelData<float> gt;
+    PixelData<float> diff;
+
+    APRReconstruction::interp_img(test_data.apr, gt, output_gt.data);
+    APRReconstruction::interp_img(test_data.apr, recon, output);
+
+    for(size_t i = 0; i < output.size(); ++i) {
+        output[i] = std::abs(output[i] - output_gt[i]);
+    }
+    APRReconstruction::interp_img(test_data.apr, diff, output);
+
+    std::string fdir = "/home/joel/Documents/misc/";
+    TiffUtils::saveMeshAsTiff(fdir + "output.tif", recon);
+    TiffUtils::saveMeshAsTiff(fdir + "output_gt.tif", gt);
+    TiffUtils::saveMeshAsTiff(fdir + "diff.tif", diff);
 
     std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
 
