@@ -20,6 +20,12 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vecto
 template<typename inputType, typename treeType>
 void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu, int* ne_rows, VectorData<int>& ne_offset);
 
+template<typename inputType, typename treeType>
+void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu);
+
+template<typename inputType, typename treeType>
+void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<treeType>& tree_data);
+
 void compute_ne_rows(GPUAccessHelper& tree_access,VectorData<int>& ne_counter,VectorData<int>& ne_rows);
 
 

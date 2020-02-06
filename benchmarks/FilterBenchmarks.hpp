@@ -180,7 +180,7 @@ inline void bench_pixel_convolve(APR& apr, ParticleData<partsType>& parts, int n
         const uint64_t z_num = test_img.z_num;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for private(z)
+#pragma omp parallel for default(shared) private(z)
 #endif
         for (z = 0; z < (int)  test_img.z_num; ++z) {
 
@@ -226,11 +226,53 @@ inline void bench_pixel_convolve(APR& apr, ParticleData<partsType>& parts, int n
 }
 
 
-#ifdef APR_USE_CUDA
 template<typename partsType>
-inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
+inline void check_cpu_times(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData){
 
     APRTimer timer(true);
+
+    auto apr_iterator = apr.iterator();
+    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+
+        //ind[level].resize( apr_iterator.z_num(level)*apr_iterator.x_num(level),0);
+
+    }
+    timer.start_timer("cpu_it");
+
+    for (int r = 0; r < num_rep; ++r) {
+
+        std::vector<std::vector<int>> ind;
+
+        ind.resize(apr_iterator.level_max()+1);
+
+        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+            int z = 0;
+            int x = 0;
+
+            for (z = 0; z < apr_iterator.z_num(level-1); z++) {
+                for (x = 0; x < apr_iterator.x_num(level-1); ++x) {
+                    auto begin = apr_iterator.begin(level, 2*z, 2*x);
+                    auto end = apr_iterator.end();
+                    if(begin != end) {
+                        ind[level].push_back(2*x + 2*z * apr_iterator.x_num(level));
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
+}
+
+
+#ifdef APR_USE_CUDA
+template<typename partsType>
+void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size, bool use_ne_rows = false, std::string name = "bench_apr"){
+
+    APRTimer timer(true);
+
+    std::cout << "running bench_apr_convolve_cuda with kernel size " << stencil_size << " and use_ne_rows = " << use_ne_rows << ", for " << num_rep << " repetitions with name " << name << std::endl;
 
     VectorData<float> stencil;
     stencil.resize(stencil_size * stencil_size * stencil_size);
@@ -256,17 +298,21 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     auto access = apr.gpuAPRHelper();
     auto tree_access = apr.gpuTreeHelper();
 
-    analysisData.add_float_data("y_vec_send",apr_it.total_number_particles(apr_it.level_max()-1));
-    analysisData.add_float_data("apr_xz_size",access.linearAccess->xz_end_vec.size());
-    analysisData.add_float_data("tree_xz_size",tree_access.linearAccess->xz_end_vec.size());
+    analysisData.add_float_data(name + "_y_vec_send",apr_it.total_number_particles(apr_it.level_max()-1));
+    analysisData.add_float_data(name + "_apr_xz_size",access.linearAccess->xz_end_vec.size());
+    analysisData.add_float_data(name + "_tree_xz_size",tree_access.linearAccess->xz_end_vec.size());
 
     /// burn-in
     if(stencil_size == 3) {
         for(int r = 0; r < std::max(num_rep/50, 1); ++r) {
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
-
-            timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp;
+            if(use_ne_rows) {
+                tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+            } else {
+                tmp = isotropic_convolve_333_alt(access, tree_access, parts.data, output, stencil, tree_data);
+            }
 
             if(r==0){
                 analysisData.add_float_data("ne_rows",tmp.counter_ne_rows);
@@ -278,11 +324,16 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp;
+            if(use_ne_rows) {
+                tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
+            } else {
+                tmp = isotropic_convolve_555_alt(access, tree_access, parts.data, output, stencil, tree_data);
+            }
         }
     }
 
-    std::string name = "apr_filter_cuda" + std::to_string(stencil_size);
+    //std::string name = "apr_filter_cuda" + std::to_string(stencil_size);
     timer.start_timer(name);
 
     if(stencil_size == 3) {
@@ -291,7 +342,12 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp;
+            if(use_ne_rows) {
+                tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
+            } else {
+                tmp = isotropic_convolve_333_alt(access, tree_access, parts.data, output, stencil, tree_data);
+            }
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
@@ -300,11 +356,6 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             component_times.init_access += tmp.init_access;
             component_times.allocation += tmp.allocation;
             component_times.compute_ne_rows += tmp.compute_ne_rows;
-            component_times.compute_ne_rows_interior += tmp.compute_ne_rows_interior;
-
-            for(size_t i=0; i < component_times.lvl_timings.size(); ++i) {
-                component_times.lvl_timings[i] += tmp.lvl_timings[i];
-            }
 
         }
     } else if(stencil_size == 5) {
@@ -313,7 +364,12 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             auto access = apr.gpuAPRHelper();
             auto tree_access = apr.gpuTreeHelper();
 
-            timings tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
+            timings tmp;
+            if(use_ne_rows) {
+                tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
+            } else {
+                tmp = isotropic_convolve_555_alt(access, tree_access, parts.data, output, stencil, tree_data);
+            }
 
             component_times.transfer_H2D += tmp.transfer_H2D;
             component_times.run_kernels += tmp.run_kernels;
@@ -322,11 +378,6 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
             component_times.init_access += tmp.init_access;
             component_times.allocation += tmp.allocation;
             component_times.compute_ne_rows += tmp.compute_ne_rows;
-            component_times.compute_ne_rows_interior += tmp.compute_ne_rows_interior;
-
-            for(size_t i=0; i < component_times.lvl_timings.size(); ++i) {
-                component_times.lvl_timings[i] += tmp.lvl_timings[i];
-            }
         }
     } else {
         std::cerr << "APR cuda convolution for stencil_size = " << stencil_size << " is not yet implemented" << std::endl;
@@ -341,18 +392,19 @@ inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int 
     analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
     analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
     analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
-    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
+//    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
 
-    for(size_t i = 0; i < component_times.lvl_timings.size(); ++i) {
-        analysisData.add_float_data(name + "_conv_dlvl_" + std::to_string(i), component_times.lvl_timings[i] / num_rep);
-    }
+//    for(size_t i = 0; i < component_times.lvl_timings.size(); ++i) {
+//        analysisData.add_float_data(name + "_conv_dlvl_" + std::to_string(i), component_times.lvl_timings[i] / num_rep);
+//    }
 
 }
 
 
 template<typename partsType>
-inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size) {
+void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size, std::string name = "bench_pixel") {
 
+    std::cout << "running bench_pixel_convolve_cuda with kernel size " << stencil_size << " for " << num_rep << " repetitions with name " << name << std::endl;
     PixelData<float> stencil;
 
     auto it = apr.iterator();
@@ -385,7 +437,7 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
 
     timings component_times;
 
-    std::string name = "pixel_filter_cuda" + std::to_string(stencil_size);
+    //std::string name = "pixel_filter_cuda" + std::to_string(stencil_size);
 
     /// burn-in
     if(stencil_size == 3 && it.number_dimensions() == 3) {
@@ -431,7 +483,7 @@ inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, i
     analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
     analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
     analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
-    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
+//    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
 }
 
 
@@ -517,112 +569,8 @@ inline void bench_pixel_convolve_cuda_basic(APR& apr,ParticleData<partsType>& pa
     analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
     analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
     analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
-    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
+//    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
 }
-
-
-inline void bench_check_blocks(APR& apr, int num_rep, AnalysisData& analysisData) {
-    APRTimer timer(true);
-
-    auto access = apr.gpuAPRHelper();
-    access.init_gpu();
-
-    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
-    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
-
-
-    timer.start_timer("check_blocks");
-    for(int r = 0; r < num_rep; ++r) {
-        run_check_blocks(access, blocks_empty.get());
-    }
-    timer.stop_timer();
-
-    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
-}
-
-
-template<typename partsType>
-inline void bench_333_new(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size) {
-    APRTimer timer(true);
-
-    auto access = apr.gpuAPRHelper();
-
-    access.init_gpu();
-
-    std::vector<float> stencil;
-    stencil.resize(stencil_size * stencil_size * stencil_size);
-
-    // unique stencil elements
-    float sum = 0;
-    for(int i = 0; i < stencil.size(); ++i) {
-        sum += i;
-    }
-    for(int i = 0; i < stencil.size(); ++i) {
-        stencil[i] = ((float) i) / sum;
-    }
-
-    std::vector<float> output(access.total_number_particles());
-
-    ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
-    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.data(), output.size());
-    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
-    
-    input_gpu.copyH2D();
-    stencil_gpu.copyH2D();
-    
-    timer.start_timer("apr_filter_cuda_new_3");
-    for(int r = 0; r < num_rep; ++r) {
-        run_max_333_new(access, input_gpu.get(), output_gpu.get(), stencil_gpu.get());
-    }
-    cudaDeviceSynchronize();
-    timer.stop_timer();
-    
-    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
-}
-
-
-template<typename partsType>
-inline void bench_333_old(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size) {
-    APRTimer timer(true);
-
-    auto access = apr.gpuAPRHelper();
-
-    access.init_gpu();
-
-    std::vector<float> stencil;
-    stencil.resize(stencil_size * stencil_size * stencil_size);
-
-    // unique stencil elements
-    float sum = 0;
-    for(size_t i = 0; i < stencil.size(); ++i) {
-        sum += i;
-    }
-    for(size_t i = 0; i < stencil.size(); ++i) {
-        stencil[i] = ((float) i) / sum;
-    }
-
-    std::vector<float> output(access.total_number_particles());
-
-    ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
-    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.data(), output.size());
-    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
-
-    size_t max_num_blocks = ((access.x_num(access.level_max()) + 8 - 1) / 8) * ((access.z_num(access.level_max()) + 8 - 1) / 8);
-    ScopedCudaMemHandler<bool*, JUST_ALLOC> blocks_empty(NULL, max_num_blocks);
-
-    input_gpu.copyH2D();
-    stencil_gpu.copyH2D();
-
-    timer.start_timer("apr_filter_cuda_old_3");
-    for(int r = 0; r < num_rep; ++r) {
-        run_max_333_old(access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), blocks_empty.get());
-    }
-    cudaDeviceSynchronize();
-    timer.stop_timer();
-    
-    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
-}
-
 
 #endif //APR_USE_CUDA
 
