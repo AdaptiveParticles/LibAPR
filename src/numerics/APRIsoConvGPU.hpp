@@ -87,6 +87,10 @@ timings isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree
                                   VectorData<outputType>& output, PixelData<stencilType>& stencil, VectorData<treeType>& tree_data,
                                   bool use_ne_rows = false, bool normalize_stencil = false);
 
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
+                               outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu);
+
 
 template<typename inputType, typename outputType, typename stencilType>
 __global__ void conv_pixel_333(const inputType* input_image,

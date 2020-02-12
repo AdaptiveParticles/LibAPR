@@ -321,7 +321,7 @@ public:
             int new_level = level_offset + level;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it,lin_it_tiled)
+#pragma omp parallel for default(none) schedule(dynamic) private(z,x) firstprivate(lin_it,lin_it_tiled)
 #endif
             for (z = 0; z < lin_it.z_num(level); z++) {
                 for (x = 0; x < lin_it.x_num(level); ++x) {
