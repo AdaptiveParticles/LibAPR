@@ -91,6 +91,12 @@ template<typename inputType, typename outputType, typename stencilType, typename
 void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
                                outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu);
 
+template<typename T>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* input, T* output, PixelData<T>& psf,
+                     int niter, bool downsample_stencil, bool normalize_stencil);
+
+void richardson_lucy_pixel(float* input, float* output, float* psf, float* psf_flipped, int kernel_size, int npixels, int niter, std::vector<int>& dims);
+
 
 template<typename inputType, typename outputType, typename stencilType>
 __global__ void conv_pixel_333(const inputType* input_image,
@@ -302,5 +308,10 @@ template<typename T>
 __global__ void copyKernel(const T* in,
                            T* out,
                            const size_t size);
+
+template<typename T>
+__global__ void fillWithValue(T* in, T value, const size_t size);
+
+__global__ void print_value(const float* data, const size_t index);
 
 #endif //LIBAPR_APRISOCONVGPU_HPP

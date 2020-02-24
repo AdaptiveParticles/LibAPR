@@ -1646,6 +1646,205 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
 }
 
 
+template<typename T>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* input, T* output, PixelData<T>& psf, int niter, bool downsample_stencil, bool normalize_stencil) {
+
+    PixelData<T> psf_flipped(psf, false);
+    for(int i = 0; i < psf.mesh.size(); ++i) {
+        psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
+    }
+
+    VectorData<T> psf_vec;
+    VectorData<T> psf_flipped_vec;
+
+    if(downsample_stencil) {
+        get_downsampled_stencils(psf, psf_vec, access.level_max() - access.level_min(), normalize_stencil);
+        get_downsampled_stencils(psf_flipped, psf_flipped_vec, access.level_max() - access.level_min(), normalize_stencil);
+    } else {
+        psf_vec.resize(psf.mesh.size());
+        psf_flipped_vec.resize(psf_flipped.mesh.size());
+
+        std::copy(psf.mesh.begin(), psf.mesh.end(), psf_vec.begin());
+        std::copy(psf_flipped.mesh.begin(), psf_flipped.mesh.end(), psf_flipped_vec.begin());
+    }
+
+    int kernel_size;
+    if(psf.mesh.size() == 27) {
+        kernel_size = 3;
+    } else if(psf.mesh.size() == 125) {
+        kernel_size = 5;
+    } else {
+        throw std::runtime_error("richardson_lucy is only implemented for 3x3x3 and 5x5x5 kernels");
+    }
+
+    VectorData<int> ne_rows_ds;
+    VectorData<int> ne_counter_ds;
+    VectorData<int> ne_rows_333;
+    VectorData<int> ne_counter_333;
+    VectorData<int> ne_rows_555;
+    VectorData<int> ne_counter_555;
+
+    /// non-empty rows precalculation (should always be worth it as they can be reused in all iterations)
+    compute_ne_rows(tree_access, ne_counter_ds, ne_rows_ds);
+    if(kernel_size == 3 || downsample_stencil) {
+        compute_ne_rows_new(access, ne_counter_333, ne_rows_333, 2);
+    }
+    if(kernel_size == 5) {
+        compute_ne_rows_new(access, ne_counter_555, ne_rows_555, 4);
+    }
+
+    /// allocate GPU memory
+    ScopedCudaMemHandler<T*, JUST_ALLOC> relative_blur(NULL, access.total_number_particles());
+    ScopedCudaMemHandler<T*, JUST_ALLOC> error_est(NULL, access.total_number_particles());
+    ScopedCudaMemHandler<T*, JUST_ALLOC> tree_data_gpu(NULL, tree_access.total_number_particles());
+    ScopedCudaMemHandler<T*, JUST_ALLOC> psf_vec_gpu(psf_vec.data(), psf_vec.size());
+    ScopedCudaMemHandler<T*, JUST_ALLOC> psf_flipped_vec_gpu(psf_flipped_vec.data(), psf_flipped_vec.size());
+
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu(ne_rows_ds.data(), ne_rows_ds.size());
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu(ne_rows_333.data(), ne_rows_333.size());
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_555_gpu(ne_rows_555.data(), ne_rows_555.size());
+
+
+    psf_vec_gpu.copyH2D();
+    psf_flipped_vec_gpu.copyH2D();
+    ne_rows_ds_gpu.copyH2D();
+    if(kernel_size == 3 || downsample_stencil) {
+        ne_rows_333_gpu.copyH2D();
+    }
+    if(kernel_size == 5) {
+        ne_rows_555_gpu.copyH2D();
+    }
+
+    /// set block size for cuda kernels
+    const size_t numParts = access.total_number_particles();
+    const size_t blockSize = 512;
+    const size_t numBlocks = (numParts + blockSize - 1) / blockSize;
+
+    dim3 blocks_l(numBlocks, 1, 1);
+    dim3 threads_l(blockSize, 1, 1);
+
+    /// initialize output as the input image
+    //copyKernel<<<blocks_l, threads_l>>>(input, output, numParts);
+    fillWithValue<<<blocks_l, threads_l>>>(output, 1.0f, numParts);
+
+    error_check( cudaDeviceSynchronize() )
+
+    for(int i = 0; i < niter; ++i) {
+
+        downsample_avg(access, tree_access, output, tree_data_gpu.get());
+
+        error_check( cudaDeviceSynchronize() )
+
+        if(kernel_size == 5) {
+            if(downsample_stencil) {
+                isotropic_convolve_555_ds(access, tree_access, output, relative_blur.get(), psf_vec_gpu.get(),
+                                          tree_data_gpu.get(), ne_rows_555_gpu.get(), ne_counter_555, ne_rows_333_gpu.get(), ne_counter_333);
+            } else {
+                isotropic_convolve_555(access, tree_access, output, relative_blur.get(), psf_vec_gpu.get(),
+                                       tree_data_gpu.get(), ne_rows_555_gpu.get(), ne_counter_555);
+            }
+        } else {
+            isotropic_convolve_333(access, tree_access, output, relative_blur.get(), psf_vec_gpu.get(),
+                                   tree_data_gpu.get(), ne_rows_333_gpu.get(), ne_counter_333, downsample_stencil);
+        }
+
+        error_check( cudaDeviceSynchronize() )
+
+        elementWiseDiv<<<blocks_l, threads_l>>>(input, relative_blur.get(), relative_blur.get(), numParts);
+
+        error_check( cudaDeviceSynchronize() )
+
+        downsample_avg(access, tree_access, relative_blur.get(), tree_data_gpu.get());
+
+        error_check( cudaDeviceSynchronize() )
+
+        if(kernel_size == 5) {
+            if(downsample_stencil) {
+                isotropic_convolve_555_ds(access, tree_access, relative_blur.get(), error_est.get(), psf_flipped_vec_gpu.get(),
+                                          tree_data_gpu.get(), ne_rows_555_gpu.get(), ne_counter_555, ne_rows_333_gpu.get(), ne_counter_333);
+            } else {
+                isotropic_convolve_555(access, tree_access, relative_blur.get(), error_est.get(), psf_flipped_vec_gpu.get(),
+                                       tree_data_gpu.get(), ne_rows_555_gpu.get(), ne_counter_555);
+            }
+        } else {
+            isotropic_convolve_333(access, tree_access, relative_blur.get(), error_est.get(), psf_flipped_vec_gpu.get(),
+                                       tree_data_gpu.get(), ne_rows_333_gpu.get(), ne_counter_333, downsample_stencil);
+        }
+
+        error_check( cudaDeviceSynchronize() )
+
+        elementWiseMult<<<blocks_l, threads_l>>>(output, error_est.get(), numParts);
+
+        error_check( cudaDeviceSynchronize() )
+    }
+}
+
+
+void richardson_lucy_pixel(float* input, float* output, float* psf, float* psf_flipped, int kernel_size, int npixels, int niter, std::vector<int>& dims) {
+
+    ScopedCudaMemHandler<float*, JUST_ALLOC> relative_blur(NULL, npixels);
+    ScopedCudaMemHandler<float*, JUST_ALLOC> error_est(NULL, npixels);
+
+    const size_t blockSize = 512;
+    const size_t numBlocks = (npixels + blockSize - 1) / blockSize;
+
+    dim3 blocks_l(numBlocks, 1, 1);
+    dim3 threads_l(blockSize, 1, 1);
+
+    const int chunkSize = (kernel_size == 3) ? 32 : 16;
+    const int convBlockSize = (kernel_size == 3) ? 4 : 8;
+
+    const int x_blocks = (kernel_size == 3) ? (dims[1] + convBlockSize - 3) / (convBlockSize-2) : (dims[1] + convBlockSize - 5) / (convBlockSize-4);
+    const int z_blocks = (kernel_size == 3) ? (dims[0] + convBlockSize - 3) / (convBlockSize-2) : (dims[0] + convBlockSize - 5) / (convBlockSize-4);
+
+    dim3 convBlocks(x_blocks, 1, z_blocks);
+    dim3 convThreads(chunkSize, convBlockSize, convBlockSize);
+
+    /// initialize output as the input image
+    //copyKernel<<<blocks_l, threads_l>>>(input, output, npixels);
+    fillWithValue<<<blocks_l, threads_l>>>(output, 1.0f, npixels);
+    error_check( cudaDeviceSynchronize() )
+
+    for(int i = 0; i < niter; ++i) {
+
+        if(kernel_size == 5) {
+            conv_pixel_555_chunked<16, 8><<< convBlocks, convThreads >>>(output, relative_blur.get(), psf, dims[0], dims[1], dims[2]); //something goes wrong here
+        } else {
+            conv_pixel_333_chunked<32, 4><<< convBlocks, convThreads >>>(output, relative_blur.get(), psf, dims[0], dims[1], dims[2]);
+        }
+        error_check( cudaDeviceSynchronize() )
+
+        elementWiseDiv<<<blocks_l, threads_l>>>(input, relative_blur.get(), relative_blur.get(), npixels);
+        error_check( cudaDeviceSynchronize() )
+
+        if(kernel_size == 5) {
+            conv_pixel_555_chunked<16, 8><<< convBlocks, convThreads >>>(relative_blur.get(), error_est.get(), psf_flipped, dims[0], dims[1], dims[2]);
+        } else {
+            conv_pixel_333_chunked<32, 4><<< convBlocks, convThreads >>>(relative_blur.get(), error_est.get(), psf_flipped, dims[0], dims[1], dims[2]);
+        }
+        error_check( cudaDeviceSynchronize() )
+
+        elementWiseMult<<<blocks_l, threads_l>>>(output, error_est.get(), npixels);
+        error_check( cudaDeviceSynchronize() )
+    }
+}
+
+
+template<typename T>
+__global__ void fillWithValue(T* in, T value, const size_t size){
+
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if( (idx < size) ) {
+        in[idx] = value;
+    }
+}
+
+
+__global__ void print_value(const float* data, const size_t index) {
+    printf("data[%d] = %f\n", (int)index, data[index]);
+}
+
 template<typename inputType, typename outputType, typename stencilType>
 __global__ void conv_pixel_333(const inputType* input_image,
                                outputType* output_image,
@@ -3731,3 +3930,4 @@ template timings isotropic_convolve_555_ds(GPUAccessHelper&, GPUAccessHelper&, V
 /// deconv
 template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, PixelData<float>&, int, bool);
 //template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<double>&, VectorData<double>&, VectorData<double>&, int, bool);
+template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, PixelData<float>&, int, bool, bool);
