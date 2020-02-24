@@ -81,8 +81,6 @@ void GPUAccess::copy2Device(const size_t numElements, GPUAccess* tree_access){
                                                   y_num(level+1),
                                                   tree_access->x_num(level),
                                                   level);
-
-    //cudaDeviceSynchronize();
 }
 
 void GPUAccess::copy2Host(){

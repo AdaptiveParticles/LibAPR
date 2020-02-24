@@ -1486,7 +1486,7 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
     } else if(psf.mesh.size() == 125) {
         kernel_size = 5;
     } else {
-        throw std::runtime_error("ruchardson_lucy is only implemented for 3x3x3 and 5x5x5 kernels");
+        throw std::runtime_error("richardson_lucy is only implemented for 3x3x3 and 5x5x5 kernels");
     }
 
     PixelData<T> psf_flipped(kernel_size, kernel_size, kernel_size);
@@ -1586,24 +1586,6 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
             isotropic_convolve_333(access, tree_access, latent_est.get(), relative_blur.get(), psf_vec_gpu.get(),
                                    tree_data_gpu.get(), ne_rows_333_gpu.get(), ne_counter_333, downsample_stencil);
         }
-//        if(downsample_stencil) {
-//            if(kernel_size == 5) {
-//                isotropic_convolve_555_ds(access, tree_access, latent_est.get(), relative_blur.get(), psf_vec_gpu.get(),
-//                                          tree_data_gpu.get(), ne_rows_555_gpu.get(), ne_counter_555, ne_rows_333_gpu.get(), ne_counter_333);
-//            } else {
-//                isotropic_convolve_333(access, tree_access, latent_est.get(), relative_blur.get(), psf_vec_gpu.get(),
-//                                       tree_data_gpu.get(), ne_rows_333_gpu.get(), ne_counter_333, true);
-//            }
-//        } else {
-//            if (kernel_size == 5) {
-//                isotropic_convolve_555(access, tree_access, latent_est.get(), relative_blur.get(), psf_vec_gpu.get(),
-//                                       tree_data_gpu.get(), ne_rows_555_gpu.get(), ne_counter_555);
-//            } else {
-//                isotropic_convolve_333(access, tree_access, latent_est.get(), relative_blur.get(), psf_vec_gpu.get(),
-//                                       tree_data_gpu.get(), ne_rows_333_gpu.get(), ne_counter_333);
-//            }
-//        }
-//        conv_fn(access, tree_access, latent_est.get(), relative_blur.get(), psf_gpu.get(), tree_data_gpu.get());
 
         error_check( cudaDeviceSynchronize() )
 
@@ -1632,7 +1614,6 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
                                        tree_data_gpu.get(), ne_rows_333_gpu.get(), ne_counter_333);
             }
         }
-//        conv_fn(access, tree_access, relative_blur.get(), error_est.get(), psf_flipped_gpu.get(), tree_data_gpu.get());
 
         error_check( cudaDeviceSynchronize() )
 
