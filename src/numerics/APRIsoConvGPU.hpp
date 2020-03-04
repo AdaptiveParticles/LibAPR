@@ -33,11 +33,6 @@ struct timings {
 };
 
 
-template<typename T>
-void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<T>& input,
-                     VectorData<T>& output, PixelData<T>& psf, int niter, bool downsample_stencil);
-
-
 template<typename inputType, typename outputType, typename stencilType>
 timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& output, PixelData<stencilType>& stencil);
 
@@ -56,11 +51,11 @@ timings isotropic_convolve_333_alt(GPUAccessHelper&, GPUAccessHelper&, VectorDat
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, outputType* output_gpu,
-                            stencilType* stencil_gpu, treeType* tree_data, int* ne_rows_gpu, VectorData<int>& ne_counter, bool downsample_stencil = false);
+                            stencilType* stencil_gpu, treeType* tree_data, int* ne_rows_gpu, VectorData<int>& ne_counter, bool downsample_stencil = false, stencilType pad_value = 0);
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
-                            outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data, bool downsample_stencil = false);
+                            outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data, bool downsample_stencil = false, stencilType pad_value = 0);
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 timings isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<inputType>&,
@@ -72,11 +67,11 @@ timings isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorDat
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, outputType* output_gpu,
-                            stencilType* stencil_gpu, treeType* tree_data_gpu, int* ne_rows_gpu, VectorData<int>& ne_counter);
+                            stencilType* stencil_gpu, treeType* tree_data_gpu, int* ne_rows_gpu, VectorData<int>& ne_counter, stencilType pad_value = 0);
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
-                            outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu);
+                            outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu, stencilType pad_value = 0);
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 timings isotropic_convolve_333_ds(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,
@@ -89,7 +84,16 @@ timings isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
-                               outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu);
+                               outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu, stencilType pad_value = 0);
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu,
+                               outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu,
+                               int* ne_rows_555, VectorData<int>& ne_counter_555, int* ne_rows_333, VectorData<int>& ne_counter_333, stencilType pad_value = 0);
+
+template<typename T>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<T>& input,
+                     VectorData<T>& output, PixelData<T>& psf, int niter, bool downsample_stencil, bool normalize_stencil);
 
 template<typename T>
 void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* input, T* output, PixelData<T>& psf,
@@ -144,7 +148,8 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                                      const int z_num_parent,
                                      const int x_num_parent,
                                      const int level,
-                                     const int* offset_ind);
+                                     const int* offset_ind,
+                                     const stencilType pad_value = 0);
 
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
@@ -164,7 +169,8 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
                                           const int z_num_parent,
                                           const int x_num_parent,
                                           const int level,
-                                          const int* offset_ind);
+                                          const int* offset_ind,
+                                          const stencilType pad_value = 0);
 
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
@@ -179,7 +185,8 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                                      const int y_num,
                                      const int z_num_parent,
                                      const int x_num_parent,
-                                     const int level);
+                                     const int level,
+                                     const stencilType pad_value = 0);
 
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
@@ -198,7 +205,8 @@ __global__ void conv_interior_333_chunked(const uint64_t* level_xz_vec,
                                           const int y_num,
                                           const int z_num_parent,
                                           const int x_num_parent,
-                                          const int level);
+                                          const int level,
+                                          const stencilType pad_value = 0);
 
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
@@ -214,7 +222,8 @@ __global__ void conv_max_555_chunked(const uint64_t* level_xz_vec,
                                      const int z_num_parent,
                                      const int x_num_parent,
                                      const int level,
-                                     const int* offset_ind);
+                                     const int* offset_ind,
+                                     const stencilType pad_value = 0);
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void conv_interior_555_chunked(const uint64_t* level_xz_vec,
@@ -233,7 +242,8 @@ __global__ void conv_interior_555_chunked(const uint64_t* level_xz_vec,
                                           const int z_num_parent,
                                           const int x_num_parent,
                                           const int level,
-                                          const int* offset_ind);
+                                          const int* offset_ind,
+                                          const stencilType pad_value = 0);
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void conv_max_555_chunked(const uint64_t* level_xz_vec,
@@ -247,7 +257,8 @@ __global__ void conv_max_555_chunked(const uint64_t* level_xz_vec,
                                      const int y_num,
                                      const int z_num_parent,
                                      const int x_num_parent,
-                                     const int level);
+                                     const int level,
+                                     const stencilType pad_value = 0);
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void conv_interior_555_chunked(const uint64_t* level_xz_vec,
@@ -265,7 +276,8 @@ __global__ void conv_interior_555_chunked(const uint64_t* level_xz_vec,
                                           const int y_num,
                                           const int z_num_parent,
                                           const int x_num_parent,
-                                          const int level);
+                                          const int level,
+                                          const stencilType pad_value = 0);
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void conv_pixel_333_chunked(const inputType* input_image,
@@ -313,5 +325,8 @@ template<typename T>
 __global__ void fillWithValue(T* in, T value, const size_t size);
 
 __global__ void print_value(const float* data, const size_t index);
+
+template<unsigned int blockSize, typename T>
+__global__ void compute_average(T* data, T* result, const size_t size);
 
 #endif //LIBAPR_APRISOCONVGPU_HPP

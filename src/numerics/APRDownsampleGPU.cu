@@ -980,7 +980,6 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, input
         }
 
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaPeekAtLastError() )
     }
 }
 
@@ -1037,7 +1036,6 @@ void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, i
         }
 
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaPeekAtLastError() )
     }
 }
 
