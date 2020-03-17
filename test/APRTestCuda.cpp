@@ -804,8 +804,8 @@ bool test_gpu_conv_555_ds(TestDataGPU& test_data, bool use_ne_rows) {
     int c = 1;
     PixelData<double> stencil_ds;
     for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-        APRFilter::downsample_stencil_new(stencil, stencil_ds, access.level_max() - level, false);
-        stencil_vec[c].init(3, 3, 3);
+        downsample_stencil(stencil, stencil_ds, access.level_max() - level, false);
+        stencil_vec[c].init(stencil_ds);
         stencil_vec[c].copyFromMesh(stencil_ds);
         c++;
     }
@@ -937,8 +937,7 @@ bool test_gpu_conv_333_ds(TestDataGPU& test_data, bool use_ne_rows) {
     VectorData<double> tree_data;
     VectorData<double> output;
     PixelData<double> stencil(3, 3, 3);
-//    VectorData<double> stencil;
-//    stencil.resize(27);
+
 
     double sum = 13.0 * 27;
     for(int i = 0; i < 27; ++i) {
@@ -956,8 +955,8 @@ bool test_gpu_conv_333_ds(TestDataGPU& test_data, bool use_ne_rows) {
     int c = 1;
     PixelData<double> stencil_ds;
     for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-        APRFilter::downsample_stencil_new(stencil, stencil_ds, access.level_max() - level, false);
-        stencil_vec[c].init(3, 3, 3);
+        downsample_stencil(stencil, stencil_ds, access.level_max() - level, false);
+        stencil_vec[c].init(stencil_ds);
         stencil_vec[c].copyFromMesh(stencil_ds);
         c++;
     }
@@ -1160,6 +1159,96 @@ TEST_F(CreatDiffDimsSphereTest, TEST_PARTIAL_ACCESS_INIT) {
 
     ASSERT_EQ(c_fail, 0);
 }
+
+
+bool run_richardson_lucy(TestDataGPU& test_data) {
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+
+    access.init_gpu();
+    tree_access.init_gpu();
+
+    VectorData<float> output;
+    PixelData<float> psf(5, 5, 5, 1.0f/125.0f);
+
+    VectorData<float> finput;
+    finput.resize(access.total_number_particles());
+    for(size_t i = 0; i < finput.size(); ++i) {
+        finput[i] = test_data.particles_intensities.data[i];
+    }
+
+    richardson_lucy(access, tree_access, finput, output, psf, 10, true, true);
+
+    PixelData<float> recon(test_data.img_original, false);
+
+    APRReconstruction::interp_img(test_data.apr, recon, output);
+
+    TiffUtils::saveMeshAsTiff("/home/joel/Documents/output/APRLR.tif", recon);
+
+    return true;
+}
+
+TEST_F(CreateSmallSphereTest, TEST_LR) {
+    ASSERT_TRUE( run_richardson_lucy(test_data) );
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_DOWNSAMPLE_STENCIL) {
+
+    const int stencil_size = 5;
+    const int nlevels = 8;
+    const bool normalize = false;
+    const float tol = 1e-4;
+
+
+    PixelData<float> stencil_pd(stencil_size, stencil_size, stencil_size);
+
+    float n = stencil_pd.mesh.size();
+    float sum = n * (n-1) * 0.5f;
+    for(size_t i = 0; i < stencil_pd.mesh.size(); ++i) {
+        stencil_pd.mesh[i] = ((float) i) / sum;
+    }
+
+    VectorData<float> stencil_vd;
+    stencil_vd.resize(stencil_pd.mesh.size());
+
+    for(size_t i = 0; i < stencil_pd.mesh.size(); ++i) {
+        stencil_vd[i] = stencil_pd.mesh[i];
+    }
+
+    VectorData<float> ds_stencil_gt;
+    get_downsampled_stencils_bruteforce(stencil_pd, ds_stencil_gt, nlevels, normalize);
+
+    VectorData<float> ds_stencil_pd;
+    get_downsampled_stencils(stencil_pd, ds_stencil_pd, nlevels, normalize);
+
+    VectorData<float> ds_stencil_vd;
+    get_downsampled_stencils(stencil_vd, ds_stencil_vd, nlevels, normalize);
+
+    bool success_pd = true;
+
+    /// compare for PixelData input
+    for(size_t i = 0; i < ds_stencil_gt.size(); ++i) {
+        if( std::abs(ds_stencil_pd[i] - ds_stencil_gt[i]) > tol ) {
+            std::cout << "get_downsampled_stencils with PixelData input failed for i = " << i << ". Expected " << ds_stencil_gt[i] << " but got " << ds_stencil_pd[i] << std::endl;
+            success_pd = false;
+        }
+    }
+
+    bool success_vd = true;
+
+    /// compare for VectorData input
+    for(size_t i = 0; i < ds_stencil_gt.size(); ++i) {
+        if( std::abs(ds_stencil_vd[i] - ds_stencil_gt[i]) > tol ) {
+            std::cout << "get_downsampled_stencils with PixelData input failed for i = " << i << ". Expected " << ds_stencil_gt[i] << " but got " << ds_stencil_vd[i] << std::endl;
+            success_vd = false;
+        }
+    }
+
+
+    ASSERT_TRUE(success_pd && success_vd);
+}
+
 
 #endif
 
