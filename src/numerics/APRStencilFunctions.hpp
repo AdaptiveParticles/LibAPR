@@ -92,9 +92,6 @@ inline int compute_stencil_vec_size(const int kernel_size, const int nlevels) {
 template<typename T, typename S>
 void get_downsampled_stencils(const PixelData<T>& aInput, VectorData<S>& aOutput, const int nlevels, const bool normalize = false) {
 
-    APRTimer timer(true);
-    timer.start_timer("get downsampled stencils pixeldata");
-
     const int kernel_size = aInput.y_num;
 
     aOutput.resize( compute_stencil_vec_size(kernel_size, nlevels) );
@@ -109,8 +106,6 @@ void get_downsampled_stencils(const PixelData<T>& aInput, VectorData<S>& aOutput
         std::copy(stencil_ds.mesh.begin(), stencil_ds.mesh.end(), aOutput.begin() + c);
         c += stencil_ds.mesh.size();
     }
-
-    timer.stop_timer();
 }
 
 
@@ -181,9 +176,6 @@ void downsample_stencil(VectorData<T>& aInput, VectorData<S>& aOutput, int level
 template<typename T, typename S>
 void get_downsampled_stencils(VectorData<T>& aInput, VectorData<S>& aOutput, const int nlevels, const bool normalize = false) {
 
-    APRTimer timer(true);
-    timer.start_timer("get downsampled stencils vectordata");
-
     const int kernel_size = (int)std::round( std::cbrt((float)aInput.size()) );
 
     aOutput.resize( compute_stencil_vec_size(kernel_size, nlevels) );
@@ -198,8 +190,6 @@ void get_downsampled_stencils(VectorData<T>& aInput, VectorData<S>& aOutput, con
         std::copy(stencil_ds.begin(), stencil_ds.end(), aOutput.begin() + c);
         c += stencil_ds.size();
     }
-
-    timer.stop_timer();
 }
 
 
@@ -289,9 +279,6 @@ void downsample_stencil_bruteforce(const PixelData<T>& aInput, PixelData<S>& aOu
 template<typename T, typename S>
 void get_downsampled_stencils_bruteforce(const PixelData<T>& aInput, VectorData<S>& aOutput, const int nlevels, const bool normalize = false) {
 
-    APRTimer timer(true);
-    timer.start_timer("get downsampled stencils brute force");
-
     const int kernel_size = aInput.y_num;
 
     aOutput.resize( compute_stencil_vec_size(kernel_size, nlevels) );
@@ -306,8 +293,6 @@ void get_downsampled_stencils_bruteforce(const PixelData<T>& aInput, VectorData<
         std::copy(stencil_ds.mesh.begin(), stencil_ds.mesh.end(), aOutput.begin() + c);
         c += stencil_ds.mesh.size();
     }
-
-    timer.stop_timer();
 }
 
 
