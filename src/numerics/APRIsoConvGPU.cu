@@ -475,7 +475,7 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    access.init_gpu(tree_access);
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.init_access = timer.timings.back();
@@ -630,7 +630,7 @@ timings isotropic_convolve_333_alt(GPUAccessHelper& access, GPUAccessHelper& tre
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    access.init_gpu(tree_access);
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.init_access = timer.timings.back();
@@ -765,7 +765,7 @@ timings isotropic_convolve_333_ds(GPUAccessHelper& access, GPUAccessHelper& tree
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    access.init_gpu(tree_access);
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.init_access = timer.timings.back();
@@ -951,7 +951,7 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    access.init_gpu(tree_access);
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.init_access = timer.timings.back();
@@ -1119,7 +1119,7 @@ timings isotropic_convolve_555_alt(GPUAccessHelper& access, GPUAccessHelper& tre
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    access.init_gpu(tree_access);
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.init_access = timer.timings.back();
@@ -1352,7 +1352,7 @@ timings isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree
 
     timer.start_timer("initialize GPU access (apr and tree)");
     tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    access.init_gpu(tree_access);
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.init_access = timer.timings.back();
@@ -1470,7 +1470,7 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
                      VectorData<T>& output, PixelData<T>& psf, int niter, bool downsample_stencil, bool normalize_stencil) {
 
     tree_access.init_gpu();
-    access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+    access.init_gpu(tree_access);
     error_check( cudaDeviceSynchronize() )
 
     if(output.size() != input.size()) {

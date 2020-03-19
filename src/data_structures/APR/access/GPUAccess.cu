@@ -115,7 +115,7 @@ template<typename T>
 class ParticleDataGpu<DataType>::ParticleDataGpuImpl {
 
 public:
-    ScopedCudaMemHandler<T *, H2D> part_data;
+    ScopedCudaMemHandler<T *, JUST_ALLOC> part_data;
 
     ParticleDataGpuImpl() = default;
 
@@ -170,17 +170,18 @@ __global__ void fill_y_vec_max_level(const uint64_t* level_xz_vec,
                                      const int x_num_parent,
                                      const int level_max_tree) {
 
-
-
     const int x = 2 * blockIdx.x + threadIdx.y;
     const int z = 2 * blockIdx.z + threadIdx.z;
+
+    const size_t chunkSize = blockDim.x;
+    const size_t parentChunkSize = chunkSize / 2;
 
     if( (x >= x_num) || (z >= z_num) ) {
         return;
     }
 
-    const int y_off = threadIdx.x % 2;
-    const int local_id = threadIdx.x / 2;
+    const uint16_t y_offset = threadIdx.x % 2;
+    const size_t local_id = threadIdx.x / 2;
 
     size_t xz_start = level_xz_vec_tree[level_max_tree] + blockIdx.x + blockIdx.z * x_num_parent;
     const size_t global_index_begin_p = xz_end_vec_tree[xz_start-1];
@@ -194,23 +195,17 @@ __global__ void fill_y_vec_max_level(const uint64_t* level_xz_vec,
     const size_t global_index_begin_0 = xz_end_vec[xz_start-1];
     const size_t global_index_end_0 = xz_end_vec[xz_start];
 
-    const int number_chunks = ((int)(global_index_end_p - global_index_begin_p) + 15) / 16;
     uint16_t y;
 
-    for(int chunk = 0; chunk < number_chunks; ++chunk) {
+    size_t chunk = 0;
+    for(size_t parent_particle = global_index_begin_p + local_id; parent_particle < global_index_end_p; parent_particle+=parentChunkSize) {
 
-        __syncthreads();
-        if( ((global_index_begin_p + chunk*16 + local_id) < global_index_end_p) ) {
-            y = 2 * y_vec_tree[global_index_begin_p + chunk*16 + local_id] + y_off;
-        } else {
-            y = y_num + 1;
+        y = 2 * y_vec_tree[parent_particle] + y_offset;
+
+        if( ((global_index_begin_0 + chunk*chunkSize + threadIdx.x) < global_index_end_0) && (y < y_num) ) {
+            y_vec[global_index_begin_0 + chunk*chunkSize + threadIdx.x] = y;
         }
 
-        __syncthreads();
-
-        if( ((global_index_begin_0 + chunk*32 + threadIdx.x) < global_index_end_0) && (y < y_num) ) {
-            y_vec[global_index_begin_0 + chunk*32 + threadIdx.x] = y;
-        }
-
+        chunk++;
     }
 }

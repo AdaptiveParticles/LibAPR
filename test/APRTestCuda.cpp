@@ -1139,7 +1139,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_PARTIAL_ACCESS_INIT) {
 
     auto access_new = test_data.apr.gpuAPRHelper();
 
-    access_new.init_gpu( access_new.total_number_particles(tree_access.level_max()), tree_access);
+    access_new.init_gpu(tree_access);
 
     access_new.copy2Host();
 
