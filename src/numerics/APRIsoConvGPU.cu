@@ -3818,3 +3818,7 @@ template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uin
 template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, PixelData<float>&, int, bool, bool);
 template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, PixelData<float>&, int, bool, bool);
 
+template void richardson_lucy_pixel(float*, float*, float*, float*, int, int, int, std::vector<int>&);
+template void richardson_lucy_pixel(uint16_t*, float*, float*, float*, int, int, int, std::vector<int>&);
+
+
