@@ -91,15 +91,16 @@ void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_ac
                                outputType* output_gpu, stencilType* stencil_gpu, treeType* tree_data_gpu,
                                int* ne_rows_555, VectorData<int>& ne_counter_555, int* ne_rows_333, VectorData<int>& ne_counter_333, stencilType pad_value = 0);
 
-template<typename T>
-void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<T>& input,
-                     VectorData<T>& output, PixelData<T>& psf, int niter, bool downsample_stencil, bool normalize_stencil);
+template<typename inputType, typename stencilType>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                     VectorData<stencilType>& output, PixelData<stencilType>& psf, int niter, bool downsample_stencil, bool normalize_stencil);
 
-template<typename T>
-void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* input, T* output, PixelData<T>& psf,
+template<typename inputType, typename stencilType>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input, stencilType* output, PixelData<stencilType>& psf,
                      int niter, bool downsample_stencil, bool normalize_stencil);
 
-void richardson_lucy_pixel(float* input, float* output, float* psf, float* psf_flipped, int kernel_size, int npixels, int niter, std::vector<int>& dims);
+template<typename inputType, typename stencilType>
+void richardson_lucy_pixel(inputType* input, stencilType* output, stencilType* psf, stencilType* psf_flipped, int kernel_size, int npixels, int niter, std::vector<int>& dims);
 
 
 template<typename inputType, typename outputType, typename stencilType>
@@ -310,10 +311,10 @@ __global__ void elementWiseMult(T* in1,
                                 const T* in2,
                                 const size_t size);
 
-template<typename T>
-__global__ void elementWiseDiv(const T* in1,
-                               const T* in2,
-                               T* out,
+template<typename T, typename S>
+__global__ void elementWiseDiv(const T* numerator,
+                               const S* denominator,
+                               S* out,
                                const size_t size);
 
 template<typename T>

@@ -1179,12 +1179,6 @@ bool run_richardson_lucy(TestDataGPU& test_data) {
 
     richardson_lucy(access, tree_access, finput, output, psf, 10, true, true);
 
-    PixelData<float> recon(test_data.img_original, false);
-
-    APRReconstruction::interp_img(test_data.apr, recon, output);
-
-    TiffUtils::saveMeshAsTiff("/home/joel/Documents/output/APRLR.tif", recon);
-
     return true;
 }
 

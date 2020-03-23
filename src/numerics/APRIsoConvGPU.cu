@@ -1465,9 +1465,9 @@ timings isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree
 }
 
 
-template<typename T>
-void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<T>& input,
-                     VectorData<T>& output, PixelData<T>& psf, int niter, bool downsample_stencil, bool normalize_stencil) {
+template<typename inputType, typename stencilType>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                     VectorData<stencilType>& output, PixelData<stencilType>& psf, int niter, bool downsample_stencil, bool normalize_stencil) {
 
     tree_access.init_gpu();
     access.init_gpu(tree_access);
@@ -1478,8 +1478,8 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
     }
 
     /// allocate GPU memory
-    ScopedCudaMemHandler<T*, JUST_ALLOC> input_gpu(input.data(), input.size());
-    ScopedCudaMemHandler<T*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> output_gpu(output.data(), output.size());
 
     /// copy data to GPU
     input_gpu.copyH2D();
@@ -1490,19 +1490,20 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
 
     /// copy result back to host
     output_gpu.copyD2H();
+    error_check( cudaDeviceSynchronize() )
 }
 
 
-template<typename T>
-void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* input, T* output, PixelData<T>& psf, int niter, bool downsample_stencil, bool normalize_stencil) {
+template<typename inputType, typename stencilType>
+void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input, stencilType* output, PixelData<stencilType>& psf, int niter, bool downsample_stencil, bool normalize_stencil) {
 
-    PixelData<T> psf_flipped(psf, false);
+    PixelData<stencilType> psf_flipped(psf, false);
     for(int i = 0; i < psf.mesh.size(); ++i) {
         psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
     }
 
-    VectorData<T> psf_vec;
-    VectorData<T> psf_flipped_vec;
+    VectorData<stencilType> psf_vec;
+    VectorData<stencilType> psf_flipped_vec;
 
     if(downsample_stencil) {
         get_downsampled_stencils(psf, psf_vec, access.level_max() - access.level_min(), normalize_stencil);
@@ -1541,11 +1542,11 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* i
     }
 
     /// allocate GPU memory
-    ScopedCudaMemHandler<T*, JUST_ALLOC> relative_blur(NULL, access.total_number_particles());
-    ScopedCudaMemHandler<T*, JUST_ALLOC> error_est(NULL, access.total_number_particles());
-    ScopedCudaMemHandler<T*, JUST_ALLOC> tree_data_gpu(NULL, tree_access.total_number_particles());
-    ScopedCudaMemHandler<T*, JUST_ALLOC> psf_vec_gpu(psf_vec.data(), psf_vec.size());
-    ScopedCudaMemHandler<T*, JUST_ALLOC> psf_flipped_vec_gpu(psf_flipped_vec.data(), psf_flipped_vec.size());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> relative_blur(NULL, access.total_number_particles());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> error_est(NULL, access.total_number_particles());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> tree_data_gpu(NULL, tree_access.total_number_particles());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_vec_gpu(psf_vec.data(), psf_vec.size());
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_flipped_vec_gpu(psf_flipped_vec.data(), psf_flipped_vec.size());
 
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu(ne_rows_ds.data(), ne_rows_ds.size());
     ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu(ne_rows_333.data(), ne_rows_333.size());
@@ -1564,19 +1565,16 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* i
 
     /// set block size for cuda kernels
     const size_t numParts = access.total_number_particles();
-//    const size_t blockSize = 512;
-//    const size_t numBlocks = (numParts + blockSize - 1) / blockSize;
 
     dim3 grid_dim(8, 1, 1);
     dim3 block_dim(256, 1, 1);
 
     /// initialize output as the input image
-    //copyKernel<<<grid_dim, block_dim>>>(input, output, numParts);
-    fillWithValue<< < grid_dim, block_dim >> > (output, 1.0f, numParts);
+    fillWithValue<<< grid_dim, block_dim >>> (output, (stencilType)1, numParts);
 
-    float average_h;
-    float* average_d;
-    error_check( cudaMalloc(&average_d, sizeof(float)) )
+    stencilType average_h;
+    stencilType* average_d;
+    error_check( cudaMalloc(&average_d, sizeof(stencilType)) )
 
     error_check( cudaDeviceSynchronize() )
 
@@ -1586,7 +1584,7 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* i
         compute_average<512><<<1, 512>>>(output, average_d, 4096);
 
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaMemcpy(&average_h, average_d, sizeof(float), cudaMemcpyDeviceToHost) )// todo: find a clean way to avoid this...
+        error_check( cudaMemcpy(&average_h, average_d, sizeof(stencilType), cudaMemcpyDeviceToHost) )// todo: find a clean way to avoid this...
         error_check( cudaDeviceSynchronize() )
 
         if(kernel_size == 5) {
@@ -1604,7 +1602,7 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* i
 
         error_check( cudaDeviceSynchronize() )
 
-        elementWiseDiv<< < grid_dim, block_dim >> > (input, relative_blur.get(), relative_blur.get(), numParts);
+        elementWiseDiv<<< grid_dim, block_dim >>> (input, relative_blur.get(), relative_blur.get(), numParts);
 
         error_check( cudaDeviceSynchronize() )
 
@@ -1613,7 +1611,7 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* i
         compute_average<512><<<1, 512>>>(relative_blur.get(), average_d, 4096);
 
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaMemcpy(&average_h, average_d, sizeof(float), cudaMemcpyDeviceToHost) ) // todo: find a clean way to avoid this...
+        error_check( cudaMemcpy(&average_h, average_d, sizeof(stencilType), cudaMemcpyDeviceToHost) ) // todo: find a clean way to avoid this...
         error_check( cudaDeviceSynchronize() )
 
         if(kernel_size == 5) {
@@ -1631,17 +1629,18 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, T* i
 
         error_check( cudaDeviceSynchronize() )
 
-        elementWiseMult<< < grid_dim, block_dim >> > (output, error_est.get(), numParts);
+        elementWiseMult<<< grid_dim, block_dim >>> (output, error_est.get(), numParts);
 
         error_check( cudaDeviceSynchronize() )
     }
 }
 
 
-void richardson_lucy_pixel(float* input, float* output, float* psf, float* psf_flipped, int kernel_size, int npixels, int niter, std::vector<int>& dims) {
+template<typename inputType, typename stencilType>
+void richardson_lucy_pixel(inputType* input, stencilType* output, stencilType* psf, stencilType* psf_flipped, int kernel_size, int npixels, int niter, std::vector<int>& dims) {
 
-    ScopedCudaMemHandler<float*, JUST_ALLOC> relative_blur(NULL, npixels);
-    ScopedCudaMemHandler<float*, JUST_ALLOC> error_est(NULL, npixels);
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> relative_blur(NULL, npixels);
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> error_est(NULL, npixels);
 
     dim3 grid_dim(8, 1, 1);
     dim3 block_dim(256, 1, 1);
@@ -1656,15 +1655,15 @@ void richardson_lucy_pixel(float* input, float* output, float* psf, float* psf_f
     dim3 conv_block_dim(chunkSize, convBlockSize, convBlockSize);
 
     /// initialize output with 1s
-    fillWithValue<< < grid_dim, block_dim >> > (output, 1.0f, npixels);
+    fillWithValue<<< grid_dim, block_dim >>> (output, (stencilType)1, npixels);
     error_check( cudaDeviceSynchronize() )
 
     for(int i = 0; i < niter; ++i) {
 
         if(kernel_size == 5) {
-            conv_pixel_555_chunked<16, 8><< < conv_grid_dim, conv_block_dim >> > (output, relative_blur.get(), psf, dims[0], dims[1], dims[2]); //something goes wrong here
+            conv_pixel_555_chunked<16, 8><<< conv_grid_dim, conv_block_dim >>> (output, relative_blur.get(), psf, dims[0], dims[1], dims[2]);
         } else {
-            conv_pixel_333_chunked<32, 4><< < conv_grid_dim, conv_block_dim >> > (output, relative_blur.get(), psf, dims[0], dims[1], dims[2]);
+            conv_pixel_333_chunked<32, 4><<< conv_grid_dim, conv_block_dim >>> (output, relative_blur.get(), psf, dims[0], dims[1], dims[2]);
         }
         error_check( cudaDeviceSynchronize() )
 
@@ -1672,13 +1671,13 @@ void richardson_lucy_pixel(float* input, float* output, float* psf, float* psf_f
         error_check( cudaDeviceSynchronize() )
 
         if(kernel_size == 5) {
-            conv_pixel_555_chunked<16, 8><< < conv_grid_dim, conv_block_dim >> > (relative_blur.get(), error_est.get(), psf_flipped, dims[0], dims[1], dims[2]);
+            conv_pixel_555_chunked<16, 8><<< conv_grid_dim, conv_block_dim >>> (relative_blur.get(), error_est.get(), psf_flipped, dims[0], dims[1], dims[2]);
         } else {
-            conv_pixel_333_chunked<32, 4><< < conv_grid_dim, conv_block_dim >> > (relative_blur.get(), error_est.get(), psf_flipped, dims[0], dims[1], dims[2]);
+            conv_pixel_333_chunked<32, 4><<< conv_grid_dim, conv_block_dim >>> (relative_blur.get(), error_est.get(), psf_flipped, dims[0], dims[1], dims[2]);
         }
         error_check( cudaDeviceSynchronize() )
 
-        elementWiseMult<< < grid_dim, block_dim >> > (output, error_est.get(), npixels);
+        elementWiseMult<<< grid_dim, block_dim >>> (output, error_est.get(), npixels);
         error_check( cudaDeviceSynchronize() )
     }
 }
@@ -3731,19 +3730,19 @@ __global__ void elementWiseMult(T* in1,
  * Element-wise division of two vectors.
  *
  * @tparam T
- * @param in1   numerator
- * @param in2   denominator
+ * @param numerator   numerator
+ * @param denominator   denominator
  * @param out   output
  * @param size  size of the vectors
  */
-template<typename T>
-__global__ void elementWiseDiv(const T* in1,
-                               const T* in2,
-                               T* out,
+template<typename T, typename S>
+__global__ void elementWiseDiv(const T* numerator,
+                               const S* denominator,
+                               S* out,
                                const size_t size){
 
     for(size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < size; idx += blockDim.x * gridDim.x) {
-        out[idx] = in1[idx] / in2[idx];
+        out[idx] = ((S) numerator[idx]) / denominator[idx];
     }
 }
 
@@ -3813,5 +3812,9 @@ template timings isotropic_convolve_555_ds(GPUAccessHelper&, GPUAccessHelper&, V
 
 /// deconv
 template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, PixelData<float>&, int, bool, bool);
+template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool);
+
 //template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<double>&, VectorData<double>&, VectorData<double>&, int, bool);
 template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, PixelData<float>&, int, bool, bool);
+template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, PixelData<float>&, int, bool, bool);
+
