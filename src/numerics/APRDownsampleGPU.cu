@@ -4,7 +4,7 @@
 
 #include "APRDownsampleGPU.hpp"
 
-#define DEBUGCUDA 1
+//#define DEBUGCUDA 1
 
 #define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -326,14 +326,12 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
     }
 
     __syncthreads();
-
-    if(local_th == 0) {
-        block_start[block] = min(y_vec[global_index_begin_0[block]],  y_vec_tree[global_index_begin_t[block]]) / 32;
+    if(local_th == 0) { // todo: This should be based on the parent row
+        block_start[block] = min(y_vec[global_index_begin_0[block]],  y_vec_tree[global_index_begin_t[block]]) / 32; //fixme: sometimes results in invalid global read.
         block_end[block] = (max(y_vec[max(global_index_end_0[block],(size_t)1)-1], y_vec_tree[ max(global_index_end_t[block],(size_t)1)-1]) + 31)/32;
     }
 
     __syncthreads();
-
     if( (block == 0) && (local_th == 0) ) {
         block_start[0] = min( min(block_start[0], block_start[1]), min(block_start[2], block_start[3]) );
         block_end[0] = max( max(block_end[0], block_end[1]), max(block_end[2], block_end[3]) );
@@ -345,7 +343,6 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
     int sparse_block_t = 0;
 
     for (int y_block = block_start[0]; y_block < block_end[0]; ++y_block) {
-//    for (int y_block = 0; y_block < (y_num+31)/32; y_block++) {
         __syncthreads();
 
         // update apr particle
@@ -857,8 +854,178 @@ __global__ void _fill_tree_mean_interior_alt(const uint64_t* level_xz_vec,
 }
 
 
+template<int blockSize_z, int blockSize_x>
+__global__ void _count_ne_rows_tree_cuda(const uint64_t* level_xz_vec_tree,
+                                         const uint64_t* xz_end_vec_tree,
+                                         const int z_num,
+                                         const int x_num,
+                                         const int level,
+                                         int* res) {
 
-void compute_ne_rows(GPUAccessHelper& tree_access,VectorData<int>& ne_counter,VectorData<int>& ne_rows) {
+    __shared__ int local_counts[blockSize_x][blockSize_z];
+    local_counts[threadIdx.y][threadIdx.x] = 0;
+
+    const int z_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(z_index >= z_num) { return; } // out of bounds
+
+    size_t level_start = level_xz_vec_tree[level];
+    int x_index = threadIdx.y;
+
+    int counter = 0;
+
+    // loop over x-dimension in chunks
+    while( x_index < x_num ) {
+        size_t xz_start = z_index * x_num + x_index + level_start;
+
+        // if row is non-empty
+        if( xz_end_vec_tree[xz_start - 1] < xz_end_vec_tree[xz_start]) {
+            counter++;
+        }
+        x_index += blockDim.y;
+    }
+    __syncthreads();
+
+    local_counts[threadIdx.y][threadIdx.x] = counter;
+    __syncthreads();
+
+    // reduce over blockDim.y to get the count for each z_index
+    for(int gap = blockSize_x/2; gap > 0; gap/=2) {
+        if(threadIdx.y < gap) {
+            local_counts[threadIdx.y][threadIdx.x] += local_counts[threadIdx.y + gap][threadIdx.x];
+        }
+        __syncthreads();
+    }
+
+    // now reduce over blockDim.x to get the block count
+    for(int gap = blockSize_z/2; gap > 0; gap/=2) {
+        if(threadIdx.x < gap && threadIdx.y == 0) {
+            local_counts[0][threadIdx.x] += local_counts[0][threadIdx.x + gap];
+        }
+        __syncthreads();
+    }
+
+    if(threadIdx.x == 0 && threadIdx.y == 0) {
+        res[blockIdx.x] = local_counts[0][0];
+    }
+}
+
+
+__device__ unsigned int count = 0;
+__global__ void _fill_ne_rows_tree_cuda(const uint64_t* level_xz_vec_tree,
+                                        const uint64_t* xz_end_vec_tree,
+                                        const int z_num,
+                                        const int x_num,
+                                        const int level,
+                                        unsigned int ne_count,
+                                        unsigned int offset,
+                                        int* ne_rows) {
+
+    const int z_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (z_index >= z_num) { return; } // out of bounds
+
+    size_t level_start = level_xz_vec_tree[level];
+    int x_index = threadIdx.y;
+
+    // loop over x-dimension in chunks
+    while (x_index < x_num) {
+
+        size_t xz_start = z_index * x_num + x_index + level_start;
+
+        // if row is non-empty
+        if( xz_end_vec_tree[xz_start - 1] < xz_end_vec_tree[xz_start]) {
+            unsigned int index = atomicInc(&count, ne_count-1);
+            ne_rows[offset + index] = z_index * x_num + x_index;
+        }
+
+        x_index += blockDim.y;
+    }
+}
+
+
+template<int blockSize_z, int blockSize_x>
+void compute_ne_rows_tree_cuda(GPUAccessHelper& tree_access, VectorData<int>& ne_count, ScopedCudaMemHandler<int*, JUST_ALLOC>& ne_rows_gpu) {
+
+    ne_count.resize(tree_access.level_max() + 3);
+
+    int z_blocks_max = (tree_access.z_num(tree_access.level_max()) + blockSize_z - 1) / blockSize_z;
+    int num_levels = tree_access.level_max() - tree_access.level_min() + 1;
+
+    int block_sums_host[z_blocks_max * num_levels];
+    int *block_sums_device;
+
+    error_check(cudaMalloc(&block_sums_device, z_blocks_max*num_levels*sizeof(int)) )
+    error_check( cudaMemset(block_sums_device, 0, z_blocks_max*num_levels*sizeof(int)) )
+//    error_check( cudaDeviceSynchronize() )
+
+    int offset = 0;
+    for(int level = tree_access.level_min(); level <= tree_access.level_max(); ++level) {
+
+        int z_blocks = (tree_access.z_num(level) + blockSize_z - 1) / blockSize_z;
+
+        dim3 grid_dim(z_blocks, 1, 1);
+        dim3 block_dim(blockSize_z, blockSize_x, 1);
+
+        _count_ne_rows_tree_cuda<blockSize_z, blockSize_x>
+                                << < grid_dim, block_dim >> >
+                                    (tree_access.get_level_xz_vec_ptr(),
+                                     tree_access.get_xz_end_vec_ptr(),
+                                     tree_access.z_num(level),
+                                     tree_access.x_num(level),
+                                     level,
+                                     block_sums_device + offset);
+
+        offset += z_blocks_max;
+    }
+
+    error_check(cudaDeviceSynchronize())
+    error_check(cudaMemcpy(block_sums_host, block_sums_device, z_blocks_max * num_levels * sizeof(int), cudaMemcpyDeviceToHost) )
+
+    int counter = 0;
+    offset = 0;
+
+    for(int level = tree_access.level_min(); level <= tree_access.level_max(); ++level) {
+        ne_count[level+1] = counter;
+
+        for(int i = 0; i < z_blocks_max; ++i) {
+            counter += block_sums_host[offset + i];
+        }
+        offset += z_blocks_max;
+    }
+
+    ne_count.back() = counter;
+    ne_rows_gpu.initialize(NULL, counter);
+
+    for(int level = (tree_access.level_min() + 1); level <= (tree_access.level_max() + 1); ++level) {
+
+        int ne_sz = ne_count[level+1] - ne_count[level];
+
+        if( ne_sz == 0 ) {
+            continue;
+        }
+
+        int z_blocks = (tree_access.z_num(level - 1) + blockSize_z - 1) / blockSize_z;
+
+        dim3 grid_dim(z_blocks, 1, 1);
+        dim3 block_dim(blockSize_z, blockSize_x, 1);
+
+        _fill_ne_rows_tree_cuda<<< grid_dim, block_dim >>>
+                                       (tree_access.get_level_xz_vec_ptr(),
+                                        tree_access.get_xz_end_vec_ptr(),
+                                        tree_access.z_num(level-1),
+                                        tree_access.x_num(level-1),
+                                        level-1,
+                                        ne_sz,
+                                        ne_count[level],
+                                        ne_rows_gpu.get());
+    }
+
+    error_check(cudaFree(block_sums_device) )
+}
+
+
+void compute_ne_rows_tree(GPUAccessHelper& tree_access, VectorData<int>& ne_counter, VectorData<int>& ne_rows) {
     ne_counter.resize(tree_access.level_max() + 3);
 
     int z = 0;
@@ -917,19 +1084,23 @@ void compute_ne_rows(GPUAccessHelper& tree_access,VectorData<int>& ne_counter,Ve
 
 
 template<typename inputType, typename treeType>
-void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu,int* ne_rows,VectorData<int>& ne_offset) {
+void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu, int* ne_rows,VectorData<int>& ne_offset) {
 
     /// assumes input_gpu, tree_data_gpu and ne_rows are already on the device
 
     for (int level = access.level_max(); level >= access.level_min(); --level) {
 
+        size_t ne_sz = ne_offset[level+1] - ne_offset[level];
+        size_t offset = ne_offset[level];
+
+        if( ne_sz == 0 ) {
+            continue;
+        }
+
+        dim3 threads_l(128, 1, 1);
+        dim3 blocks_l(ne_sz, 1, 1);
+
         if(level == access.level_max()){
-
-            size_t ne_sz = ne_offset[level+1] - ne_offset[level];
-            size_t offset = ne_offset[level];
-
-            dim3 threads_l(128, 1, 1);
-            dim3 blocks_l(ne_sz, 1, 1);
 
             _fill_tree_mean_max << < blocks_l, threads_l >> >
                                                (access.get_level_xz_vec_ptr(),
@@ -949,15 +1120,7 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, input
                                                    level,
                                                    ne_rows + offset);
 
-
         } else {
-
-            dim3 threads_l(128, 1, 1);
-
-            size_t ne_sz = ne_offset[level+1] - ne_offset[level];
-            size_t offset = ne_offset[level];
-
-            dim3 blocks_l(ne_sz, 1, 1);
 
             _fill_tree_mean_interior << < blocks_l, threads_l >> >
                                                     (access.get_level_xz_vec_ptr(),
@@ -978,7 +1141,6 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, input
                                                        ne_rows + offset);
 
         }
-
         error_check( cudaDeviceSynchronize() )
     }
 }
@@ -1062,11 +1224,10 @@ template<typename inputType, typename treeType>
 void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input_gpu, treeType* tree_data_gpu) {
 
     VectorData<int> ne_counter;
-    VectorData<int> ne_rows;
-    compute_ne_rows(tree_access, ne_counter, ne_rows);
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu;
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter, ne_rows_gpu);
 
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
-    ne_rows_gpu.copyH2D();
+    error_check( cudaDeviceSynchronize() )
 
     downsample_avg(access, tree_access, input_gpu, tree_data_gpu, ne_rows_gpu.get(), ne_counter);
 }
@@ -1083,11 +1244,8 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vecto
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
 
     VectorData<int> ne_counter;
-    VectorData<int> ne_rows;
-    compute_ne_rows(tree_access, ne_counter, ne_rows);
-
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
-    ne_rows_gpu.copyH2D();
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu;
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter, ne_rows_gpu);
 
     input_gpu.copyH2D();
 
@@ -1126,3 +1284,9 @@ template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, 
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, double*);
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, float*, float*);
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, float*, double*);
+
+template void compute_ne_rows_tree_cuda<2, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
+template void compute_ne_rows_tree_cuda<4, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
+template void compute_ne_rows_tree_cuda<8, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
+template void compute_ne_rows_tree_cuda<16, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
+template void compute_ne_rows_tree_cuda<32, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);

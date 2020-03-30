@@ -330,4 +330,11 @@ __global__ void print_value(const float* data, const size_t index);
 template<unsigned int blockSize, typename T>
 __global__ void compute_average(T* data, T* result, const size_t size);
 
+
+template<int blockSize_z, int blockSize_x>
+void compute_ne_rows_cuda(GPUAccessHelper& access, VectorData<int>& ne_count, ScopedCudaMemHandler<int*, JUST_ALLOC>& ne_rows, int blockSize);
+
+
+void compute_ne_rows(GPUAccessHelper& access, VectorData<int>& ne_counter, VectorData<int>& ne_rows, int block_size);
+
 #endif //LIBAPR_APRISOCONVGPU_HPP

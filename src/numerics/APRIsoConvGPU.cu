@@ -6,7 +6,7 @@
 #include "APRIsoConvGPU.hpp"
 #include <cuda_runtime_api.h>
 
-#define DEBUGCUDA 1
+//#define DEBUGCUDA 1
 
 #define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -178,7 +178,7 @@ timings convolve_pixel_333(PixelData<inputType>& input, PixelData<outputType>& o
     conv_pixel_333_chunked<chunkSize, blockSize><<< blocks_l, threads_l >>>(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.z_num, input.x_num, input.y_num);
 
     error_check( cudaDeviceSynchronize() )
-    error_check( cudaPeekAtLastError() )
+//    error_check( cudaPeekAtLastError() )
 
     timer.stop_timer();
     ret.run_kernels = timer.timings.back();
@@ -373,7 +373,7 @@ inline void add_nonempty(GPUAccessHelper& access, uint64_t& counter, VectorData<
 }
 
 
-void compute_ne_rows_new(GPUAccessHelper& access, VectorData<int>& ne_counter, VectorData<int>& ne_rows, int block_size = 2) {
+void compute_ne_rows(GPUAccessHelper& access, VectorData<int>& ne_counter, VectorData<int>& ne_rows, int block_size = 2) {
     ne_counter.resize(access.level_max()+2);
 
     int z = 0;
@@ -489,13 +489,14 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timer.stop_timer();
 
     timer.start_timer("compute nonempty rows");
-    VectorData<int> ne_rows_ds; //non empty rows
     VectorData<int> ne_counter_ds; //non empty rows
-    compute_ne_rows(tree_access, ne_counter_ds, ne_rows_ds);
-
-    VectorData<int> ne_rows;
     VectorData<int> ne_counter;
-    compute_ne_rows_new(access, ne_counter, ne_rows, 2);
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu;
+
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+    compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 2);
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.compute_ne_rows = timer.timings.back();
 
@@ -505,8 +506,6 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu(ne_rows_ds.data(), ne_rows_ds.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.allocation = timer.timings.back();
@@ -514,8 +513,6 @@ timings isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timer.start_timer("transfer H2D");
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-    ne_rows_ds_gpu.copyH2D();
-    ne_rows_gpu.copyH2D();
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.transfer_H2D = timer.timings.back();
@@ -782,15 +779,16 @@ timings isotropic_convolve_333_ds(GPUAccessHelper& access, GPUAccessHelper& tree
     ret.downsample_stencil = timer.timings.back();
 
     timer.start_timer("compute nonempty rows");
-    VectorData<int> ne_rows_ds; //non empty rows
     VectorData<int> ne_counter_ds; //non empty rows
-    VectorData<int> ne_rows;
     VectorData<int> ne_counter;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu;
 
     if(use_ne_rows) {
-        compute_ne_rows(tree_access, ne_counter_ds, ne_rows_ds);
-        compute_ne_rows_new(access, ne_counter, ne_rows, 2);
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 2);
     }
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.compute_ne_rows = timer.timings.back();
 
@@ -800,8 +798,6 @@ timings isotropic_convolve_333_ds(GPUAccessHelper& access, GPUAccessHelper& tree
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil_vec.data(), stencil.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu(ne_rows_ds.data(), ne_rows_ds.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.allocation = timer.timings.back();
@@ -809,8 +805,6 @@ timings isotropic_convolve_333_ds(GPUAccessHelper& access, GPUAccessHelper& tree
     timer.start_timer("transfer H2D");
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-    ne_rows_ds_gpu.copyH2D();
-    ne_rows_gpu.copyH2D();
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.transfer_H2D = timer.timings.back();
@@ -921,12 +915,7 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
                                   ne_rows_gpu + offset,
                                   pad_value);
         }
-
-//        error_check( cudaDeviceSynchronize() )
-//        error_check( cudaPeekAtLastError() )
     }
-
-//    error_check( cudaDeviceSynchronize() )
 }
 
 
@@ -965,13 +954,14 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     timer.stop_timer();
 
     timer.start_timer("compute nonempty rows");
-    VectorData<int> ne_rows_ds; //non empty rows
-    VectorData<int> ne_counter_ds; //non empty rows
-    compute_ne_rows(tree_access, ne_counter_ds, ne_rows_ds);
-
-    VectorData<int> ne_rows;
     VectorData<int> ne_counter;
-    compute_ne_rows_new(access, ne_counter, ne_rows, 4);
+    VectorData<int> ne_counter_ds;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu;
+
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+    compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 4);
+    error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.compute_ne_rows = timer.timings.back();
 
@@ -980,15 +970,11 @@ timings isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_ac
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu(ne_rows_ds.data(), ne_rows_ds.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu(ne_rows.data(), ne_rows.size());
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.allocation = timer.timings.back();
 
     timer.start_timer("transfer H2D");
-    ne_rows_ds_gpu.copyH2D();
-    ne_rows_gpu.copyH2D();
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
     error_check( cudaDeviceSynchronize() )
@@ -1087,12 +1073,7 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
                                           level,
                                           pad_value);
         }
-
-//        error_check( cudaDeviceSynchronize() )
-//        error_check( cudaPeekAtLastError() )
     }
-
-//    error_check( cudaDeviceSynchronize() )
 }
 
 
@@ -1131,7 +1112,6 @@ timings isotropic_convolve_555_alt(GPUAccessHelper& access, GPUAccessHelper& tre
     tree_data.resize(tree_access.total_number_particles());
     output.resize(access.total_number_particles());
     timer.stop_timer();
-    // add this to allocation time?
 
     timer.start_timer("allocate GPU memory");
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
@@ -1368,48 +1348,28 @@ timings isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree
     timer.start_timer("downsample stencil");
     VectorData<stencilType> stencil_vec;
     get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
-//    const int stencil_size = 125 + (access.level_max() - access.level_min() - 1) * 27;
-//
-//    VectorData<stencilType> stencil_vec;
-//    stencil_vec.resize(stencil_size);
-//
-//    for(int i = 0; i < 125; ++i) {
-//        stencil_vec[i] = stencil.mesh[i];
-//    }
-//
-//    int c = 125;
-//    PixelData<stencilType> stencil_ds;
-//    for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-//        downsample_stencil_new(stencil, stencil_ds, access.level_max() - level, normalize_stencil);
-//        for(int i = 0; i < 27; ++i) {
-//            stencil_vec[c+i] = stencil_ds.mesh[i];
-//        }
-//        c += 27;
-//    }
     timer.stop_timer();
     ret.downsample_stencil = timer.timings.back();
 
-    VectorData<int> ne_rows_ds;
     VectorData<int> ne_counter_ds;
-    VectorData<int> ne_rows_333;
     VectorData<int> ne_counter_333;
-    VectorData<int> ne_rows_555;
     VectorData<int> ne_counter_555;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_555_gpu;
 
     if(use_ne_rows) {
         timer.start_timer("compute ne rows");
-        compute_ne_rows(tree_access, ne_counter_ds, ne_rows_ds);
-        compute_ne_rows_new(access, ne_counter_333, ne_rows_333, 2);
-        compute_ne_rows_new(access, ne_counter_555, ne_rows_555, 4);
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_555, ne_rows_555_gpu, 4);
+        error_check( cudaDeviceSynchronize() )
         timer.stop_timer();
         //ret.counter_ne_rows = ne_rows.size();
         ret.compute_ne_rows = timer.timings.back();
     }
 
     timer.start_timer("allocate GPU memory");
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu(ne_rows_ds.data(), ne_rows_ds.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu(ne_rows_333.data(), ne_rows_333.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_555_gpu(ne_rows_555.data(), ne_rows_555.size());
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
@@ -1421,11 +1381,6 @@ timings isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree
     timer.start_timer("transfer H2D");
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
-    if(use_ne_rows) {
-        ne_rows_ds_gpu.copyH2D();
-        ne_rows_333_gpu.copyH2D();
-        ne_rows_555_gpu.copyH2D();
-    }
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
     ret.transfer_H2D = timer.timings.back();
@@ -1450,7 +1405,6 @@ timings isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree
     }
     error_check( cudaDeviceSynchronize() )
     timer.stop_timer();
-
     ret.run_kernels = timer.timings.back();
 
     error_check( cudaDeviceSynchronize() )
@@ -1525,21 +1479,22 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
         throw std::runtime_error("richardson_lucy is only implemented for 3x3x3 and 5x5x5 kernels");
     }
 
-    VectorData<int> ne_rows_ds;
     VectorData<int> ne_counter_ds;
-    VectorData<int> ne_rows_333;
     VectorData<int> ne_counter_333;
-    VectorData<int> ne_rows_555;
     VectorData<int> ne_counter_555;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_555_gpu;
 
-    /// non-empty rows precalculation (should always be worth it as they can be reused in all iterations)
-    compute_ne_rows(tree_access, ne_counter_ds, ne_rows_ds);
+    /// non-empty rows precalculation (can be reused in all iterations)
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
     if(kernel_size == 3 || downsample_stencil) {
-        compute_ne_rows_new(access, ne_counter_333, ne_rows_333, 2);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
     }
     if(kernel_size == 5) {
-        compute_ne_rows_new(access, ne_counter_555, ne_rows_555, 4);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_555, ne_rows_555_gpu, 4);
     }
+    error_check( cudaDeviceSynchronize() )
 
     /// allocate GPU memory
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> relative_blur(NULL, access.total_number_particles());
@@ -1548,22 +1503,10 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_vec_gpu(psf_vec.data(), psf_vec.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_flipped_vec_gpu(psf_flipped_vec.data(), psf_flipped_vec.size());
 
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu(ne_rows_ds.data(), ne_rows_ds.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu(ne_rows_333.data(), ne_rows_333.size());
-    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_555_gpu(ne_rows_555.data(), ne_rows_555.size());
-
-
     psf_vec_gpu.copyH2D();
     psf_flipped_vec_gpu.copyH2D();
-    ne_rows_ds_gpu.copyH2D();
-    if(kernel_size == 3 || downsample_stencil) {
-        ne_rows_333_gpu.copyH2D();
-    }
-    if(kernel_size == 5) {
-        ne_rows_555_gpu.copyH2D();
-    }
 
-    /// set block size for cuda kernels
+    /// set block/grid size for cuda kernels
     const size_t numParts = access.total_number_particles();
 
     dim3 grid_dim(8, 1, 1);
@@ -1580,11 +1523,13 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
 
     for(int i = 0; i < niter; ++i) {
 
-        downsample_avg(access, tree_access, output, tree_data_gpu.get());
-        compute_average<512><<<1, 512>>>(output, average_d, 4096);
+        downsample_avg(access, tree_access, output, tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
 
+        // adhoc solution to fix ringing artifacts (estimates the background value by averaging the lowest level particles)
+        // seems to work when the background is near-constant, but -- todo we should look for better / more general solutions
+        compute_average<512><<<1, 512>>>(output, average_d, 4096);
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaMemcpy(&average_h, average_d, sizeof(stencilType), cudaMemcpyDeviceToHost) )// todo: find a clean way to avoid this...
+        error_check( cudaMemcpy(&average_h, average_d, sizeof(stencilType), cudaMemcpyDeviceToHost) )
         error_check( cudaDeviceSynchronize() )
 
         if(kernel_size == 5) {
@@ -1606,12 +1551,11 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
 
         error_check( cudaDeviceSynchronize() )
 
-        downsample_avg(access, tree_access, relative_blur.get(), tree_data_gpu.get());
+        downsample_avg(access, tree_access, relative_blur.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
 
         compute_average<512><<<1, 512>>>(relative_blur.get(), average_d, 4096);
-
         error_check( cudaDeviceSynchronize() )
-        error_check( cudaMemcpy(&average_h, average_d, sizeof(stencilType), cudaMemcpyDeviceToHost) ) // todo: find a clean way to avoid this...
+        error_check( cudaMemcpy(&average_h, average_d, sizeof(stencilType), cudaMemcpyDeviceToHost) )
         error_check( cudaDeviceSynchronize() )
 
         if(kernel_size == 5) {
@@ -1633,6 +1577,7 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
 
         error_check( cudaDeviceSynchronize() )
     }
+    error_check( cudaFree(average_d) )
 }
 
 
@@ -2047,7 +1992,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
                 y_0 = y_vec[update_index];
                 f_0 = input_particles[update_index];
             } else {
-                y_0 = y_num*2;
+                y_0 = INT32_MAX;
             }
         }
         __syncthreads();
@@ -3756,6 +3701,206 @@ __global__ void copyKernel(const T* in, T* out, const size_t size){
 }
 
 
+__forceinline__ __device__ int chunk_nonempty(const uint64_t* level_xz_vec,
+                                               const uint64_t* xz_end_vec,
+                                               const int x_num,
+                                               const int level,
+                                               const int x_index,
+                                               const int x_limit,
+                                               const int z_index,
+                                               const int z_limit) {
+
+    for(int iz = 0; iz < z_limit; ++iz) {
+        for(int ix = 0; ix < x_limit; ++ix) {
+            size_t xz_start = (z_index + iz) * x_num + (x_index + ix) + level_xz_vec[level];
+
+            // if row is non-empty
+            if( xz_end_vec[xz_start - 1] < xz_end_vec[xz_start]) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+template<int blockSize_z, int blockSize_x>
+__global__ void count_ne_rows_cuda(const uint64_t* level_xz_vec,
+                                   const uint64_t* xz_end_vec,
+                                   const int z_num,
+                                   const int x_num,
+                                   const int level,
+                                   const int chunkSize,
+                                   int* res) {
+
+    __shared__ int local_counts[blockSize_x][blockSize_z];
+    local_counts[threadIdx.y][threadIdx.x] = 0;
+
+    const int z_index = blockIdx.x * blockDim.x * chunkSize + threadIdx.x * chunkSize;
+
+    if(z_index >= z_num) { return; } // out of bounds
+
+    int x_index = threadIdx.y * chunkSize;
+
+    int counter = 0;
+    const int z_limit = (z_index < z_num-chunkSize) ? chunkSize : z_num-z_index;
+
+
+    // loop over x-dimension in chunks
+    while( x_index < x_num ) {
+
+        const int x_limit = (x_index < x_num-chunkSize) ? chunkSize : x_num-x_index;
+
+        int nonempty = chunk_nonempty(level_xz_vec, xz_end_vec, x_num, level, x_index, x_limit, z_index, z_limit);
+        counter += nonempty;
+
+        x_index += blockDim.y * chunkSize;
+    }
+    __syncthreads();
+
+    local_counts[threadIdx.y][threadIdx.x] = counter;
+    __syncthreads();
+
+    // reduce over blockDim.y to get the count for each z_index
+    for(int gap = blockSize_x/2; gap > 0; gap/=2) {
+        if(threadIdx.y < gap) {
+            local_counts[threadIdx.y][threadIdx.x] += local_counts[threadIdx.y + gap][threadIdx.x];
+        }
+        __syncthreads();
+    }
+
+    // now reduce over blockDim.x to get the block count
+    for(int gap = blockSize_z/2; gap > 0; gap/=2) {
+        if(threadIdx.x < gap && threadIdx.y == 0) {
+            local_counts[0][threadIdx.x] += local_counts[0][threadIdx.x + gap];
+        }
+        __syncthreads();
+    }
+
+    if(threadIdx.x == 0 && threadIdx.y == 0) {
+        res[blockIdx.x] = local_counts[0][0];
+    }
+}
+
+
+__device__ unsigned int count = 0;
+__global__ void fill_ne_rows_cuda(const uint64_t* level_xz_vec,
+                                   const uint64_t* xz_end_vec,
+                                   const int z_num,
+                                   const int x_num,
+                                   const int level,
+                                   const int chunkSize,
+                                   unsigned int ne_count,
+                                   int offset,
+                                   int* ne_rows) {
+
+    const int z_index = blockIdx.x * blockDim.x * chunkSize + threadIdx.x * chunkSize;
+
+    if (z_index >= z_num) { return; } // out of bounds
+
+    int x_index = threadIdx.y * chunkSize;
+
+    const int z_limit = (z_index < z_num - chunkSize) ? chunkSize : z_num - z_index;
+
+    // loop over x-dimension in chunks
+    while (x_index < x_num) {
+
+        const int x_limit = (x_index < x_num - chunkSize) ? chunkSize : x_num - x_index;
+
+        // if row is non-empty
+        if( chunk_nonempty(level_xz_vec, xz_end_vec, x_num, level, x_index, x_limit, z_index, z_limit) ) {
+            unsigned int index = atomicInc(&count, ne_count-1);
+            ne_rows[offset + index] = z_index * x_num + x_index;
+        }
+
+        x_index += blockDim.y * chunkSize;
+    }
+}
+
+
+template<int blockSize_z, int blockSize_x>
+void compute_ne_rows_cuda(GPUAccessHelper& access, VectorData<int>& ne_count, ScopedCudaMemHandler<int*, JUST_ALLOC>& ne_rows_gpu, int blockSize) {
+
+    ne_count.resize(access.level_max()+2);
+
+    int stride = blockSize_z * blockSize;
+
+    int z_blocks_max = (access.z_num(access.level_max()) + stride - 1) / stride;
+    int num_levels = access.level_max() - access.level_min() + 1;
+
+    int block_sums_host[z_blocks_max * num_levels];
+    int *block_sums_device;
+
+    error_check(cudaMalloc(&block_sums_device, z_blocks_max*num_levels*sizeof(int)) )
+    error_check( cudaMemset(block_sums_device, 0, z_blocks_max*num_levels*sizeof(int)) )
+
+    int offset = 0;
+    for(int level = access.level_min(); level <= access.level_max(); ++level) {
+
+        int z_blocks = (access.z_num(level) + stride - 1) / stride;
+
+        dim3 grid_dim(z_blocks, 1, 1);
+        dim3 block_dim(blockSize_z, blockSize_x, 1);
+
+        count_ne_rows_cuda<blockSize_z, blockSize_x>
+                << < grid_dim, block_dim >> >
+                               (access.get_level_xz_vec_ptr(),
+                                       access.get_xz_end_vec_ptr(),
+                                       access.z_num(level),
+                                       access.x_num(level),
+                                       level,
+                                       blockSize,
+                                       block_sums_device + offset);
+        offset += z_blocks_max;
+    }
+
+    error_check(cudaDeviceSynchronize())
+    error_check(cudaMemcpy(block_sums_host, block_sums_device, z_blocks_max*num_levels*sizeof(int), cudaMemcpyDeviceToHost) )
+
+    int counter = 0;
+    offset = 0;
+
+    for(int level = access.level_min(); level <= access.level_max(); ++level) {
+        ne_count[level] = counter;
+
+        for(int i = 0; i < z_blocks_max; ++i) {
+            counter += block_sums_host[offset + i];
+        }
+
+        offset += z_blocks_max;
+    }
+
+    ne_count.back() = counter;
+    ne_rows_gpu.initialize(NULL, counter);
+
+    for(int level = access.level_min(); level <= access.level_max(); ++level) {
+
+        int ne_sz = ne_count[level+1] - ne_count[level];
+        if( ne_sz == 0 ) {
+            continue;
+        }
+        int z_blocks = (access.z_num(level) + blockSize_z * blockSize - 1) / (blockSize_z * blockSize);
+
+        dim3 grid_dim(z_blocks, 1, 1);
+        dim3 block_dim(blockSize_z, blockSize_x, 1);
+
+        fill_ne_rows_cuda<<< grid_dim, block_dim >>>
+                               (access.get_level_xz_vec_ptr(),
+                                       access.get_xz_end_vec_ptr(),
+                                       access.z_num(level),
+                                       access.x_num(level),
+                                       level,
+                                       blockSize,
+                                       ne_sz,
+                                       ne_count[level],
+                                       ne_rows_gpu.get());
+
+//        error_check( cudaDeviceSynchronize() )
+    }
+
+    error_check( cudaFree(block_sums_device) )
+}
+
+
 /// force template instantiation for some different type combinations
 //pixels 333
 template timings convolve_pixel_333(PixelData<uint16_t>&, PixelData<float>&, PixelData<float>&);
@@ -3821,4 +3966,8 @@ template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, flo
 template void richardson_lucy_pixel(float*, float*, float*, float*, int, int, int, std::vector<int>&);
 template void richardson_lucy_pixel(uint16_t*, float*, float*, float*, int, int, int, std::vector<int>&);
 
-
+template void compute_ne_rows_cuda<2, 32>(GPUAccessHelper &, VectorData<int> &, ScopedCudaMemHandler<int*, JUST_ALLOC>&, int);
+template void compute_ne_rows_cuda<4, 32>(GPUAccessHelper &, VectorData<int> &, ScopedCudaMemHandler<int*, JUST_ALLOC>&, int);
+template void compute_ne_rows_cuda<8, 32>(GPUAccessHelper &, VectorData<int> &, ScopedCudaMemHandler<int*, JUST_ALLOC>&, int);
+template void compute_ne_rows_cuda<16, 32>(GPUAccessHelper &, VectorData<int> &, ScopedCudaMemHandler<int*, JUST_ALLOC>&, int);
+template void compute_ne_rows_cuda<32, 32>(GPUAccessHelper &, VectorData<int> &, ScopedCudaMemHandler<int*, JUST_ALLOC>&, int);

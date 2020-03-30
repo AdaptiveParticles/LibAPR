@@ -193,107 +193,107 @@ void get_downsampled_stencils(VectorData<T>& aInput, VectorData<S>& aOutput, con
 }
 
 
-/**
- * For testing purposes only! Sums contribution in an explicit loop using Kahan summation. Gets very slow for level_delta > ~6
- */
-template<typename T, typename S>
-void downsample_stencil_bruteforce(const PixelData<T>& aInput, PixelData<S>& aOutput, const int level_delta, bool normalize = false) {
-
-    const int z_num = aInput.z_num;
-    const int x_num = aInput.x_num;
-    const int y_num = aInput.y_num;
-
-    const int ndim = (z_num > 1) + (x_num > 1) + (y_num > 1);
-    const int step_size = (int)std::pow(2.0f, (float)level_delta);
-    const int factor = (int)std::pow((float)step_size, (float)ndim);
-
-    const int z_num_ds = std::max((z_num + step_size - 1) / step_size, 3);
-    const int x_num_ds = std::max((x_num + step_size - 1) / step_size, 3);
-    const int y_num_ds = std::max((y_num + step_size - 1) / step_size, 3);
-
-    aOutput.initWithValue(y_num_ds, x_num_ds, z_num_ds, 0);
-
-    const int z_offset = ((z_num_ds / 2) * step_size - z_num / 2);
-    const int x_offset = ((x_num_ds / 2) * step_size - x_num / 2);
-    const int y_offset = ((y_num_ds / 2) * step_size - y_num / 2);
-
-    /// loop over output stencil elements
-    for (int dz = 0; dz < z_num_ds; ++dz) {
-        for (int dx = 0; dx < x_num_ds; ++dx) {
-            for (int dy = 0; dy < y_num_ds; ++dy) {
-
-                float sum = 0.0f;
-                float c = 0.0f;
-
-                /// loop over input stencil elements
-                for (int iz = 0; iz < z_num; ++iz) {
-                    for (int ix = 0; ix < x_num; ++ix) {
-                        for (int iy = 0; iy < y_num; ++iy) {
-
-                            /// loop over high-res stencil positions in low-res center pixel
-                            for(int z_pos = 0; z_pos < step_size; ++z_pos) {
-                                int z_coord_ds = (z_offset + z_pos + iz) / step_size;
-                                if(z_coord_ds != dz) { continue; }
-
-                                for(int x_pos = 0; x_pos < step_size; ++x_pos) {
-                                    int x_coord_ds = (x_offset + x_pos + ix) / step_size;
-                                    if(x_coord_ds != dx) { continue; }
-
-                                    for(int y_pos = 0; y_pos < step_size; ++y_pos) {
-                                        int y_coord_ds = (y_offset + y_pos + iy) / step_size;
-                                        if(y_coord_ds != dy) { continue; }
-
-                                        /// if the high-res stencil element is within the current low-res element, add it to the sum
-
-                                        // Kahan summation to reduce numerical errors
-                                        float y = aInput.at(iy, ix, iz) - c;
-                                        float t = sum + y;
-                                        c = (t - sum) - y;
-                                        sum = t;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                aOutput.at(dy, dx, dz) = sum;
-            }
-        }
-    }
-
-    float sum = 0;
-    for(size_t i = 0; i < aOutput.mesh.size(); ++i) {
-        aOutput.mesh[i] /= factor;
-        sum += aOutput.mesh[i];
-    }
-
-    if (normalize) {
-        float nfactor = 1.0f / sum;
-        for (size_t i = 0; i < aOutput.mesh.size(); ++i) {
-            aOutput.mesh[i] *= nfactor;
-        }
-    }
-}
-
-
-template<typename T, typename S>
-void get_downsampled_stencils_bruteforce(const PixelData<T>& aInput, VectorData<S>& aOutput, const int nlevels, const bool normalize = false) {
-
-    const int kernel_size = aInput.y_num;
-
-    aOutput.resize( compute_stencil_vec_size(kernel_size, nlevels) );
-
-    std::copy(aInput.mesh.begin(), aInput.mesh.end(), aOutput.begin());
-
-    int c = aInput.mesh.size();
-    PixelData<S> stencil_ds;
-    for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
-
-        downsample_stencil_bruteforce(aInput, stencil_ds, level_delta, normalize);
-        std::copy(stencil_ds.mesh.begin(), stencil_ds.mesh.end(), aOutput.begin() + c);
-        c += stencil_ds.mesh.size();
-    }
-}
+///**
+// * For testing purposes only! Sums contribution in an explicit loop using Kahan summation. Gets very slow for level_delta > ~6
+// * Aggressive optimization may remove the Kahan summation steps
+// */
+//template<typename T, typename S>
+//void downsample_stencil_bruteforce(const PixelData<T>& aInput, PixelData<S>& aOutput, const int level_delta, bool normalize = false) {
+//
+//    const int z_num = aInput.z_num;
+//    const int x_num = aInput.x_num;
+//    const int y_num = aInput.y_num;
+//
+//    const int ndim = (z_num > 1) + (x_num > 1) + (y_num > 1);
+//    const int step_size = (int)std::pow(2.0f, (float)level_delta);
+//    const int factor = (int)std::pow((float)step_size, (float)ndim);
+//
+//    const int z_num_ds = std::max((z_num + step_size - 1) / step_size, 3);
+//    const int x_num_ds = std::max((x_num + step_size - 1) / step_size, 3);
+//    const int y_num_ds = std::max((y_num + step_size - 1) / step_size, 3);
+//
+//    aOutput.initWithValue(y_num_ds, x_num_ds, z_num_ds, 0);
+//
+//    const int z_offset = ((z_num_ds / 2) * step_size - z_num / 2);
+//    const int x_offset = ((x_num_ds / 2) * step_size - x_num / 2);
+//    const int y_offset = ((y_num_ds / 2) * step_size - y_num / 2);
+//
+//    /// loop over output stencil elements
+//    for (int dz = 0; dz < z_num_ds; ++dz) {
+//        for (int dx = 0; dx < x_num_ds; ++dx) {
+//            for (int dy = 0; dy < y_num_ds; ++dy) {
+//
+//                float sum = 0.0f;
+//                float c = 0.0f;
+//
+//                /// loop over input stencil elements
+//                for (int iz = 0; iz < z_num; ++iz) {
+//                    for (int ix = 0; ix < x_num; ++ix) {
+//                        for (int iy = 0; iy < y_num; ++iy) {
+//
+//                            /// loop over high-res stencil positions in low-res center pixel
+//                            for(int z_pos = 0; z_pos < step_size; ++z_pos) {
+//                                int z_coord_ds = (z_offset + z_pos + iz) / step_size;
+//                                if(z_coord_ds != dz) { continue; }
+//
+//                                for(int x_pos = 0; x_pos < step_size; ++x_pos) {
+//                                    int x_coord_ds = (x_offset + x_pos + ix) / step_size;
+//                                    if(x_coord_ds != dx) { continue; }
+//
+//                                    for(int y_pos = 0; y_pos < step_size; ++y_pos) {
+//                                        int y_coord_ds = (y_offset + y_pos + iy) / step_size;
+//                                        if(y_coord_ds != dy) { continue; }
+//
+//                                        /// if the high-res stencil element is within the current low-res element, add it to the sum
+//
+//                                        // Kahan summation to reduce numerical errors
+//                                        float y = aInput.at(iy, ix, iz) - c;
+//                                        float t = sum + y;
+//                                        c = (t - sum) - y;
+//                                        sum = t;
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                aOutput.at(dy, dx, dz) = sum;
+//            }
+//        }
+//    }
+//
+//    float sum = 0;
+//    for(size_t i = 0; i < aOutput.mesh.size(); ++i) {
+//        aOutput.mesh[i] /= factor;
+//        sum += aOutput.mesh[i];
+//    }
+//
+//    if (normalize) {
+//        float nfactor = 1.0f / sum;
+//        for (size_t i = 0; i < aOutput.mesh.size(); ++i) {
+//            aOutput.mesh[i] *= nfactor;
+//        }
+//    }
+//}
+//
+//template<typename T, typename S>
+//void get_downsampled_stencils_bruteforce(const PixelData<T>& aInput, VectorData<S>& aOutput, const int nlevels, const bool normalize = false) {
+//
+//    const int kernel_size = aInput.y_num;
+//
+//    aOutput.resize( compute_stencil_vec_size(kernel_size, nlevels) );
+//
+//    std::copy(aInput.mesh.begin(), aInput.mesh.end(), aOutput.begin());
+//
+//    int c = aInput.mesh.size();
+//    PixelData<S> stencil_ds;
+//    for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
+//
+//        downsample_stencil_bruteforce(aInput, stencil_ds, level_delta, normalize);
+//        std::copy(stencil_ds.mesh.begin(), stencil_ds.mesh.end(), aOutput.begin() + c);
+//        c += stencil_ds.mesh.size();
+//    }
+//}
 
 
 #endif //LIBAPR_APRSTENCILFUNCTIONS_HPP

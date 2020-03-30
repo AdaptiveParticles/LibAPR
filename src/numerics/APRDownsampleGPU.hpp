@@ -26,7 +26,10 @@ void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, i
 template<typename inputType, typename treeType>
 void downsample_avg_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<treeType>& tree_data);
 
-void compute_ne_rows(GPUAccessHelper& tree_access,VectorData<int>& ne_counter,VectorData<int>& ne_rows);
+void compute_ne_rows_tree(GPUAccessHelper& tree_access, VectorData<int>& ne_counter, VectorData<int>& ne_rows);
+
+template<int blockSize_z, int blockSize_x>
+void compute_ne_rows_tree_cuda(GPUAccessHelper& tree_access, VectorData<int>& ne_count, ScopedCudaMemHandler<int*, JUST_ALLOC>& ne_rows_gpu);
 
 
 #endif //LIBAPR_APRDOWNSAMPLEGPU_HPP

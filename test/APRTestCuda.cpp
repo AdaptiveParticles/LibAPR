@@ -363,15 +363,16 @@ void CreateCR1000::SetUp(){
 
 
 bool test_down_sample_gpu(TestDataGPU& test_data){
+
     auto gpuData = test_data.apr.gpuAPRHelper();
     auto gpuDataTree = test_data.apr.gpuTreeHelper();
 
-    gpuData.init_gpu();
     gpuDataTree.init_gpu();
+    gpuData.init_gpu(gpuDataTree);
 
     VectorData<float> tree_data;
 
-    downsample_avg_alt(gpuData, gpuDataTree, test_data.particles_intensities.data, tree_data);
+    downsample_avg(gpuData, gpuDataTree, test_data.particles_intensities.data, tree_data);
 
 
 
@@ -1187,62 +1188,178 @@ TEST_F(CreateSmallSphereTest, TEST_LR) {
 }
 
 
-TEST_F(CreateSmallSphereTest, TEST_DOWNSAMPLE_STENCIL) {
+TEST_F(CreateCR1, TEST_NE_ROWS_CUDA) {
 
-    const int stencil_size = 5;
-    const int nlevels = 8;
-    const bool normalize = false;
-    const float tol = 1e-4;
+    auto tree_access = test_data.apr.gpuTreeHelper();
+    auto access = test_data.apr.gpuAPRHelper();
 
+    const int blockSize = 4;
 
-    PixelData<float> stencil_pd(stencil_size, stencil_size, stencil_size);
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
 
-    float n = stencil_pd.mesh.size();
-    float sum = n * (n-1) * 0.5f;
-    for(size_t i = 0; i < stencil_pd.mesh.size(); ++i) {
-        stencil_pd.mesh[i] = ((float) i) / sum;
-    }
+    cudaDeviceSynchronize();
 
-    VectorData<float> stencil_vd;
-    stencil_vd.resize(stencil_pd.mesh.size());
+    VectorData<int> ne_count_cuda;
+    VectorData<int> ne_rows_cuda;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_cuda_device;
 
-    for(size_t i = 0; i < stencil_pd.mesh.size(); ++i) {
-        stencil_vd[i] = stencil_pd.mesh[i];
-    }
+    compute_ne_rows_cuda<16, 32>(access, ne_count_cuda, ne_rows_cuda_device, blockSize);
+    cudaDeviceSynchronize();
 
-    VectorData<float> ds_stencil_gt;
-    get_downsampled_stencils_bruteforce(stencil_pd, ds_stencil_gt, nlevels, normalize);
+    /// get the data back to CPU for comparison
+    ne_rows_cuda.resize(ne_count_cuda.back());
+    cudaMemcpy(ne_rows_cuda.data(), ne_rows_cuda_device.get(), ne_count_cuda.back() * sizeof(int), cudaMemcpyDeviceToHost);
 
-    VectorData<float> ds_stencil_pd;
-    get_downsampled_stencils(stencil_pd, ds_stencil_pd, nlevels, normalize);
+    VectorData<int> ne_count;
+    VectorData<int> ne_rows;
 
-    VectorData<float> ds_stencil_vd;
-    get_downsampled_stencils(stencil_vd, ds_stencil_vd, nlevels, normalize);
+    compute_ne_rows(access, ne_count, ne_rows, blockSize);
 
-    bool success_pd = true;
+    bool count_success = true;
+    std::cout << "Comparing row counts..." << std::endl;
+    for(int level = access.level_max(); level > access.level_min(); --level) {
+        int cuda_val = ne_count_cuda[level+1] - ne_count_cuda[level];
+        int cpu_val = ne_count[level+1] - ne_count[level];
 
-    /// compare for PixelData input
-    for(size_t i = 0; i < ds_stencil_gt.size(); ++i) {
-        if( std::abs(ds_stencil_pd[i] - ds_stencil_gt[i]) > tol ) {
-            std::cout << "get_downsampled_stencils with PixelData input failed for i = " << i << ". Expected " << ds_stencil_gt[i] << " but got " << ds_stencil_pd[i] << std::endl;
-            success_pd = false;
+        if(cuda_val != cpu_val) {
+            std::cout << "Error at level " << level << " expected " << cpu_val << " but got " << cuda_val << std::endl;
+            count_success = false;
         }
     }
 
-    bool success_vd = true;
+    if(count_success) {
+        std::cout << "non-empty row counts OK!\n" << std::endl;
+    } else {
+        std::cerr << "non-empty row counts failed!\n" << std::endl;
+    }
 
-    /// compare for VectorData input
-    for(size_t i = 0; i < ds_stencil_gt.size(); ++i) {
-        if( std::abs(ds_stencil_vd[i] - ds_stencil_gt[i]) > tol ) {
-            std::cout << "get_downsampled_stencils with PixelData input failed for i = " << i << ". Expected " << ds_stencil_gt[i] << " but got " << ds_stencil_vd[i] << std::endl;
-            success_vd = false;
+    int successes = 0;
+
+    std::cout << "Comparing row entries..." << std::endl;
+    bool row_success = true;
+
+    for(int level = access.level_min(); level <= access.level_max(); ++level) {
+
+        for (int i = ne_count[level]; i < ne_count[level + 1]; ++i) {
+            int row = ne_rows[i];
+            int occurences = 0;
+
+            for (int j = ne_count_cuda[level]; j < ne_count_cuda[level + 1]; ++j) {
+                if (ne_rows_cuda[j] == row) {
+                    occurences++;
+                }
+            }
+
+            if(occurences == 1) {
+                successes++;
+            } else if (occurences < 1) {
+                std::cerr << "level " << level << ": ne_rows_cuda is missing row " << row << std::endl;
+                row_success = false;
+            } else { // occurences > 1
+                std::cerr << "level " << level << ": ne_rows_cuda has " << occurences << " duplicates of row " << row << std::endl;
+                row_success = false;
+            }
         }
     }
 
+    if(row_success) {
+        std::cout << "non-empty rows OK!\n" << std::endl;
+    } else {
+        std::cerr << "non-empty rows failed!\n" << std::endl;
+    }
 
-    ASSERT_TRUE(success_pd && success_vd);
+    int failures = ne_count[access.level_max() + 1]-successes;
+    std::cout << "successes: " << successes << " failures: " << failures << std::endl;
+
+    ASSERT_TRUE(failures == 0);
 }
 
+
+TEST_F(CreateCR1, TEST_NE_ROWS_TREE_CUDA) {
+
+    auto tree_access = test_data.apr.gpuTreeHelper();
+    auto access = test_data.apr.gpuAPRHelper();
+
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
+    cudaDeviceSynchronize();
+
+    VectorData<int> ne_count_cuda;
+    VectorData<int> ne_rows_cuda;
+
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_cuda_device;
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_count_cuda, ne_rows_cuda_device);
+
+    /// get the data back to CPU for comparison
+    cudaDeviceSynchronize();
+    ne_rows_cuda.resize(ne_count_cuda.back());
+    cudaMemcpy(ne_rows_cuda.data(), ne_rows_cuda_device.get(), ne_count_cuda.back() * sizeof(int), cudaMemcpyDeviceToHost);
+
+    VectorData<int> ne_count;
+    VectorData<int> ne_rows;
+
+    compute_ne_rows_tree(tree_access, ne_count, ne_rows);
+
+    bool count_success = true;
+    std::cout << "Comparing row counts..." << std::endl;
+    for(int level = access.level_max(); level > access.level_min(); --level) {
+        int cuda_val = ne_count_cuda[level+1] - ne_count_cuda[level];
+        int cpu_val = ne_count[level+1] - ne_count[level];
+
+        if(cuda_val != cpu_val) {
+            std::cout << "Error at level " << level << " expected " << cpu_val << " but got " << cuda_val << std::endl;
+            count_success = false;
+        }
+    }
+
+    if(count_success) {
+        std::cout << "non-empty row counts OK!\n" << std::endl;
+    } else {
+        std::cerr << "non-empty row counts failed!\n" << std::endl;
+    }
+
+    int successes = 0;
+
+    std::cout << "Comparing row entries..." << std::endl;
+    bool row_success = true;
+
+    for(int level = access.level_min(); level <= access.level_max(); ++level) {
+
+        for (int i = ne_count[level]; i < ne_count[level + 1]; ++i) {
+            int row = ne_rows[i];
+            int occurences = 0;
+
+            for (int j = ne_count_cuda[level]; j < ne_count_cuda[level + 1]; ++j) {
+                if (ne_rows_cuda[j] == row) {
+                    occurences++;
+                }
+            }
+
+            if(occurences == 1) {
+                successes++;
+            } else if (occurences < 1) {
+                std::cerr << "level " << level << ": ne_rows_cuda is missing row " << row << std::endl;
+                row_success = false;
+            } else { // occurences > 1
+                std::cerr << "level " << level << ": ne_rows_cuda has " << occurences << " duplicates of row " << row << std::endl;
+                row_success = false;
+            }
+        }
+    }
+
+    if(row_success) {
+        std::cout << "non-empty rows OK!\n" << std::endl;
+    } else {
+        std::cerr << "non-empty rows failed!\n" << std::endl;
+    }
+
+    int failures = ne_count[access.level_max() + 1]-successes;
+    std::cout << "successes: " << successes << " failures: " << failures << std::endl;
+
+    ASSERT_TRUE(failures == 0);
+}
 
 #endif
 
