@@ -289,7 +289,6 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
     float f_0, f_t;
 
     __syncthreads();
-    //initialize (i=0)
     if ((global_index_begin_0[block] + local_th) < global_index_end_0[block]) {
         y_0 = y_vec[global_index_begin_0[block] + local_th];
         f_0 = input_particles[global_index_begin_0[block] + local_th];
@@ -298,7 +297,6 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
     }
 
     __syncthreads();
-    //tree interior
     if ((global_index_begin_t[block] + local_th) < global_index_end_t[block]) {
         y_t = y_vec_tree[global_index_begin_t[block] + local_th];
         f_t = particle_data_output[global_index_begin_t[block] + local_th];
@@ -315,34 +313,14 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
         }
     }
 
-    __shared__ int block_start[4];
-    __shared__ int block_end[4];
+    const int block_start = y_vec_tree[global_index_begin_p[0]] / 16;
+    const int block_end = ((2 * y_vec_tree[max(global_index_end_p[0], (size_t)1) - 1] + 32) / 32); // "ceil( (2 * y_tree + 1) / 32 )"
 
-    // initialize indices in case some blocks stopped early
-    __syncthreads();
-    if( (block == 0) && (local_th < 4) ) {
-        block_start[local_th] = INT32_MAX;
-        block_end[local_th] = 0;
-    }
-
-    __syncthreads();
-    if(local_th == 0) { // todo: This should be based on the parent row
-        block_start[block] = min(y_vec[global_index_begin_0[block]],  y_vec_tree[global_index_begin_t[block]]) / 32; //fixme: sometimes results in invalid global read.
-        block_end[block] = (max(y_vec[max(global_index_end_0[block],(size_t)1)-1], y_vec_tree[ max(global_index_end_t[block],(size_t)1)-1]) + 31)/32;
-    }
-
-    __syncthreads();
-    if( (block == 0) && (local_th == 0) ) {
-        block_start[0] = min( min(block_start[0], block_start[1]), min(block_start[2], block_start[3]) );
-        block_end[0] = max( max(block_end[0], block_end[1]), max(block_end[2], block_end[3]) );
-    }
-
-    __syncthreads();
     int sparse_block = 0;
     int sparse_block_p = 0;
     int sparse_block_t = 0;
 
-    for (int y_block = block_start[0]; y_block < block_end[0]; ++y_block) {
+    for (int y_block = block_start; y_block < block_end; ++y_block) {
         __syncthreads();
 
         // update apr particle
@@ -730,36 +708,14 @@ __global__ void _fill_tree_mean_interior_alt(const uint64_t* level_xz_vec,
         }
     }
 
-    __shared__ int block_start[4];
-    __shared__ int block_end[4];
+    const int block_start = y_vec_tree[global_index_begin_p[0]] / 16;
+    const int block_end = ((2 * y_vec_tree[max(global_index_end_p[0], (size_t)1) - 1] + 32) / 32); // "ceil( (2 * y_tree + 1) / 32 )"
 
-    // initialize indices in case some blocks stopped early
-    __syncthreads();
-    if( (block == 0) && (local_th < 4) ) {
-        block_start[local_th] = INT32_MAX;
-        block_end[local_th] = 0;
-    }
-
-    __syncthreads();
-
-    if(local_th == 0) {
-        block_start[block] = min(y_vec[global_index_begin_0[block]], y_vec_tree[global_index_begin_t[block]]) / 32;
-        block_end[block] = ((int)max(y_vec[(size_t)max(global_index_end_0[block],(size_t)1)-1], y_vec_tree[(size_t)max(global_index_end_t[block],(size_t)1)-1]) + 31) / 32;
-    }
-
-    __syncthreads();
-
-    if( (block == 0) && (local_th == 0) ) {
-        block_start[0] = min(min(block_start[0], block_start[1]), min(block_start[2], block_start[3]) );
-        block_end[0] = max(max(block_end[0], block_end[1]), max(block_end[2], block_end[3]));
-    }
-
-    __syncthreads();
     int sparse_block = 0;
     int sparse_block_p = 0;
     int sparse_block_t = 0;
 
-    for (int y_block = block_start[0]; y_block < block_end[0]; ++y_block) {
+    for (int y_block = block_start; y_block < block_end; ++y_block) {
 
         __syncthreads();
         //value less then current chunk then update.
