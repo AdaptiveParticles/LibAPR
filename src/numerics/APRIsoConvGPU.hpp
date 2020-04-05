@@ -298,14 +298,6 @@ __global__ void conv_pixel_555_chunked(const inputType* input_image,
                                        const int y_num);
 
 
-template<typename inputType, typename outputType, typename stencilType>
-__global__ void conv_pixel_333_basic_kernel(const inputType* input_image,
-                                             outputType* output_image,
-                                             const stencilType* stencil,
-                                             const int z_num,
-                                             const int x_num,
-                                             const int y_num);
-
 template<typename T>
 __global__ void elementWiseMult(T* in1,
                                 const T* in2,
@@ -336,5 +328,89 @@ void compute_ne_rows_cuda(GPUAccessHelper& access, VectorData<int>& ne_count, Sc
 
 
 void compute_ne_rows(GPUAccessHelper& access, VectorData<int>& ne_counter, VectorData<int>& ne_rows, int block_size);
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
+__global__ void
+conv_max_555_reflective(const uint64_t* level_xz_vec,
+                        const uint64_t* xz_end_vec,
+                        const uint16_t* y_vec,
+                        const inputType* input_particles,
+                        outputType* output_particles,
+                        const stencilType* stencil,
+                        const int z_num,
+                        const int x_num,
+                        const int y_num,
+                        const int z_num_parent,
+                        const int x_num_parent,
+                        const int level,
+                        const int* offset_ind);
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
+__global__ void
+conv_interior_555_reflective(const uint64_t* level_xz_vec,
+                             const uint64_t* xz_end_vec,
+                             const uint16_t* y_vec,
+                             const inputType* input_particles,
+                             outputType* output_particles,
+                             const stencilType* stencil,
+                             const uint64_t* level_xz_vec_tree,
+                             const uint64_t* xz_end_vec_tree,
+                             const uint16_t* y_vec_tree,
+                             const treeType* tree_data,
+                             const int z_num,
+                             const int x_num,
+                             const int y_num,
+                             const int z_num_parent,
+                             const int x_num_parent,
+                             const int level,
+                             const int* offset_ind);
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+timings isotropic_convolve_555_reflective(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                          VectorData<outputType>& output, VectorData<stencilType>& stencil, VectorData<treeType>& tree_data);
+
+
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
+__global__ void conv_max_333_reflective(const uint64_t* level_xz_vec,
+                                        const uint64_t* xz_end_vec,
+                                        const uint16_t* y_vec,
+                                        const inputType* input_particles,
+                                        outputType* output_particles,
+                                        const stencilType* stencil,
+                                        const int z_num,
+                                        const int x_num,
+                                        const int y_num,
+                                        const int z_num_parent,
+                                        const int x_num_parent,
+                                        const int level,
+                                        const int* offset_ind);
+
+template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
+__global__ void conv_interior_333_reflective(const uint64_t* level_xz_vec,
+                                             const uint64_t* xz_end_vec,
+                                             const uint16_t* y_vec,
+                                             const inputType* input_particles,
+                                             outputType* output_particles,
+                                             const stencilType* stencil,
+                                             const uint64_t* level_xz_vec_tree,
+                                             const uint64_t* xz_end_vec_tree,
+                                             const uint16_t* y_vec_tree,
+                                             const treeType* tree_data,
+                                             const int z_num,
+                                             const int x_num,
+                                             const int y_num,
+                                             const int z_num_parent,
+                                             const int x_num_parent,
+                                             const int level,
+                                             const int* offset_ind);
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+timings isotropic_convolve_333_reflective(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,
+                                          VectorData<stencilType>& stencil, VectorData<treeType>& tree_data, bool downsample_stencil=false, bool normalize_stencil=false);
+
+
 
 #endif //LIBAPR_APRISOCONVGPU_HPP
