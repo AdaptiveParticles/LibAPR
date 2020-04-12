@@ -4,20 +4,6 @@
 
 #include "APRDownsampleGPU.hpp"
 
-//#define DEBUGCUDA 1
-
-#define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-#ifdef DEBUGCUDA
-    if (code != cudaSuccess)
-    {
-        fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-        if (abort) exit(code);
-    }
-#endif
-}
-
 
 template<typename inputType, typename outputType>
 __global__ void _fill_tree_mean_max(const uint64_t* level_xz_vec,
@@ -97,12 +83,14 @@ __global__ void _fill_tree_mean_max(const uint64_t* level_xz_vec,
 
     int current_y, current_y_p;
 
+    __syncwarp();
     if ((global_index_begin_0 + local_th) < global_index_end_0) {
         current_val = input_particles[global_index_begin_0 + local_th];
         current_y =  y_vec[global_index_begin_0 + local_th];
     } else {
         current_y = INT32_MAX;
     }
+    __syncwarp();
 
     if (block == 0) {
         if (( global_index_begin_p + local_th) < global_index_end_p) {
@@ -111,6 +99,8 @@ __global__ void _fill_tree_mean_max(const uint64_t* level_xz_vec,
             current_y_p = INT32_MAX;
         }
     }
+    __syncwarp();
+
 
     const int block_start = y_vec[global_index_begin_0_s[0]] / 32;
     const int block_end = (y_vec[global_index_end_0_s[0] - 1] + 31) / 32;
@@ -132,14 +122,14 @@ __global__ void _fill_tree_mean_max(const uint64_t* level_xz_vec,
             }
         }
 
-        __syncthreads();
+        __syncwarp();
 
         //update the down-sampling cache
         if ((current_y < (y_block + 1) * 32) && (current_y >= y_block * 32)) {
             parent_cache[2*block+current_y%2][(current_y/2) % 16] = (1.0f/8.0f)*current_val;
         }
 
-        __syncthreads();
+        __syncwarp();
         //fetch the parent particle data
         if (block == 0) {
             while(current_y_p < ((y_block * 32)/2)) {
@@ -246,6 +236,8 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
         parent_cache[2 * block][local_th] = 0;
         parent_cache[2 * block + 1][local_th] = 0;
     }
+    __syncwarp();
+
 
     if((x_index >= x_num) || (z_index >= z_num) ){
         return;
@@ -256,12 +248,16 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
         global_index_begin_t[block] = xz_end_vec_tree[xz_start - 1];
         global_index_end_t[block] = xz_end_vec_tree[xz_start];
     }
+    __syncwarp();
+
 
     if(local_th == 1) {
         size_t xz_start = x_index + z_index * x_num + level_xz_vec[level];
         global_index_begin_0[block] = xz_end_vec[xz_start - 1];
         global_index_end_0[block] = xz_end_vec[xz_start];
     }
+    __syncwarp();
+
 
     if(local_th == 2) {
         size_t xz_start = x_p + z_p * x_num_parent + level_xz_vec_tree[level - 1];
@@ -288,7 +284,7 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
     int y_0, y_p, y_t;
     float f_0, f_t;
 
-    __syncthreads();
+    __syncwarp();
     if ((global_index_begin_0[block] + local_th) < global_index_end_0[block]) {
         y_0 = y_vec[global_index_begin_0[block] + local_th];
         f_0 = input_particles[global_index_begin_0[block] + local_th];
@@ -296,7 +292,7 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
         y_0 = INT32_MAX;
     }
 
-    __syncthreads();
+    __syncwarp();
     if ((global_index_begin_t[block] + local_th) < global_index_end_t[block]) {
         y_t = y_vec_tree[global_index_begin_t[block] + local_th];
         f_t = particle_data_output[global_index_begin_t[block] + local_th];
@@ -304,7 +300,7 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
         y_t = INT32_MAX;
     }
 
-    __syncthreads();
+    __syncwarp();
     if (block == 0) {
         if (( global_index_begin_p[block] + local_th) < global_index_end_p[block]) {
             y_p = y_vec_tree[global_index_begin_p[block] + local_th];
@@ -312,6 +308,8 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
             y_p = INT32_MAX;
         }
     }
+    __syncwarp();
+
 
     const int block_start = y_vec_tree[global_index_begin_p[0]] / 16;
     const int block_end = ((2 * y_vec_tree[max(global_index_end_p[0], (size_t)1) - 1] + 32) / 32); // "ceil( (2 * y_tree + 1) / 32 )"
@@ -348,22 +346,20 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
                 y_t = INT32_MAX;
             }
         }
-
-        __syncthreads();
+        __syncwarp();
 
         ///update the down-sampling cache
         //insert apr particles
         if (y_0 < (y_block + 1) * 32) {
             parent_cache[2*block + y_0 % 2][(y_0 / 2) % 16] = (1.0f / 8.0f) * f_0;
         }
-
-        __syncthreads();
+        __syncwarp();
 
         //insert tree particles
         if (y_t < (y_block + 1) * 32) {
             parent_cache[2*block + y_t % 2][(y_t / 2) % 16] = (1.0f / 8.0f) * f_t;
         }
-        __syncthreads();
+        __syncwarp();
 
         // update parent particle
         if (block == 0) {
@@ -1210,39 +1206,15 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vecto
     tree_data_gpu.copyD2H();
 }
 
-/// initialize templates
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<uint16_t>&);
+/// instantiate templates
 template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&);
 template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&);
 template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<double>&);
 
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, uint16_t*);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, double*);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, float*);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, double*);
-
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, uint16_t*,int*,VectorData<int>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*,int*,VectorData<int>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, double*,int*,VectorData<int>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, float*,int*,VectorData<int>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, float*, double*,int*,VectorData<int>&);
-
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<uint16_t>&);
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&);
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&);
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&);
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<double>&);
 
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, uint16_t*);
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*);
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, double*);
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, float*, float*);
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, float*, double*);
-
-template void compute_ne_rows_tree_cuda<2, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
-template void compute_ne_rows_tree_cuda<4, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
 template void compute_ne_rows_tree_cuda<8, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
 template void compute_ne_rows_tree_cuda<16, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
 template void compute_ne_rows_tree_cuda<32, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);

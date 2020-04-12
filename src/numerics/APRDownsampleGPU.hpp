@@ -5,10 +5,7 @@
 #ifndef LIBAPR_APRDOWNSAMPLEGPU_HPP
 #define LIBAPR_APRDOWNSAMPLEGPU_HPP
 
-#include "data_structures/APR/access/GPUAccess.hpp"
-#include "misc/CudaTools.cuh"
-#include "misc/CudaMemory.cuh"
-#include "data_structures/Mesh/PixelData.hpp"
+#include "miscCuda.hpp"
 
 
 template<typename inputType, typename treeType>

@@ -26,6 +26,7 @@ struct cmdLineBenchOptions{
     int number_reps = 1;
     int dimension = 3;
     bool no_pixel = false;
+    bool bench_lr = false;
 
     std::string analysis_file_name = "analysis";
     std::string output_dir = "";
@@ -84,6 +85,11 @@ cmdLineBenchOptions read_bench_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-no_pixel"))
     {
         result.no_pixel = true;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-bench_lr"))
+    {
+        result.bench_lr = true;
     }
 
     return result;

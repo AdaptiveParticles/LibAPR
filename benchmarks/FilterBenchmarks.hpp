@@ -12,7 +12,8 @@
 #include "numerics/APRFilter.hpp"
 
 #ifdef APR_USE_CUDA
-#include "numerics/APRIsoConvGPU.hpp"
+#include "numerics/APRNumericsGPU.hpp"
+#include "numerics/PixelNumericsGPU.hpp"
 #endif
 
 template<typename partsType>
@@ -24,24 +25,14 @@ inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts, i
 template<typename partsType>
 inline void bench_pixel_convolve(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
 
-#ifdef APR_USE_CUDA
-template<typename partsType>
-inline void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
-
-template<typename partsType>
-inline void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
-
-template<typename partsType>
-inline void bench_pixel_convolve_cuda_basic(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
-
-inline void bench_check_blocks(APR& apr, int num_rep, AnalysisData& analysisData);
-
-template<typename partsType>
-inline void bench_333_old(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size);
-
-template<typename partsType>
-inline void bench_333_new(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size);
-#endif
+//#ifdef APR_USE_CUDA
+//
+//template<typename partsType>
+//inline void bench_initial_steps_cuda(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr");
+//
+//template<typename partsType>
+//inline void bench_pixel_convolve_cuda_555(APR& apr,ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_pixel", bool reflective = true);
+//#endif
 
 
 
@@ -266,34 +257,16 @@ inline void check_cpu_times(APR& apr,ParticleData<partsType>& parts,int num_rep,
 }
 
 
+
 #ifdef APR_USE_CUDA
+
+
 template<typename partsType>
-void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size, bool use_ne_rows = false, std::string name = "bench_apr"){
+inline void bench_initial_steps_cuda(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr") {
 
-    APRTimer timer(true);
-
-    std::cout << "running bench_apr_convolve_cuda with kernel size " << stencil_size << " and use_ne_rows = " << use_ne_rows << ", for " << num_rep << " repetitions with name " << name << std::endl;
-
-    VectorData<float> stencil;
-    stencil.resize(stencil_size * stencil_size * stencil_size);
-
-    // unique stencil elements
-    float sum = 0;
-    for(size_t i = 0; i < stencil.size(); ++i) {
-        sum += i;
-    }
-    for(size_t i = 0; i < stencil.size(); ++i) {
-        stencil[i] = ((float) i) / sum;
-    }
+    APRTimer timer(false);
 
     auto apr_it = apr.iterator();
-    auto tree_it = apr.tree_iterator();
-
-    timings component_times;
-    component_times.lvl_timings.resize(apr_it.level_max()-tree_it.level_min()+1, 0);
-
-    VectorData<float> output(apr_it.total_number_particles());
-    VectorData<float> tree_data(tree_it.total_number_particles());
 
     auto access = apr.gpuAPRHelper();
     auto tree_access = apr.gpuTreeHelper();
@@ -302,274 +275,573 @@ void bench_apr_convolve_cuda(APR& apr,ParticleData<partsType>& parts,int num_rep
     analysisData.add_float_data(name + "_apr_xz_size",access.linearAccess->xz_end_vec.size());
     analysisData.add_float_data(name + "_tree_xz_size",tree_access.linearAccess->xz_end_vec.size());
 
-    /// burn-in
-    if(stencil_size == 3) {
-        for(int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            auto access = apr.gpuAPRHelper();
-            auto tree_access = apr.gpuTreeHelper();
-            timings tmp;
-            if(use_ne_rows) {
-                tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
-            } else {
-                tmp = isotropic_convolve_333_alt(access, tree_access, parts.data, output, stencil, tree_data);
-            }
+    /// access GPU initialization
 
-            if(r==0){
-                analysisData.add_float_data("ne_rows",tmp.counter_ne_rows);
-                analysisData.add_float_data("ne_rows_int",tmp.counter_ne_rows_int);
-            }
-        }
-    } else if(stencil_size == 5) {
-        for(int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            auto access = apr.gpuAPRHelper();
-            auto tree_access = apr.gpuTreeHelper();
-
-            timings tmp;
-            if(use_ne_rows) {
-                tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
-            } else {
-                tmp = isotropic_convolve_555_alt(access, tree_access, parts.data, output, stencil, tree_data);
-            }
-        }
+    for(int i = 0; i < num_rep/10; ++i) {
+        tree_access.init_gpu();
+        access.init_gpu(tree_access);
     }
 
-    //std::string name = "apr_filter_cuda" + std::to_string(stencil_size);
-    timer.start_timer(name);
+    cudaDeviceSynchronize();
 
-    if(stencil_size == 3) {
-        for (int r = 0; r < num_rep; ++r) {
-
-            auto access = apr.gpuAPRHelper();
-            auto tree_access = apr.gpuTreeHelper();
-
-            timings tmp;
-            if(use_ne_rows) {
-                tmp = isotropic_convolve_333(access, tree_access, parts.data, output, stencil, tree_data);
-            } else {
-                tmp = isotropic_convolve_333_alt(access, tree_access, parts.data, output, stencil, tree_data);
-            }
-
-            component_times.transfer_H2D += tmp.transfer_H2D;
-            component_times.run_kernels += tmp.run_kernels;
-            component_times.fill_tree += tmp.fill_tree;
-            component_times.transfer_D2H += tmp.transfer_D2H;
-            component_times.init_access += tmp.init_access;
-            component_times.allocation += tmp.allocation;
-            component_times.compute_ne_rows += tmp.compute_ne_rows;
-
-        }
-    } else if(stencil_size == 5) {
-        for (int r = 0; r < num_rep; ++r) {
-
-            auto access = apr.gpuAPRHelper();
-            auto tree_access = apr.gpuTreeHelper();
-
-            timings tmp;
-            if(use_ne_rows) {
-                tmp = isotropic_convolve_555(access, tree_access, parts.data, output, stencil, tree_data);
-            } else {
-                tmp = isotropic_convolve_555_alt(access, tree_access, parts.data, output, stencil, tree_data);
-            }
-
-            component_times.transfer_H2D += tmp.transfer_H2D;
-            component_times.run_kernels += tmp.run_kernels;
-            component_times.fill_tree += tmp.fill_tree;
-            component_times.transfer_D2H += tmp.transfer_D2H;
-            component_times.init_access += tmp.init_access;
-            component_times.allocation += tmp.allocation;
-            component_times.compute_ne_rows += tmp.compute_ne_rows;
-        }
-    } else {
-        std::cerr << "APR cuda convolution for stencil_size = " << stencil_size << " is not yet implemented" << std::endl;
+    timer.start_timer("init_access");
+    for(int i = 0; i < num_rep; ++i) {
+        tree_access.init_gpu();
+        access.init_gpu(tree_access);
     }
+    cudaDeviceSynchronize();
     timer.stop_timer();
 
-    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
-    analysisData.add_float_data(name + "_data_transfer_to_device", component_times.transfer_H2D / num_rep);
-    analysisData.add_float_data(name + "_run_kernels", component_times.run_kernels / num_rep);
-    analysisData.add_float_data(name + "_fill_tree", component_times.fill_tree / num_rep);
-    analysisData.add_float_data(name + "_data_transfer_to_host", component_times.transfer_D2H / num_rep);
-    analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
-    analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
-    analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
-//    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
+    analysisData.add_float_data(name + "_init_access", timer.timings.back() / num_rep);
 
-//    for(size_t i = 0; i < component_times.lvl_timings.size(); ++i) {
-//        analysisData.add_float_data(name + "_conv_dlvl_" + std::to_string(i), component_times.lvl_timings[i] / num_rep);
-//    }
+    /// compute ne rows tree
 
+    VectorData<int> ne_counter_ds;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("compute_ne_rows_tree");
+    for(int i = 0; i < num_rep; ++i) {
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_compute_ne_rows_tree", timer.timings.back() / num_rep);
+
+    /// compute ne rows 333
+
+    VectorData<int> ne_counter_333;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu;
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("compute_ne_rows_333");
+    for(int i = 0; i < num_rep; ++i) {
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_compute_ne_rows_333", timer.timings.back() / num_rep);
+
+
+    /// compute ne rows 555
+
+    VectorData<int> ne_counter_555;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_555_gpu;
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_555, ne_rows_555_gpu, 4);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("compute_ne_rows_555");
+    for(int i = 0; i < num_rep; ++i) {
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_555, ne_rows_555_gpu, 4);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_compute_ne_rows_555", timer.timings.back() / num_rep);
+
+
+    analysisData.add_float_data(name + "_ne_rows_tree_size", ne_counter_ds.back());
+    analysisData.add_float_data(name + "_ne_rows_333_size", ne_counter_333.back());
+    analysisData.add_float_data(name + "_ne_rows_555_size", ne_counter_555.back());
+
+    /// fill tree
+
+    VectorData<float> tree_data;
+    tree_data.resize(tree_access.total_number_particles());
+
+    ScopedCudaMemHandler<partsType*, JUST_ALLOC> input_gpu(parts.data.data(), parts.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+
+    input_gpu.copyH2D();
+
+    cudaDeviceSynchronize();
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+    }
+
+    cudaDeviceSynchronize();
+
+    timer.start_timer("fill_tree");
+    for(int i = 0; i < num_rep; ++i) {
+        downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_fill_tree", timer.timings.back() / num_rep);
+
+    /// without ne rows
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        downsample_avg_alt(access, tree_access, input_gpu.get(), tree_data_gpu.get());
+    }
+
+    cudaDeviceSynchronize();
+
+    timer.start_timer("fill_tree_alt");
+    for(int i = 0; i < num_rep; ++i) {
+        downsample_avg_alt(access, tree_access, input_gpu.get(), tree_data_gpu.get());
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_fill_tree_alt", timer.timings.back() / num_rep);
 }
 
 
 template<typename partsType>
-void bench_pixel_convolve_cuda(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size, std::string name = "bench_pixel") {
+inline void bench_apr_convolve_cuda_333(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr",
+                                        bool include_reflective = true, bool include_alt = true) {
 
-    std::cout << "running bench_pixel_convolve_cuda with kernel size " << stencil_size << " for " << num_rep << " repetitions with name " << name << std::endl;
-    PixelData<float> stencil;
+    APRTimer timer(false);
 
-    auto it = apr.iterator();
-
-    if(it.number_dimensions() == 3){
-        stencil.init(stencil_size, stencil_size, stencil_size);
-    } else if (it.number_dimensions() ==2){
-        stencil.init(stencil_size, stencil_size, 1);
-    } else if (it.number_dimensions() ==1){
-        stencil.init(stencil_size, 1, 1);
-    }
+    VectorData<float> stencil;
+    stencil.resize(27);
 
     // unique stencil elements
-    float sum = 0;
-    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
-        sum += i;
-    }
-    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
-        stencil.mesh[i] = ((float) i) / sum;
+    float sum = 13.0 * 27;
+    for(size_t i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
     }
 
-    APRTimer timer(true);
+    auto access = apr.gpuAPRHelper();
+    auto tree_access = apr.gpuTreeHelper();
 
-    PixelData<partsType> test_img;
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
 
-    test_img.init(apr.org_dims(0),apr.org_dims(1),apr.org_dims(2),true);
+    VectorData<float> tree_data, output;
 
-    PixelData<float> output;
-    output.init(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2),true);
+    tree_data.resize(tree_access.total_number_particles());
+    output.resize(access.total_number_particles());
 
-    timings component_times;
+    /// compute nonempty rows
+    VectorData<int> ne_counter_ds;
+    VectorData<int> ne_counter;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu;
 
-    //std::string name = "pixel_filter_cuda" + std::to_string(stencil_size);
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+    compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 2);
 
-    /// burn-in
-    if(stencil_size == 3 && it.number_dimensions() == 3) {
-        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            timings tmp = convolve_pixel_333(test_img, output, stencil);
-        }
-    } else if(stencil_size == 5 && it.number_dimensions() == 3) {
-        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            timings tmp = convolve_pixel_555(test_img, output, stencil);
-        }
+    /// allocate GPU memory
+    ScopedCudaMemHandler<partsType*, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+    cudaDeviceSynchronize();
+
+
+    /// conv 333
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        isotropic_convolve_333(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter, false);
     }
+    cudaDeviceSynchronize();
 
-    timer.start_timer(name);
-    if(stencil_size == 3 && it.number_dimensions() == 3) {
-        for (int r = 0; r < num_rep; ++r) {
-            timings tmp = convolve_pixel_333(test_img, output, stencil);
-
-            component_times.transfer_H2D += tmp.transfer_H2D;
-            component_times.run_kernels += tmp.run_kernels;
-            component_times.allocation += tmp.allocation;
-            component_times.transfer_D2H += tmp.transfer_D2H;
-        }
-    } else if(stencil_size == 5 && it.number_dimensions() == 3) {
-        for (int r = 0; r < num_rep; ++r) {
-            timings tmp = convolve_pixel_555(test_img, output, stencil);
-
-            component_times.transfer_H2D += tmp.transfer_H2D;
-            component_times.run_kernels += tmp.run_kernels;
-            component_times.allocation += tmp.allocation;
-            component_times.transfer_D2H += tmp.transfer_D2H;
-        }
-    } else {
-        std::cerr << "pixel cuda convolution for dim = " << it.number_dimensions() << " and stencil_size = " << stencil_size
-            << " is not yet implemented" << std::endl;
+    timer.start_timer("conv_333");
+    for(int i = 0; i < num_rep; ++i) {
+        isotropic_convolve_333(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter, false);
     }
+    cudaDeviceSynchronize();
     timer.stop_timer();
 
-    analysisData.add_timer(timer,test_img.mesh.size(),num_rep);
-    analysisData.add_float_data(name + "_data_transfer_to_device", component_times.transfer_H2D / num_rep);
-    analysisData.add_float_data(name + "_run_kernels", component_times.run_kernels / num_rep);
-    analysisData.add_float_data(name + "_fill_tree", component_times.fill_tree / num_rep);
-    analysisData.add_float_data(name + "_data_transfer_to_host", component_times.transfer_D2H / num_rep);
-    analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
-    analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
-    analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
-//    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
+    analysisData.add_float_data(name + "_conv_333", timer.timings.back() / num_rep);
+
+
+    /// conv 333 reflective
+
+    if(include_reflective) {
+        for (int i = 0; i < num_rep/10; ++i) {
+            isotropic_convolve_333_reflective(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                                              tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter, false);
+        }
+        cudaDeviceSynchronize();
+
+        timer.start_timer("conv_333_reflective");
+        for (int i = 0; i < num_rep; ++i) {
+            isotropic_convolve_333_reflective(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                                              tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter, false);
+        }
+        cudaDeviceSynchronize();
+        timer.stop_timer();
+
+        analysisData.add_float_data(name + "_conv_333_reflective", timer.timings.back() / num_rep);
+    }
+
+    /// conv 333 alt
+
+    if(include_alt) {
+        for (int i = 0; i < num_rep/10; ++i) {
+            isotropic_convolve_333_alt(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(), false);
+        }
+        cudaDeviceSynchronize();
+
+        timer.start_timer("conv_333_alt");
+        for (int i = 0; i < num_rep; ++i) {
+            isotropic_convolve_333_alt(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(), false);
+        }
+        cudaDeviceSynchronize();
+        timer.stop_timer();
+
+        analysisData.add_float_data(name + "_conv_333_alt", timer.timings.back() / num_rep);
+    }
 }
 
 
 template<typename partsType>
-inline void bench_pixel_convolve_cuda_basic(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size) {
+inline void bench_apr_convolve_cuda_555(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr",
+                                        bool include_reflective = true, bool include_alt = true, bool include_ds_stencil = true) {
 
-    PixelData<float> stencil;
+    APRTimer timer(false);
 
-    auto it = apr.iterator();
-
-    if(it.number_dimensions() == 3){
-        stencil.init(stencil_size, stencil_size, stencil_size);
-    } else if (it.number_dimensions() ==2){
-        stencil.init(stencil_size, stencil_size, 1);
-    } else if (it.number_dimensions() ==1){
-        stencil.init(stencil_size, 1, 1);
-    }
+    VectorData<float> stencil;
+    stencil.resize(125);
 
     // unique stencil elements
-    float sum = 0;
-    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
-        sum += i;
-    }
-    for(size_t i = 0; i < stencil.mesh.size(); ++i) {
-        stencil.mesh[i] = ((float) i) / sum;
+    float sum = 62.0 * 125;
+    for(size_t i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
     }
 
-    APRTimer timer(true);
+    auto access = apr.gpuAPRHelper();
+    auto tree_access = apr.gpuTreeHelper();
 
-    PixelData<partsType> test_img;
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
 
-    test_img.init(apr.org_dims(0),apr.org_dims(1),apr.org_dims(2));
+    VectorData<float> tree_data, output;
 
-    timings component_times;
+    tree_data.resize(tree_access.total_number_particles());
+    output.resize(access.total_number_particles());
 
-    std::string name = "pixel_filter_cuda_basic" + std::to_string(stencil_size);
+    /// compute nonempty rows
+    VectorData<int> ne_counter_ds;
+    VectorData<int> ne_counter;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_gpu;
 
-    /// burn-in
-    if(stencil_size == 3 && it.number_dimensions() == 3) {
-        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            PixelData<float> output;
-            timings tmp = convolve_pixel_333_basic(test_img, output, stencil);
-        }
-    } else if(stencil_size == 5 && it.number_dimensions() == 3) {
-        for (int r = 0; r < std::max(num_rep/50, 1); ++r) {
-            PixelData<float> output;
-            timings tmp = convolve_pixel_555(test_img, output, stencil);
-        }
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+    compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 4);
+
+    /// allocate GPU memory
+    ScopedCudaMemHandler<partsType*, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+    cudaDeviceSynchronize();
+
+
+    /// conv 555
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        isotropic_convolve_555(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter);
     }
+    cudaDeviceSynchronize();
 
-    timer.start_timer(name);
-    if(stencil_size == 3 && it.number_dimensions() == 3) {
-        for (int r = 0; r < num_rep; ++r) {
-            PixelData<float> output;
-            timings tmp = convolve_pixel_333_basic(test_img, output, stencil);
-
-            component_times.transfer_H2D += tmp.transfer_H2D;
-            component_times.run_kernels += tmp.run_kernels;
-            component_times.allocation += tmp.allocation;
-            component_times.transfer_D2H += tmp.transfer_D2H;
-        }
-    } else if(stencil_size == 5 && it.number_dimensions() == 3) {
-        for (int r = 0; r < num_rep; ++r) {
-            PixelData<float> output;
-            timings tmp = convolve_pixel_555(test_img, output, stencil);
-
-            component_times.transfer_H2D += tmp.transfer_H2D;
-            component_times.run_kernels += tmp.run_kernels;
-            component_times.allocation += tmp.allocation;
-            component_times.transfer_D2H += tmp.transfer_D2H;
-        }
-    } else {
-        std::cerr << "pixel cuda convolution for dim = " << it.number_dimensions() << " and stencil_size = " << stencil_size
-                  << " is not yet implemented" << std::endl;
+    timer.start_timer("conv_555");
+    for(int i = 0; i < num_rep; ++i) {
+        isotropic_convolve_555(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter);
     }
+    cudaDeviceSynchronize();
     timer.stop_timer();
 
-    analysisData.add_timer(timer,test_img.mesh.size(),num_rep);
-    analysisData.add_float_data(name + "_data_transfer_to_device", component_times.transfer_H2D / num_rep);
-    analysisData.add_float_data(name + "_run_kernels", component_times.run_kernels / num_rep);
-    analysisData.add_float_data(name + "_fill_tree", component_times.fill_tree / num_rep);
-    analysisData.add_float_data(name + "_data_transfer_to_host", component_times.transfer_D2H / num_rep);
-    analysisData.add_float_data(name + "_allocation", component_times.allocation / num_rep);
-    analysisData.add_float_data(name + "_init_access", component_times.init_access / num_rep);
-    analysisData.add_float_data(name + "_compute_ne_rows", component_times.compute_ne_rows / num_rep);
-//    analysisData.add_float_data(name + "_compute_ne_rows_interior", component_times.compute_ne_rows_interior / num_rep);
+    analysisData.add_float_data(name + "_conv_555", timer.timings.back() / num_rep);
+
+
+    /// conv 555 reflective
+
+    if(include_reflective) {
+        for (int i = 0; i < num_rep/10; ++i) {
+            isotropic_convolve_555_reflective(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                                              tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter);
+        }
+        cudaDeviceSynchronize();
+
+        timer.start_timer("conv_555_reflective");
+        for (int i = 0; i < num_rep; ++i) {
+            isotropic_convolve_555_reflective(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                                              tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter);
+        }
+        cudaDeviceSynchronize();
+        timer.stop_timer();
+
+        analysisData.add_float_data(name + "_conv_555_reflective", timer.timings.back() / num_rep);
+    }
+
+    /// conv 555 alt
+
+    if(include_alt) {
+        for (int i = 0; i < num_rep/10; ++i) {
+            isotropic_convolve_555_alt(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get());
+        }
+        cudaDeviceSynchronize();
+
+        timer.start_timer("conv_555_alt");
+        for (int i = 0; i < num_rep; ++i) {
+            isotropic_convolve_555_alt(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get());
+        }
+        cudaDeviceSynchronize();
+        timer.stop_timer();
+
+        analysisData.add_float_data(name + "_conv_555_alt", timer.timings.back() / num_rep);
+    }
+
+    /// conv 555 downsample stencil
+
+    if(include_ds_stencil) {
+        VectorData<int> ne_counter_333;
+        ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu;
+
+        compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
+        cudaDeviceSynchronize();
+
+        for (int i = 0; i < num_rep/10; ++i) {
+            isotropic_convolve_555_ds(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(),
+                                      ne_rows_gpu.get(), ne_counter, ne_rows_333_gpu.get(), ne_counter_333);
+        }
+        cudaDeviceSynchronize();
+
+        timer.start_timer("conv_555_alt");
+        for (int i = 0; i < num_rep; ++i) {
+            isotropic_convolve_555_ds(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), tree_data_gpu.get(),
+                                      ne_rows_gpu.get(), ne_counter, ne_rows_333_gpu.get(), ne_counter_333);
+        }
+        cudaDeviceSynchronize();
+        timer.stop_timer();
+
+        analysisData.add_float_data(name + "_conv_555_ds", timer.timings.back() / num_rep);
+    }
+}
+
+
+template<typename partsType>
+inline void bench_richardson_lucy_apr(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr", int niter = 10) {
+
+    APRTimer timer(false);
+
+    /// initialize gpu access
+    auto access = apr.gpuAPRHelper();
+    auto tree_access = apr.gpuTreeHelper();
+
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
+    /// initialize and downsample stencil
+    VectorData<float> stencil;
+    stencil.resize(125, 1.0f/125.0f);
+    VectorData<float> stencil_vec;
+    get_downsampled_stencils(stencil, stencil_vec, apr.level_max()-apr.level_min(), true);
+
+    VectorData<float> output;
+    output.resize(access.total_number_particles());
+
+    /// allocate GPU memory
+    ScopedCudaMemHandler<partsType *, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> stencil_gpu(stencil_vec.data(), stencil_vec.size());
+
+    input_gpu.copyH2D();
+
+    // burn-in
+    for(int i = 0; i < num_rep/10; ++i) {
+        richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, niter, true);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("richardson lucy");
+    for(int i = 0; i < num_rep; ++i) {
+        richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, niter, true);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_richardson_lucy_555_ds_" + std::to_string(niter), timer.timings.back() / num_rep);
+}
+
+
+template<typename partsType>
+inline void bench_pixel_convolve_cuda_333(APR& apr,ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_pixel", bool reflective = true) {
+
+    APRTimer timer(false);
+
+    PixelData<partsType> input(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 3);
+    PixelData<float> output(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+
+    VectorData<float> stencil;
+    stencil.resize(27);
+    // unique stencil elements
+    float sum = 13.0f * 27;
+    for(size_t i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    ScopedCudaMemHandler<partsType*, JUST_ALLOC> input_gpu(input.mesh.get(), input.mesh.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.mesh.get(), output.mesh.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    cudaDeviceSynchronize();
+
+    /// conv 333
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        convolve_pixel_333(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("conv_333");
+    for(int i = 0; i < num_rep; ++i) {
+        convolve_pixel_333(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_conv_333", timer.timings.back() / num_rep);
+
+
+    /// conv 333 reflective
+
+    if(reflective) {
+        for (int i = 0; i < num_rep/10; ++i) {
+            convolve_pixel_333_reflective(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+        }
+        cudaDeviceSynchronize();
+
+        timer.start_timer("conv_333_reflective");
+        for (int i = 0; i < num_rep; ++i) {
+            convolve_pixel_333_reflective(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+        }
+        cudaDeviceSynchronize();
+        timer.stop_timer();
+
+        analysisData.add_float_data(name + "_conv_333_reflective", timer.timings.back() / num_rep);
+    }
+}
+
+
+template<typename partsType>
+inline void bench_pixel_convolve_cuda_555(APR& apr,ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_pixel", bool reflective = true) {
+
+    APRTimer timer(false);
+
+    PixelData<partsType> input(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 3);
+    PixelData<float> output(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+
+    VectorData<float> stencil;
+    stencil.resize(125);
+    // unique stencil elements
+    float sum = 62.0f * 125;
+    for(size_t i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    ScopedCudaMemHandler<partsType*, JUST_ALLOC> input_gpu(input.mesh.get(), input.mesh.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(output.mesh.get(), output.mesh.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    cudaDeviceSynchronize();
+
+    /// conv 555
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        convolve_pixel_555(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("conv_555");
+    for(int i = 0; i < num_rep; ++i) {
+        convolve_pixel_555(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_conv_555", timer.timings.back() / num_rep);
+
+
+    /// conv 555 reflective
+
+    if(reflective) {
+        for (int i = 0; i < num_rep/10; ++i) {
+            convolve_pixel_555_reflective(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+        }
+        cudaDeviceSynchronize();
+
+        timer.start_timer("conv_555_reflective");
+        for (int i = 0; i < num_rep; ++i) {
+            convolve_pixel_555_reflective(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), input.y_num, input.x_num, input.z_num);
+        }
+        cudaDeviceSynchronize();
+        timer.stop_timer();
+
+        analysisData.add_float_data(name + "_conv_555_reflective", timer.timings.back() / num_rep);
+    }
+}
+
+template<typename partsType>
+inline void bench_richardson_lucy_pixel(APR& apr,ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_pixel", int niter = 10) {
+
+    APRTimer timer(false);
+
+    PixelData<partsType> input(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2), 3);
+    PixelData<float> output(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+
+    std::vector<int> dims = {static_cast<int>(input.z_num), static_cast<int>(input.x_num), static_cast<int>(input.y_num)};
+
+    VectorData<float> stencil;
+    stencil.resize(125, 1.0f/125.0f);
+
+    ScopedCudaMemHandler<partsType *, JUST_ALLOC> input_gpu(input.mesh.get(), input.mesh.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> output_gpu(output.mesh.get(), output.mesh.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    cudaDeviceSynchronize();
+
+    for(int i = 0; i < num_rep/10; ++i) {
+        richardson_lucy_pixel(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, input.mesh.size(), niter, dims);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("richardson lucy");
+    for(int i = 0; i < num_rep; ++i) {
+        richardson_lucy_pixel(input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, input.mesh.size(), niter, dims);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_richardson_lucy_555_" + std::to_string(niter), timer.timings.back() / num_rep);
 }
 
 #endif //APR_USE_CUDA

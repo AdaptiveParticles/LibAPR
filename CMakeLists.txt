@@ -156,14 +156,18 @@ if(APR_USE_CUDA)
     enable_language(CUDA)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
-    set(APR_CUDA_SROUCE_FILES
+    set(APR_CUDA_SOURCE_FILES
 	        src/algorithm/ComputeGradientCuda.cu
             src/data_structures/Mesh/PixelData.cu
             src/algorithm/LocalIntensityScale.cu
             src/algorithm/OVPC.cu
             src/data_structures/APR/access/GPUAccess.cu
+            src/numerics/miscCuda.cu
             src/numerics/APRDownsampleGPU.cu
-            src/numerics/APRIsoConvGPU.cu
+            src/numerics/PixelNumericsGPU.cu
+            src/numerics/APRIsoConvGPU333.cu
+            src/numerics/APRIsoConvGPU555.cu
+            src/numerics/APRNumericsGPU.cu
             )
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
@@ -172,7 +176,7 @@ endif()
 if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
-    add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SROUCE_FILES})
+    add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SOURCE_FILES})
     target_compile_features(${STATIC_TARGET_NAME} PUBLIC cxx_std_14)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
@@ -188,7 +192,7 @@ endif()
 if(APR_BUILD_SHARED_LIB)
 # generate fat shared library
     set(SHARED_TARGET_NAME sharedLib)
-    add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SROUCE_FILES})
+    add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SOURCE_FILES})
 
     target_include_directories(${SHARED_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})

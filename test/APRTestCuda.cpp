@@ -13,29 +13,12 @@
 #include "TestTools.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 #include "io/APRWriter.hpp"
-
 #include "data_structures/APR/particles/LazyData.hpp"
-
 #include "io/APRFile.hpp"
 
-#ifdef APR_USE_CUDA
-#include "numerics/APRDownsampleGPU.hpp"
-#include "numerics/APRIsoConvGPU.hpp"
+#include "numerics/PixelNumericsGPU.hpp"
+#include "numerics/APRNumericsGPU.hpp"
 
-#define DEBUGCUDA 1
-
-#define error_check(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-#ifdef DEBUGCUDA
-    if (code != cudaSuccess)
-    {
-        fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-        if (abort) exit(code);
-    }
-#endif
-}
-#endif
 
 struct TestDataGPU{
 
@@ -485,7 +468,7 @@ TEST_F(CreateCR1000, TEST_GPU_DOWNSAMPLE) {
     ASSERT_TRUE(test_down_sample_gpu(test_data));
 }
 
-bool test_gpu_conv_333(TestDataGPU& test_data, bool use_ne_rows){
+bool test_gpu_conv_333_alt(TestDataGPU& test_data, bool use_stencil_downsample){
     auto access = test_data.apr.gpuAPRHelper();
     auto tree_access = test_data.apr.gpuTreeHelper();
 
@@ -502,180 +485,31 @@ bool test_gpu_conv_333(TestDataGPU& test_data, bool use_ne_rows){
         stencil[i] = ((double) i) / sum;
     }
 
-    if(use_ne_rows){
-        isotropic_convolve_333(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data);
-    } else {
-        isotropic_convolve_333_alt(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data);
-    }
+    isotropic_convolve_333_alt(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data, use_stencil_downsample, false);
 
-    std::vector<PixelData<double>> stencils;
-    stencils.resize(1);
+    std::vector<PixelData<double>> stencil_vec;
+    int nstencils = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
+    stencil_vec.resize(nstencils);
 
-    stencils[0].init(3, 3, 3);
-    std::copy(stencil.begin(), stencil.end(), stencils[0].mesh.begin());
+    stencil_vec[0].init(3, 3, 3);
+    std::copy(stencil.begin(), stencil.end(), stencil_vec[0].mesh.begin());
 
-    APRFilter filterfns;
-    filterfns.boundary_cond = false; // zero padding
-
-    ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
-
-    size_t pass_count = 0;
-    size_t total_count = 0;
-
-    auto it = test_data.apr.iterator();
-
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
-                        pass_count++;
-                    } else {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                    }
-                    total_count++;
-                }
-            }
-        }
-    }
-
-    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
-
-    return (pass_count == total_count);
-}
-
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR1, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR3, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR5, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR10, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR15, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR20, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR30, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR54, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR124, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-TEST_F(CreateCR1000, TEST_GPU_CONV_333) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333(test_data, false));
-}
-
-
-bool test_gpu_conv_333_reflective(TestDataGPU& test_data, bool ds_stencil){
-    auto access = test_data.apr.gpuAPRHelper();
-    auto tree_access = test_data.apr.gpuTreeHelper();
-
-    access.init_gpu();
-    //tree_access.init_gpu();
-
-    VectorData<double> tree_data;
-    VectorData<double> output;
-    VectorData<double> stencil;
-    stencil.resize(27);
-
-    float sum = 13.0 * 27;
-    for(int i = 0; i < 27; ++i) {
-        stencil[i] = ((double) i) / sum;
-    }
-
-    isotropic_convolve_333_reflective(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data, ds_stencil, true);
-
-    std::vector<PixelData<double>> stencils;
-    if(ds_stencil) {
-        stencils.resize(access.level_max() - access.level_min());
-    } else {
-        stencils.resize(1);
-    }
-
-    stencils[0].init(3, 3, 3);
-    std::copy(stencil.begin(), stencil.end(), stencils[0].mesh.begin());
-
-    if(ds_stencil) {
+    if(use_stencil_downsample) {
         int c = 1;
         PixelData<double> stencil_ds;
         for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            downsample_stencil(stencils[0], stencil_ds, access.level_max() - level, false);
-            stencils[c].init(stencil_ds);
-            stencils[c].copyFromMesh(stencil_ds);
+            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            stencil_vec[c].init(stencil_ds);
+            stencil_vec[c].copyFromMesh(stencil_ds);
             c++;
         }
     }
 
     APRFilter filterfns;
-    filterfns.boundary_cond = true; // reflective boundary
+    filterfns.boundary_cond = false; // zero padding
 
     ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -703,124 +537,335 @@ bool test_gpu_conv_333_reflective(TestDataGPU& test_data, bool ds_stencil){
     return (pass_count == total_count);
 }
 
-TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR1, TEST_GPU_CONV_333_REFLECTIVE) {
-//    std::cout << "downsample stencil:" << std::endl;
-//    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR1, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR3, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR3, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR5, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR5, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR10, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR10, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR15, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR15, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR20, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR20, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR30, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR30, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR54, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR54, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR124, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR124, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
-TEST_F(CreateCR1000, TEST_GPU_CONV_333_REFLECTIVE) {
-    std::cout << "downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, true));
-    std::cout << "no downsample stencil:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_reflective(test_data, false));
+TEST_F(CreateCR1000, TEST_GPU_CONV_333_ALT) {
+    std::cout << "with stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, true));
+    std::cout << "Without stencil downsample:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333_alt(test_data, false));
 }
 
 
-bool test_gpu_conv_555(TestDataGPU& test_data, bool use_ne_rows) {
-    auto gpuData = test_data.apr.gpuAPRHelper();
-    auto gpuDataTree = test_data.apr.gpuTreeHelper();
+bool test_gpu_conv_333(TestDataGPU& test_data, bool reflective_bc, bool use_stencil_downsample){
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
 
-    gpuData.init_gpu();
-    gpuDataTree.init_gpu();
+    access.init_gpu();
+    //tree_access.init_gpu();
 
     VectorData<double> tree_data;
     VectorData<double> output;
     VectorData<double> stencil;
+    stencil.resize(27);
 
+    float sum = 13.0 * 27;
+    for(int i = 0; i < 27; ++i) {
+        stencil[i] = ((double) i) / sum;
+    }
+
+    isotropic_convolve_333(access, tree_access, test_data.particles_intensities.data, output, stencil,
+                        tree_data, reflective_bc, use_stencil_downsample, false);
+
+    std::vector<PixelData<double>> stencil_vec;
+    int nstencils = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
+    stencil_vec.resize(nstencils);
+
+    stencil_vec[0].init(3, 3, 3);
+    std::copy(stencil.begin(), stencil.end(), stencil_vec[0].mesh.begin());
+
+    if(use_stencil_downsample) {
+        int c = 1;
+        PixelData<double> stencil_ds;
+        for (int level = access.level_max() - 1; level > access.level_min(); --level) {
+            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            stencil_vec[c].init(stencil_ds);
+            stencil_vec[c].copyFromMesh(stencil_ds);
+            c++;
+        }
+    }
+
+    APRFilter filterfns;
+    filterfns.boundary_cond = reflective_bc;
+
+    ParticleData<double> output_gt;
+    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
+
+    size_t pass_count = 0;
+    size_t total_count = 0;
+
+    auto it = test_data.apr.iterator();
+
+    for(int level = it.level_max(); level >= it.level_min(); --level) {
+        for(int z = 0; z < it.z_num(level); ++z) {
+            for(int x = 0; x < it.x_num(level); ++x) {
+                for(it.begin(level, z, x); it < it.end(); ++it) {
+                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
+                        pass_count++;
+                    } else {
+                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
+                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
+                    }
+                    total_count++;
+                }
+            }
+        }
+    }
+
+    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
+
+    return (pass_count == total_count);
+}
+
+TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR1, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR3, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR5, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR10, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR15, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR20, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR30, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR54, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR124, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+TEST_F(CreateCR1000, TEST_GPU_CONV_333) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_333(test_data, true, true));
+}
+
+
+bool test_gpu_conv_555_alt(TestDataGPU& test_data, bool use_stencil_downsample) {
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+
+    access.init_gpu();
+    tree_access.init_gpu();
+
+    VectorData<double> tree_data;
+    VectorData<double> output;
+    VectorData<double> stencil;
     stencil.resize(125);
+
     double sum = 62.0 * 125;
     for(int i = 0; i < 125; ++i) {
         stencil[i] = ((double) i) / sum;
     }
 
-    if(use_ne_rows) {
-        isotropic_convolve_555(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data);
-    } else {
-        isotropic_convolve_555_alt(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data);
-    }
+    isotropic_convolve_555_alt(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data, use_stencil_downsample, false);
 
-    std::vector<PixelData<double>> stencils;
-    stencils.resize(1);
-    stencils[0].init(5, 5, 5);
-    std::copy(stencil.begin(), stencil.end(), stencils[0].mesh.begin());
+    std::vector<PixelData<double>> stencil_vec;
+    int nstencils = use_stencil_downsample ? access.level_max()-access.level_min() : 1;
+    stencil_vec.resize(nstencils);
+    stencil_vec[0].init(5, 5, 5);
+    std::copy(stencil.begin(), stencil.end(), stencil_vec[0].mesh.begin());
+
+    if(use_stencil_downsample){
+        int c = 1;
+        PixelData<double> stencil_ds;
+        for (int level = access.level_max() - 1; level > access.level_min(); --level) {
+            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            stencil_vec[c].init(stencil_ds);
+            stencil_vec[c].copyFromMesh(stencil_ds);
+            c++;
+        }
+    }
 
     APRFilter filterfns;
     filterfns.boundary_cond = false; // zero padding
 
     ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -849,98 +894,97 @@ bool test_gpu_conv_555(TestDataGPU& test_data, bool use_ne_rows) {
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR1, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR1, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR3, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR3, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR5, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR5, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR10, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR10, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR15, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR15, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR20, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR20, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR30, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR30, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR54, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR54, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR124, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR124, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
-TEST_F(CreateCR1000, TEST_GPU_CONV_555) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555(test_data, false));
+TEST_F(CreateCR1000, TEST_GPU_CONV_555_ALT) {
+    std::cout << "With downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, true));
+    std::cout << "Without downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555_alt(test_data, false));
 }
 
 
+bool test_gpu_conv_555(TestDataGPU& test_data, bool reflective_bc, bool use_stencil_downsample) {
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
 
-bool test_gpu_conv_555_reflective(TestDataGPU& test_data) {
-    auto gpuData = test_data.apr.gpuAPRHelper();
-    auto gpuDataTree = test_data.apr.gpuTreeHelper();
-
-    gpuData.init_gpu();
-    gpuDataTree.init_gpu();
+    access.init_gpu();
+    tree_access.init_gpu();
 
     VectorData<float> tree_data;
     VectorData<float> output;
@@ -952,285 +996,30 @@ bool test_gpu_conv_555_reflective(TestDataGPU& test_data) {
         stencil[i] = ((float) i) / sum;
     }
 
-    isotropic_convolve_555_reflective(gpuData, gpuDataTree, test_data.particles_intensities.data, output, stencil, tree_data);
+    isotropic_convolve_555(access, tree_access, test_data.particles_intensities.data, output, stencil,
+                        tree_data, reflective_bc, use_stencil_downsample, false);
 
-    std::vector<PixelData<float>> stencils;
-    stencils.resize(1);
-    stencils[0].init(5, 5, 5);
-    std::copy(stencil.begin(), stencil.end(), stencils[0].mesh.begin());
+    std::vector<PixelData<float>> stencil_vec;
+    int nstencils = use_stencil_downsample ? access.level_max()-access.level_min() : 1;
+    stencil_vec.resize(nstencils);
+    stencil_vec[0].init(5, 5, 5);
+    std::copy(stencil.begin(), stencil.end(), stencil_vec[0].mesh.begin());
+
+    if(use_stencil_downsample){
+        int c = 1;
+        PixelData<double> stencil_ds;
+        for (int level = access.level_max() - 1; level > access.level_min(); --level) {
+            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            stencil_vec[c].init(stencil_ds);
+            stencil_vec[c].copyFromMesh(stencil_ds);
+            c++;
+        }
+    }
 
     APRFilter filterfns;
-    filterfns.boundary_cond = true; // reflective BC
+    filterfns.boundary_cond = reflective_bc;
 
     ParticleData<float> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
-
-    size_t pass_count = 0;
-    size_t total_count = 0;
-
-    auto it = test_data.apr.iterator();
-
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
-                        pass_count++;
-                    } else {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                    }
-                    total_count++;
-                }
-            }
-        }
-    }
-
-    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
-
-    return (pass_count == total_count);
-}
-
-
-TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR1, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR3, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR5, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR10, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR15, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR20, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR30, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR54, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR124, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-TEST_F(CreateCR1000, TEST_GPU_CONV_555_REFLECTIVE_BC) {
-    ASSERT_TRUE(test_gpu_conv_555_reflective(test_data));
-}
-
-
-bool test_gpu_conv_555_ds(TestDataGPU& test_data, bool use_ne_rows) {
-    auto access = test_data.apr.gpuAPRHelper();
-    auto tree_access = test_data.apr.gpuTreeHelper();
-
-    access.init_gpu();
-    tree_access.init_gpu();
-
-    VectorData<double> tree_data;
-    VectorData<double> output;
-    PixelData<double> stencil(5, 5, 5);
-//    VectorData<double> stencil;
-//    stencil.resize(125);
-
-    double sum = 62.0 * 125;
-    for(int i = 0; i < 125; ++i) {
-        stencil.mesh[i] = ((double) i) / sum;
-    }
-
-    isotropic_convolve_555_ds(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data, use_ne_rows, false);
-
-    std::vector<PixelData<double>> stencil_vec;
-    stencil_vec.resize(access.level_max() - access.level_min());
-    stencil_vec[0].init(5, 5, 5);
-//    stencil_vec[0].copyFromMesh(stencil);
-    std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_vec[0].mesh.begin());
-
-    int c = 1;
-    PixelData<double> stencil_ds;
-    for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-        downsample_stencil(stencil, stencil_ds, access.level_max() - level, false);
-        stencil_vec[c].init(stencil_ds);
-        stencil_vec[c].copyFromMesh(stencil_ds);
-        c++;
-    }
-
-    APRFilter filterfns;
-    filterfns.boundary_cond = false; // zero padding
-
-    ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
-
-    size_t pass_count = 0;
-    size_t total_count = 0;
-
-    auto it = test_data.apr.iterator();
-
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
-                        pass_count++;
-                    } else {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                    }
-                    total_count++;
-                }
-            }
-        }
-    }
-
-    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
-
-    return (pass_count == total_count);
-}
-
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR1, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR3, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR5, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR10, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR15, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR20, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR30, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR54, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR124, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-TEST_F(CreateCR1000, TEST_GPU_CONV_555_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_555_ds(test_data, false));
-}
-
-
-bool test_gpu_conv_333_ds(TestDataGPU& test_data, bool use_ne_rows) {
-    auto access = test_data.apr.gpuAPRHelper();
-    auto tree_access = test_data.apr.gpuTreeHelper();
-
-    access.init_gpu();
-    tree_access.init_gpu();
-
-    VectorData<double> tree_data;
-    VectorData<double> output;
-    PixelData<double> stencil(3, 3, 3);
-
-
-    double sum = 13.0 * 27;
-    for(int i = 0; i < 27; ++i) {
-        stencil.mesh[i] = ((double) i) / sum;
-    }
-
-    isotropic_convolve_333_ds(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data, use_ne_rows, false);
-
-    std::vector<PixelData<double>> stencil_vec;
-    stencil_vec.resize(access.level_max() - access.level_min());
-    stencil_vec[0].init(3, 3, 3);
-    std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_vec[0].mesh.begin());
-//    stencil_vec[0].copyFromMesh(stencil);
-
-    int c = 1;
-    PixelData<double> stencil_ds;
-    for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-        downsample_stencil(stencil, stencil_ds, access.level_max() - level, false);
-        stencil_vec[c].init(stencil_ds);
-        stencil_vec[c].copyFromMesh(stencil_ds);
-        c++;
-    }
-
-    APRFilter filterfns;
-    filterfns.boundary_cond = false; // zero padding
-
-    ParticleData<double> output_gt;
     filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
 
     size_t pass_count = 0;
@@ -1260,88 +1049,136 @@ bool test_gpu_conv_333_ds(TestDataGPU& test_data, bool use_ne_rows) {
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR1, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR1, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR3, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR3, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR5, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR5, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR10, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR10, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR15, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR15, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR20, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR20, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR30, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR30, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR54, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR54, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR124, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR124, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
-TEST_F(CreateCR1000, TEST_GPU_CONV_333_DS_STENCIL) {
-    std::cout << "With non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, true));
-    std::cout << "Without non-empty rows:" << std::endl;
-    ASSERT_TRUE(test_gpu_conv_333_ds(test_data, false));
+TEST_F(CreateCR1000, TEST_GPU_CONV_555) {
+    std::cout << "zero pad:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, false));
+    std::cout << "zero pad with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, false, true));
+    std::cout << "reflective boundary:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, false));
+    std::cout << "reflective boundary with downsample stencil:" << std::endl;
+    ASSERT_TRUE(test_gpu_conv_555(test_data, true, true));
 }
 
 
@@ -1355,7 +1192,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333) {
         stencil.mesh[i] = ((float) i) / sum;
     }
 
-    convolve_pixel_333(test_data.img_original, output, stencil);
+    convolve_pixel_333(test_data.img_original, output, stencil, false);
 
     PixelData<float> output_gt;
 
@@ -1378,7 +1215,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_555) {
         stencil.mesh[i] = ((double) i) / sum;
     }
 
-    convolve_pixel_555(test_data.img_original, output, stencil);
+    convolve_pixel_555(test_data.img_original, output, stencil, false);
 
     PixelData<float> output_gt;
 
@@ -1428,22 +1265,14 @@ TEST_F(CreatDiffDimsSphereTest, TEST_PARTIAL_ACCESS_INIT) {
 
 
 bool run_richardson_lucy(TestDataGPU& test_data) {
+
     auto access = test_data.apr.gpuAPRHelper();
     auto tree_access = test_data.apr.gpuTreeHelper();
-
-    access.init_gpu();
-    tree_access.init_gpu();
 
     VectorData<float> output;
     PixelData<float> psf(5, 5, 5, 1.0f/125.0f);
 
-    VectorData<float> finput;
-    finput.resize(access.total_number_particles());
-    for(size_t i = 0; i < finput.size(); ++i) {
-        finput[i] = test_data.particles_intensities.data[i];
-    }
-
-    richardson_lucy(access, tree_access, finput, output, psf, 10, true, true);
+    richardson_lucy(access, tree_access, test_data.particles_intensities.data, output, psf, 10, true, true);
 
     return true;
 }
@@ -1453,12 +1282,25 @@ TEST_F(CreateSmallSphereTest, TEST_LR) {
 }
 
 
-TEST_F(CreateCR1, TEST_NE_ROWS_CUDA) {
+bool run_richardson_lucy_pixel(TestDataGPU& test_data) {
+
+    PixelData<float> output;
+    PixelData<float> psf(5, 5, 5, 1.0f/125.0f);
+
+    richardson_lucy_pixel(test_data.img_original, output, psf, 10);
+
+    return true;
+}
+
+TEST_F(CreateSmallSphereTest, TEST_LR_PIXEL) {
+    ASSERT_TRUE( run_richardson_lucy_pixel(test_data) );
+}
+
+
+bool test_ne_rows_cuda(TestDataGPU& test_data, int blockSize) {
 
     auto tree_access = test_data.apr.gpuTreeHelper();
     auto access = test_data.apr.gpuAPRHelper();
-
-    const int blockSize = 4;
 
     tree_access.init_gpu();
     access.init_gpu(tree_access);
@@ -1537,12 +1379,36 @@ TEST_F(CreateCR1, TEST_NE_ROWS_CUDA) {
     int failures = ne_count[access.level_max() + 1]-successes;
     std::cout << "successes: " << successes << " failures: " << failures << std::endl;
 
-    ASSERT_TRUE(failures == 0);
+    return (row_success && count_success);
 }
 
 
-TEST_F(CreateCR1, TEST_NE_ROWS_TREE_CUDA) {
+TEST_F(CreateSmallSphereTest, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));
+}
 
+TEST_F(CreatDiffDimsSphereTest, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));
+}
+
+TEST_F(CreateCR1, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));
+}
+
+TEST_F(CreateCR3, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));
+}
+
+TEST_F(CreateCR1000, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));
+}
+
+bool test_ne_rows_tree_cuda(TestDataGPU& test_data) {
     auto tree_access = test_data.apr.gpuTreeHelper();
     auto access = test_data.apr.gpuAPRHelper();
 
@@ -1623,7 +1489,28 @@ TEST_F(CreateCR1, TEST_NE_ROWS_TREE_CUDA) {
     int failures = ne_count[access.level_max() + 1]-successes;
     std::cout << "successes: " << successes << " failures: " << failures << std::endl;
 
-    ASSERT_TRUE(failures == 0);
+    return (row_success && count_success);
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreatDiffDimsSphereTest, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR1, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR3, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR1000, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
 }
 
 #endif

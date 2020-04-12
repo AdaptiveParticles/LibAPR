@@ -45,18 +45,34 @@ int main(int argc, char **argv) {
 
         benchAPRHelper.generate_dataset(i,apr,parts);
 
+        ParticleData<float> floatparts(apr.total_number_particles());
+        for(int j = 0; j < parts.size(); ++j) {
+            floatparts[j] = parts[j];
+        }
+
         ///put benchmark funtions here..
 #ifdef APR_USE_CUDA
-        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3, false, "apr_333");
-        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 5, false, "apr_555");
+        bench_initial_steps_cuda(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "apr");
 
-        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 3, true, "apr_333_ne_rows");
-        bench_apr_convolve_cuda(apr, parts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, 5, true, "apr_555_ne_rows");
+        bench_apr_convolve_cuda_333(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "apr", true, true);
+        bench_apr_convolve_cuda_555(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "apr", true, true, true);
+
+        if(options.bench_lr) {
+            bench_richardson_lucy_apr(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "apr", 10);
+            bench_richardson_lucy_apr(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "apr", 30);
+            bench_richardson_lucy_apr(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "apr", 50);
+        }
 
         ///pixel convolution is content-independent
-        if(i==0){
-            bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3, "pixel_333");
-            bench_pixel_convolve_cuda(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5, "pixel_555");
+        if(i == 0 && !options.no_pixel) {
+            bench_pixel_convolve_cuda_333(apr, floatparts, benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData, "pixel", true);
+            bench_pixel_convolve_cuda_555(apr, floatparts, benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData, "pixel", true);
+
+            if(options.bench_lr) {
+                bench_richardson_lucy_pixel(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "pixel", 10);
+                bench_richardson_lucy_pixel(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "pixel", 30);
+                bench_richardson_lucy_pixel(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "pixel", 50);
+            }
         }
 #endif
 
