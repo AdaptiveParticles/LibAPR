@@ -120,7 +120,7 @@ inline void bench_access_partial(APR& apr,ParticleData<partsType>& parts,int num
         error_check( cudaGetLastError() )
 
         auto access = apr.gpuAPRHelper();
-        access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+        access.init_gpu(tree_access);
         error_check ( cudaDeviceSynchronize() )
         error_check( cudaGetLastError() )
     }
@@ -137,7 +137,7 @@ inline void bench_access_partial(APR& apr,ParticleData<partsType>& parts,int num
 
         timer2.start_timer("apr access");
         auto access = apr.gpuAPRHelper();
-        access.init_gpu(access.total_number_particles(tree_access.level_max()), tree_access);
+        access.init_gpu(tree_access);
         error_check ( cudaDeviceSynchronize() )
         timer2.stop_timer();
         apr_time += timer2.timings.back();
