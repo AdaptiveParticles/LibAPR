@@ -1403,6 +1403,34 @@ TEST_F(CreateCR3, TEST_NE_ROWS_CUDA) {
     ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));
 }
 
+TEST_F(CreateCR5, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));}
+
+TEST_F(CreateCR10, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));}
+
+TEST_F(CreateCR15, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));}
+
+TEST_F(CreateCR20, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));}
+
+TEST_F(CreateCR30, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));}
+
+TEST_F(CreateCR54, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));}
+
+TEST_F(CreateCR124, TEST_NE_ROWS_CUDA) {
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
+    ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));}
+
 TEST_F(CreateCR1000, TEST_NE_ROWS_CUDA) {
     ASSERT_TRUE(test_ne_rows_cuda(test_data, 2));
     ASSERT_TRUE(test_ne_rows_cuda(test_data, 4));
@@ -1509,8 +1537,98 @@ TEST_F(CreateCR3, TEST_NE_ROWS_TREE_CUDA) {
     ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
 }
 
+TEST_F(CreateCR5, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR10, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR15, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR20, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR30, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR54, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+TEST_F(CreateCR124, TEST_NE_ROWS_TREE_CUDA) {
+    ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
 TEST_F(CreateCR1000, TEST_NE_ROWS_TREE_CUDA) {
     ASSERT_TRUE( test_ne_rows_tree_cuda(test_data));
+}
+
+
+
+TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
+
+    PixelData<float> stencil_pd(5, 5, 5);
+    VectorData<float> stencil_vd;
+    stencil_vd.resize(125);
+
+    float sum = 62.0f * 125.0f;
+    for(int i = 0; i < 125; ++i) {
+        stencil_pd.mesh[i] = ((float) i) / sum;
+        stencil_vd[i] = ((float) i) / sum;
+    }
+
+    VectorData<float> stencil_vec_vd;
+    VectorData<float> stencil_vec_pd;
+    std::vector<PixelData<float>> pd_vec;
+
+    int nlevels = 7;
+
+    get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, false);
+    get_downsampled_stencils(stencil_pd, pd_vec, nlevels, false);
+    get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, false);
+
+    // compare outputs for PixelData and VectorData inputs
+    bool success = true;
+    ASSERT_EQ(stencil_vec_vd.size(), stencil_vec_pd.size());
+
+    std::cout << "comparing downsampled stencils for VectorData and PixelData inputs" << std::endl;
+
+    for(int i = 0; i < stencil_vec_pd.size(); ++i) {
+        if( std::abs( stencil_vec_pd[i] - stencil_vec_vd[i] ) > 1e-5 ) {
+            std::cout << "stencil_vec_vd = " << stencil_vec_vd[i] << " stencil_vec_pd = " << stencil_vec_pd[i] << " at index " << i << std::endl;
+            success = false;
+        }
+    }
+
+    if(success) {
+        std::cout << "OK!" << std::endl;
+    }
+
+    std::cout << "comparing downsampeld stencils for VectorData and std::vector<PixelData> output" << std::endl;
+    success = true;
+    int c = 0;
+    for(int dlvl = 0; dlvl < pd_vec.size(); ++dlvl) {
+        for(int i = 0; i < pd_vec[dlvl].mesh.size(); ++i) {
+            if( std::abs( pd_vec[dlvl].mesh[i] - stencil_vec_pd[c] ) > 1e-5 ) {
+                std::cout << "pd_vec = " << pd_vec[dlvl].mesh[i] << " stencil_vec_pd = " << stencil_vec_pd[c] <<
+                            " at dlvl = " << dlvl << " and i = " << i << std::endl;
+                success = false;
+            }
+            c++;
+        }
+    }
+
+    ASSERT_EQ(c, stencil_vec_pd.size());
+    if(success) {
+        std::cout << "OK!" << std::endl;
+    }
+
 }
 
 #endif

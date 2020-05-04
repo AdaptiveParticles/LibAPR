@@ -109,6 +109,24 @@ void get_downsampled_stencils(const PixelData<T>& aInput, VectorData<S>& aOutput
 }
 
 
+template<typename T, typename S>
+void get_downsampled_stencils(const PixelData<T>& aInput, std::vector<PixelData<S>>& aOutput, const int nlevels, const bool normalize = false) {
+
+    aOutput.resize(nlevels);
+    aOutput[0].init(aInput);
+    std::copy(aInput.mesh.begin(), aInput.mesh.end(), aOutput[0].mesh.begin());
+
+    PixelData<S> stencil_ds;
+    for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
+
+        downsample_stencil(aInput, stencil_ds, level_delta, normalize);
+
+        aOutput[level_delta].init(stencil_ds);
+        std::copy(stencil_ds.mesh.begin(), stencil_ds.mesh.end(), aOutput[level_delta].mesh.begin());
+    }
+}
+
+
 /// todo: doesnt seem to work properly -- fix!
 template<typename T, typename S>
 void downsample_stencil(VectorData<T>& aInput, VectorData<S>& aOutput, int level_delta, bool normalize = false) {
