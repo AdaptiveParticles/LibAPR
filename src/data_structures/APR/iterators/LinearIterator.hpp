@@ -56,6 +56,11 @@ public:
         return linearAccess->y_vec[current_index];
     }
 
+    // used by python wrappers
+    uint16_t get_y(uint64_t index) {
+        return linearAccess->y_vec[index];
+    }
+
     //Moves the iterator forward
     inline void operator++ (int) {
         current_index++;
