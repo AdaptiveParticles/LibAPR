@@ -640,6 +640,168 @@ inline void bench_apr_convolve_cuda_555(APR& apr, ParticleData<partsType>& parts
 
 
 template<typename partsType>
+inline void bench_apr_convolve_cuda_555_full(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr") {
+
+    APRTimer timer(false);
+
+    VectorData<float> stencil;
+    stencil.resize(125);
+
+    // unique stencil elements
+    float sum = 62.0 * 125;
+    for (size_t i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    auto access = apr.gpuAPRHelper();
+    auto tree_access = apr.gpuTreeHelper();
+
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
+    VectorData<float> tree_data, output;
+
+    tree_data.resize(tree_access.total_number_particles());
+    output.resize(access.total_number_particles());
+
+    /// allocate GPU memory
+    ScopedCudaMemHandler<partsType *, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    /// copy data to device
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    for (int i = 0; i < num_rep / 10; ++i) {
+        /// compute nonempty rows
+        VectorData<int> ne_counter_ds;
+        VectorData<int> ne_counter;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_ds_gpu;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_gpu;
+
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 4);
+
+        /// fill tree
+        downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+        cudaDeviceSynchronize();
+
+        /// convolve
+        isotropic_convolve_555(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                               tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("conv_555_with_precomp");
+    for (int i = 0; i < num_rep; ++i) {
+        /// compute nonempty rows
+        VectorData<int> ne_counter_ds;
+        VectorData<int> ne_counter;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_ds_gpu;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_gpu;
+
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 4);
+
+        /// fill tree
+        downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+        cudaDeviceSynchronize();
+
+        /// convolve
+        isotropic_convolve_555(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                               tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_conv_555_full", timer.timings.back() / num_rep);
+}
+
+
+template<typename partsType>
+inline void bench_apr_convolve_cuda_333_full(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr") {
+
+    APRTimer timer(false);
+
+    VectorData<float> stencil;
+    stencil.resize(27);
+
+    // unique stencil elements
+    float sum = 13.0 * 27;
+    for (size_t i = 0; i < stencil.size(); ++i) {
+        stencil[i] = ((float) i) / sum;
+    }
+
+    auto access = apr.gpuAPRHelper();
+    auto tree_access = apr.gpuTreeHelper();
+
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
+    VectorData<float> tree_data, output;
+
+    tree_data.resize(tree_access.total_number_particles());
+    output.resize(access.total_number_particles());
+
+    /// allocate GPU memory
+    ScopedCudaMemHandler<partsType *, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> output_gpu(output.data(), output.size());
+    ScopedCudaMemHandler<float *, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
+
+    /// copy data to device
+    input_gpu.copyH2D();
+    stencil_gpu.copyH2D();
+
+    for (int i = 0; i < num_rep / 10; ++i) {
+        /// compute nonempty rows
+        VectorData<int> ne_counter_ds;
+        VectorData<int> ne_counter;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_ds_gpu;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_gpu;
+
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 2);
+
+        /// fill tree
+        downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+        cudaDeviceSynchronize();
+
+        /// convolve
+        isotropic_convolve_333(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                               tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter, false);
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("conv_333_with_precomp");
+    for (int i = 0; i < num_rep; ++i) {
+        /// compute nonempty rows
+        VectorData<int> ne_counter_ds;
+        VectorData<int> ne_counter;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_ds_gpu;
+        ScopedCudaMemHandler<int *, JUST_ALLOC> ne_rows_gpu;
+
+        compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+        compute_ne_rows_cuda<16, 32>(access, ne_counter, ne_rows_gpu, 2);
+
+        /// fill tree
+        downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+        cudaDeviceSynchronize();
+
+        /// convolve
+        isotropic_convolve_333(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(),
+                               tree_data_gpu.get(), ne_rows_gpu.get(), ne_counter, false);
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_conv_333_full", timer.timings.back() / num_rep);
+}
+
+
+template<typename partsType>
 inline void bench_richardson_lucy_apr(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr", int niter = 10) {
 
     APRTimer timer(false);

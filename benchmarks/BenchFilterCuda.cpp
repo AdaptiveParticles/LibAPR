@@ -57,6 +57,9 @@ int main(int argc, char **argv) {
         bench_apr_convolve_cuda_333(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "apr", true, true);
         bench_apr_convolve_cuda_555(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "apr", true, true, true);
 
+        bench_apr_convolve_cuda_333_full(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "apr");
+        bench_apr_convolve_cuda_555_full(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "apr");
+
         if(options.bench_lr) {
             bench_richardson_lucy_apr(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "apr", 10);
             bench_richardson_lucy_apr(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "apr", 30);
