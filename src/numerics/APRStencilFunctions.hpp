@@ -18,9 +18,9 @@ void downsample_stencil(const PixelData<T>& aInput, PixelData<S>& aOutput, const
     const int step_size = (int)std::pow(2.0f, (float)level_delta);
     const int factor = (int)std::pow((float)step_size, (float)ndim);
 
-    const int z_num_ds = std::max((z_num + step_size - 1) / step_size, 3);
-    const int x_num_ds = std::max((x_num + step_size - 1) / step_size, 3);
-    const int y_num_ds = std::max((y_num + step_size - 1) / step_size, 3);
+    const int z_num_ds = std::max(2*(((z_num-1)/2 + step_size - 1) / step_size)+1, 3);
+    const int x_num_ds = std::max(2*(((x_num-1)/2 + step_size - 1) / step_size)+1, 3);
+    const int y_num_ds = std::max(2*(((y_num-1)/2 + step_size - 1) / step_size)+1, 3);
 
     aOutput.initWithValue(y_num_ds, x_num_ds, z_num_ds, 0);
 
