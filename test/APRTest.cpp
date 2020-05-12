@@ -12,7 +12,7 @@
 #include "TestTools.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 #include "io/APRWriter.hpp"
-
+#include "numerics/APRStencilFunctions.hpp"
 #include "data_structures/APR/particles/LazyData.hpp"
 
 #include "io/APRFile.hpp"
@@ -2903,31 +2903,27 @@ bool test_convolve_pencil(TestData &test_data, const bool boundary = false, cons
 
 bool test_convolve(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
 
-    std::vector<PixelData<double>> stencils;
-    stencils.resize(3);
-
     auto it = test_data.apr.iterator();
 
-    for(size_t i = 0; i < 3; ++i) {
-        if (it.number_dimensions() == 3) {
-            stencils[i].init(stencil_size, stencil_size, stencil_size);
-        } else if (it.number_dimensions() == 2) {
-            stencils[i].init(stencil_size, stencil_size, 1);
-        } else if (it.number_dimensions() == 1) {
-            stencils[i].init(stencil_size, 1, 1);
-        }
+    PixelData<double> stenc;
+    if (it.number_dimensions() == 3) {
+        stenc.init(stencil_size, stencil_size, stencil_size);
+    } else if (it.number_dimensions() == 2) {
+        stenc.init(stencil_size, stencil_size, 1);
+    } else if (it.number_dimensions() == 1) {
+        stenc.init(stencil_size, 1, 1);
     }
 
-    // unique stencil elements
-    double sum = 0;
-    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
-        sum += i;
+    double sz = std::pow(stencil_size, it.number_dimensions());
+    double sum = sz * (sz-1)/2;
+    for(int i = 0; i < stenc.mesh.size(); ++i){
+        stenc.mesh[i] = i / sum;
     }
-    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
-        stencils[0].mesh[i] = ((double) i) / sum;
-        stencils[1].mesh[i] = ((double) i + sum) / (2*sum);
-        stencils[2].mesh[i] = ((double) i +2*sum) / (3*sum);
-    }
+
+    std::vector<PixelData<double>> stencils;
+    get_downsampled_stencils(stenc, stencils, 1, true);
+
+    std::cout << "num stencils: " << stencils.size() << " num dims " << it.number_dimensions() << std::endl;
 
     APRFilter filterfns;
     filterfns.boundary_cond = boundary;
@@ -2945,14 +2941,23 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const int s
     }
 
     double eps = 1e-2;
+    uint64_t failures = 0;
 
-    for(uint64_t x=0; x < output.size(); ++x) {
-        if(std::abs(output[x] - output_gt[x]) > eps) {
-            std::cerr << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
-            return false;
+    for(int level = it.level_max(); level >= it.level_min(); --level) {
+        for(int z = 0; z < it.z_num(level); ++z) {
+            for(int x = 0; x < it.x_num(level); ++x) {
+                for(it.begin(level, z, x); it < it.end(); ++it) {
+                    if(std::abs(output[it] - output_gt[it]) > eps) {
+                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
+                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
+                        failures++;
+                    }
+                }
+            }
         }
     }
-    return true;
+    std::cout << failures << " failures out of " << it.total_number_particles() << std::endl;
+    return (failures==0);
 }
 
 bool test_iterator_methods(TestData &test_data){
@@ -3805,7 +3810,7 @@ TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
 
 
 TEST_F(CreateSmallSphereTest, APR_FILTER) {
-    ASSERT_TRUE(test_convolve(test_data, false, 3));
+    ASSERT_TRUE(test_convolve(test_data, false, 31));
     ASSERT_TRUE(test_convolve(test_data, true, 3));
     ASSERT_TRUE(test_convolve(test_data, false, 5));
     ASSERT_TRUE(test_convolve(test_data, true, 5));
