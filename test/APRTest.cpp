@@ -2921,9 +2921,7 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const int s
     }
 
     std::vector<PixelData<double>> stencils;
-    get_downsampled_stencils(stenc, stencils, 1, true);
-
-    std::cout << "num stencils: " << stencils.size() << " num dims " << it.number_dimensions() << std::endl;
+    get_downsampled_stencils(stenc, stencils, it.level_max()-it.level_min(), true);
 
     APRFilter filterfns;
     filterfns.boundary_cond = boundary;

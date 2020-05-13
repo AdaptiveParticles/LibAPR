@@ -5,6 +5,7 @@
 #ifndef APR_TIME_APRFILTER_HPP
 #define APR_TIME_APRFILTER_HPP
 #include "APRReconstruction.hpp"
+#include "numerics/APRStencilFunctions.hpp"
 
 #include<math.h>
 
@@ -49,6 +50,13 @@ public:
 
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
     void convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output);
+
+    template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
+    void richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
+                         std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations);
+
+    template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
+    void richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output, PixelData<T> &psf, int number_iterations, bool normalize=false);
 
     bool boundary_cond = ZERO_PAD;
 
@@ -767,9 +775,9 @@ public:
 
 
     /**
- * Fills a pixel image with the particle values at a given level and depth (z), where the particles exactly match
- * the pixels.
- */
+     * Fills a pixel image with the particle values at a given level and depth (z), where the particles exactly match
+     * the pixels.
+     */
     template<typename T, typename ParticleDataType, typename APRIteratorType>
     inline void update_same_level(const int level,
                                   const int z,
@@ -1143,6 +1151,75 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
     }
 }
 
+
+template<typename Input1Type,typename Input2Type, typename OutputType>
+inline void multiply(const Input1Type& in1, const Input2Type& in2, OutputType& out) {
+
+    assert(in1.size() == in2.size());
+    assert(in1.size() == out.size());
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(none) shared(in1, in2, out)
+#endif
+    for(uint64_t idx = 0; idx < in1.size(); ++idx) {
+        out[idx] = in1[idx] * in2[idx];
+    }
+}
+
+template<typename Input1Type,typename Input2Type, typename OutputType>
+inline void divide(const Input1Type& in1, const Input2Type& in2, OutputType& out) {
+
+    assert(in1.size() == in2.size());
+    assert(in1.size() == out.size());
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(none) shared(in1, in2, out)
+#endif
+    for(uint64_t idx = 0; idx < in1.size(); ++idx) {
+        out[idx] = in1[idx] / in2[idx];
+    }
+}
+
+
+template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
+void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
+                                std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations) {
+
+    particle_output.init(apr.total_number_tree_particles());
+    ParticleData<T> relative_blur(apr.total_number_tree_particles());
+    ParticleData<T> error_est(apr.total_number_tree_particles());
+
+    boundary_cond = REFLECT_PAD;
+
+    // initialize output with 1s
+    std::fill(particle_output.data.begin(), particle_output.data.end(), 1);
+
+    for(int iter = 0; iter < number_iterations; ++iter) {
+        convolve(apr, psf_flipped_vec, particle_output, relative_blur);
+        divide(particle_input, relative_blur, relative_blur);
+        convolve(apr, psf_vec, relative_blur, error_est);
+        multiply(error_est, particle_output, particle_output);
+    }
+}
+
+
+template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
+void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output, PixelData<T> &psf, int number_iterations, bool normalize) {
+
+    PixelData<T> psf_flipped(psf, false);
+    for(int i = 0; i < psf.size(); ++i) {
+        psf_flipped.mesh[i] = psf.mesh[psf.size()-1-i];
+    }
+
+    std::vector<PixelData<T>> psf_vec;
+    std::vector<PixelData<T>> psf_flipped_vec;
+
+    int nstencils = apr.level_max() - apr.level_min();
+    get_downsampled_stencils(psf, psf_vec, nstencils, normalize);
+    get_downsampled_stencils(psf_flipped, psf_flipped_vec, nstencils, normalize);
+
+    richardson_lucy(apr, particle_input, particle_output, psf_vec, psf_flipped_vec, number_iterations);
+}
 
 
 #endif //APR_TIME_APRFILTER_HPP
