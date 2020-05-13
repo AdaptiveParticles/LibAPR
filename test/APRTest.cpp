@@ -3809,12 +3809,11 @@ TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
 
 TEST_F(CreateSmallSphereTest, RUN_RICHARDSON_LUCY) {
 
-    PixelData<float> stenc(9, 9, 9);
+    PixelData<float> stenc(5, 5, 5);
 
     float sz = stenc.mesh.size();
-    float sum = sz * (sz-1.f)/2.f;
     for(int i = 0; i < stenc.mesh.size(); ++i){
-        stenc.mesh[i] = i / sum;
+        stenc.mesh[i] = 1.f / sz;
     }
 
     APRFilter filter_fns;

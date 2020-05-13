@@ -1153,35 +1153,6 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
 }
 
 
-template<typename Input1Type,typename Input2Type, typename OutputType>
-inline void multiply(Input1Type& in1, Input2Type& in2, OutputType& out) {
-
-    assert(in1.size() == in2.size());
-    assert(in1.size() == out.size());
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(none) shared(in1, in2, out)
-#endif
-    for(uint64_t idx = 0; idx < in1.size(); ++idx) {
-        out[idx] = in1[idx] * in2[idx];
-    }
-}
-
-template<typename Input1Type,typename Input2Type, typename OutputType>
-inline void divide(Input1Type& in1, Input2Type& in2, OutputType& out) {
-
-    assert(in1.size() == in2.size());
-    assert(in1.size() == out.size());
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(none) shared(in1, in2, out)
-#endif
-    for(uint64_t idx = 0; idx < in1.size(); ++idx) {
-        out[idx] = in1[idx] / in2[idx];
-    }
-}
-
-
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
 void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
                                 std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations) {
@@ -1194,10 +1165,24 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
     std::fill(particle_output.data.begin(), particle_output.data.end(), 1);
 
     for(int iter = 0; iter < number_iterations; ++iter) {
+
         convolve(apr, psf_flipped_vec, particle_output, relative_blur);
-        divide(particle_input, relative_blur, relative_blur);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(particle_input, relative_blur, apr)
+#endif
+        for(uint64_t i = 0; i < apr.total_number_particles(); ++i) {
+            relative_blur[i] = particle_input[i] / relative_blur[i];
+        }
+
         convolve(apr, psf_vec, relative_blur, error_est);
-        multiply(error_est, particle_output, particle_output);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(particle_output, error_est, apr)
+#endif
+        for(uint64_t i = 0; i < apr.total_number_particles(); ++i) {
+            particle_output[i] = particle_output[i] * error_est[i];
+        }
     }
 }
 
@@ -1208,7 +1193,7 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
 
     PixelData<T> psf_flipped(psf, false);
     for(int i = 0; i < psf.mesh.size(); ++i) {
-        psf_flipped.mesh[i] = psf.mesh[psf.size()-1-i];
+        psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
     }
 
     std::vector<PixelData<T>> psf_vec;
