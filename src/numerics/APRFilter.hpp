@@ -25,11 +25,11 @@ public:
         init(0, 0, 0);
     }
 
-    ImageBuffer(uint64_t aSizeOfY, uint64_t aSizeOfX, uint64_t aSizeOfZ) {
+    ImageBuffer(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
         init(aSizeOfY, aSizeOfX, aSizeOfZ);
     }
 
-    void init(uint64_t aSizeOfY, uint64_t aSizeOfX, uint64_t aSizeOfZ) {
+    void init(int aSizeOfY, int aSizeOfX, int aSizeOfZ) {
         y_num = aSizeOfY;
         x_num = aSizeOfX;
         z_num = aSizeOfZ;
@@ -1186,9 +1186,9 @@ template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOut
 void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
                                 std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations) {
 
-    particle_output.init(apr.total_number_tree_particles());
-    ParticleData<T> relative_blur(apr.total_number_tree_particles());
-    ParticleData<T> error_est(apr.total_number_tree_particles());
+    particle_output.init(apr.total_number_particles());
+    ParticleData<T> relative_blur(apr.total_number_particles());
+    ParticleData<T> error_est(apr.total_number_particles());
 
     // initialize output with 1s
     std::fill(particle_output.data.begin(), particle_output.data.end(), 1);
@@ -1204,10 +1204,10 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
 void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
-                                PixelData<T> &psf, int number_iterations, bool use_stencil_downsample, bool normalize) {
+                                PixelData<T>& psf, int number_iterations, bool use_stencil_downsample, bool normalize) {
 
     PixelData<T> psf_flipped(psf, false);
-    for(int i = 0; i < psf.size(); ++i) {
+    for(int i = 0; i < psf.mesh.size(); ++i) {
         psf_flipped.mesh[i] = psf.mesh[psf.size()-1-i];
     }
 
