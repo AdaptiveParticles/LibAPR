@@ -1154,7 +1154,7 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
 
 
 template<typename Input1Type,typename Input2Type, typename OutputType>
-inline void multiply(const Input1Type& in1, const Input2Type& in2, OutputType& out) {
+inline void multiply(Input1Type& in1, Input2Type& in2, OutputType& out) {
 
     assert(in1.size() == in2.size());
     assert(in1.size() == out.size());
@@ -1168,7 +1168,7 @@ inline void multiply(const Input1Type& in1, const Input2Type& in2, OutputType& o
 }
 
 template<typename Input1Type,typename Input2Type, typename OutputType>
-inline void divide(const Input1Type& in1, const Input2Type& in2, OutputType& out) {
+inline void divide(Input1Type& in1, Input2Type& in2, OutputType& out) {
 
     assert(in1.size() == in2.size());
     assert(in1.size() == out.size());
