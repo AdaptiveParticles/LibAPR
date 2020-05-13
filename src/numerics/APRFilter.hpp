@@ -56,7 +56,8 @@ public:
                          std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations);
 
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
-    void richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output, PixelData<T> &psf, int number_iterations, bool normalize=false);
+    void richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
+                         PixelData<T> &psf, int number_iterations, bool use_stencil_downsample=true, bool normalize=false);
 
     bool boundary_cond = ZERO_PAD;
 
@@ -1202,7 +1203,8 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
 
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
-void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output, PixelData<T> &psf, int number_iterations, bool normalize) {
+void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
+                                PixelData<T> &psf, int number_iterations, bool use_stencil_downsample, bool normalize) {
 
     PixelData<T> psf_flipped(psf, false);
     for(int i = 0; i < psf.size(); ++i) {
@@ -1212,7 +1214,7 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
     std::vector<PixelData<T>> psf_vec;
     std::vector<PixelData<T>> psf_flipped_vec;
 
-    int nstencils = apr.level_max() - apr.level_min();
+    int nstencils = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
     get_downsampled_stencils(psf, psf_vec, nstencils, normalize);
     get_downsampled_stencils(psf_flipped, psf_flipped_vec, nstencils, normalize);
 
