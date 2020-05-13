@@ -1189,8 +1189,6 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
     ParticleData<T> relative_blur(apr.total_number_tree_particles());
     ParticleData<T> error_est(apr.total_number_tree_particles());
 
-    boundary_cond = REFLECT_PAD;
-
     // initialize output with 1s
     std::fill(particle_output.data.begin(), particle_output.data.end(), 1);
 
