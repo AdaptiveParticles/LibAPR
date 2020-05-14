@@ -2890,14 +2890,15 @@ bool test_convolve_pencil(TestData &test_data, const bool boundary = false, cons
     }
 
     double eps = 1e-2;
+    bool success = true;
 
     for(uint64_t x=0; x < output.size(); ++x) {
         if(std::abs(output[x] - output_gt[x]) > eps) {
             std::cerr << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
-            return false;
+            success = false;
         }
     }
-    return true;
+    return success;
 }
 
 
@@ -2914,7 +2915,7 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const int s
         stenc.init(stencil_size, 1, 1);
     }
 
-    double sz = std::pow(stencil_size, it.number_dimensions());
+    double sz = stenc.mesh.size();
     double sum = sz * (sz-1)/2;
     for(int i = 0; i < stenc.mesh.size(); ++i){
         stenc.mesh[i] = i / sum;
