@@ -40,12 +40,13 @@ int main(int argc, char **argv) {
         //put benchmark funtions here..
 
         //bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3, true);
+        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5, true);
+        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,9, true);
 
         //bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3, true);
+        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5, true);
 
         if((i==0) && !options.no_pixel){
             /*

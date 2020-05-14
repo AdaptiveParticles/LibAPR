@@ -16,106 +16,97 @@
 #include "numerics/PixelNumericsGPU.hpp"
 #endif
 
-template<typename partsType>
-inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
 
 template<typename partsType>
-inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
-
-template<typename partsType>
-inline void bench_pixel_convolve(APR& apr,ParticleData<partsType>& parts, int num_rep,AnalysisData& analysisData,int stencil_size = 3);
-
-//#ifdef APR_USE_CUDA
-//
-//template<typename partsType>
-//inline void bench_initial_steps_cuda(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr");
-//
-//template<typename partsType>
-//inline void bench_pixel_convolve_cuda_555(APR& apr,ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_pixel", bool reflective = true);
-//#endif
-
-
-
-
-
-template<typename partsType>
-inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
+inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size, bool ds_stencil=true){
 
     APRTimer timer(true);
 
-    std::vector<PixelData<float>> stencils;
-    stencils.resize(1);
+    PixelData<float> stenc;
 
     auto it = apr.iterator();
 
     if(it.number_dimensions() ==3){
-        stencils[0].init(stencil_size, stencil_size, stencil_size);
+        stenc.init(stencil_size, stencil_size, stencil_size);
     } else if (it.number_dimensions() ==2){
-        stencils[0].init(stencil_size, stencil_size, 1);
+        stenc.init(stencil_size, stencil_size, 1);
     } else if (it.number_dimensions() ==1){
-        stencils[0].init(stencil_size, 1, 1);
+        stenc.init(stencil_size, 1, 1);
     }
 
     // unique stencil elements
-    float sum = 0;
-    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
-        sum += i;
+    float sz = stenc.mesh.size();
+    float sum = sz * (sz - 1) / 2;
+    for(int i = 0; i < (int) stenc.mesh.size(); ++i) {
+        stenc.mesh[i] = ((float) i) / sum;
     }
-    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
-        stencils[0].mesh[i] = ((float) i) / sum;
-    }
+
+    std::vector<PixelData<float>> stencils;
+    int nstencils = ds_stencil ? it.level_max() - it.level_min() : 1;
+    get_downsampled_stencils(stenc, stencils, nstencils, false);
 
     APRFilter filterfns;
     filterfns.boundary_cond = false;
 
+    ParticleData<float> output;
+    int burn_in = std::max( std::min(num_rep / 10, 10), 1 );
+    for (int r = 0; r < burn_in; ++r) {
+        filterfns.convolve(apr, stencils, parts, output);
+    }
+
     timer.start_timer("apr_filter" + std::to_string(stencil_size));
     for (int r = 0; r < num_rep; ++r) {
-        ParticleData<float> output;
         filterfns.convolve(apr, stencils, parts, output);
     }
     timer.stop_timer();
 
-    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
+    analysisData.add_timer(timer,apr.total_number_particles(), (float)num_rep);
 }
 
 template<typename partsType>
-inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size){
+inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size, bool ds_stencil=true){
 
     APRTimer timer(true);
 
-    std::vector<PixelData<float>> stencils;
-    stencils.resize(1);
+    PixelData<float> stenc;
 
     auto it = apr.iterator();
 
     if(it.number_dimensions() ==3){
-        stencils[0].init(stencil_size, stencil_size, stencil_size);
+        stenc.init(stencil_size, stencil_size, stencil_size);
     } else if (it.number_dimensions() ==2){
-        stencils[0].init(stencil_size, stencil_size, 1);
+        stenc.init(stencil_size, stencil_size, 1);
     } else if (it.number_dimensions() ==1){
-        stencils[0].init(stencil_size, 1, 1);
+        stenc.init(stencil_size, 1, 1);
     }
 
     // unique stencil elements
-    float sum = 0;
-    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
-        sum += i;
+    float sz = stenc.mesh.size();
+    float sum = sz * (sz - 1) / 2;
+    for(int i = 0; i < (int) stenc.mesh.size(); ++i) {
+        stenc.mesh[i] = ((float) i) / sum;
     }
-    for(int i = 0; i < (int) stencils[0].mesh.size(); ++i) {
-        stencils[0].mesh[i] = ((float) i) / sum;
-    }
+
+    std::vector<PixelData<float>> stencils;
+    int nstencils = ds_stencil ? it.level_max() - it.level_min() : 1;
+    get_downsampled_stencils(stenc, stencils, nstencils, false);
 
     APRFilter filterfns;
     filterfns.boundary_cond = false;
 
+    ParticleData<float> output;
+    int burn_in = std::max( std::min(num_rep / 10, 10), 1 );
+    for (int r = 0; r < burn_in; ++r) {
+        filterfns.convolve_pencil(apr, stencils, parts, output);
+    }
+
     timer.start_timer("apr_filter_pencil" + std::to_string(stencil_size));
     for (int r = 0; r < num_rep; ++r) {
-        ParticleData<float> output;
         filterfns.convolve_pencil(apr, stencils, parts, output);
     }
     timer.stop_timer();
 
-    analysisData.add_timer(timer,apr.total_number_particles(),num_rep);
+    analysisData.add_timer(timer,apr.total_number_particles(), (float)num_rep);
 }
 
 template<typename partsType>
