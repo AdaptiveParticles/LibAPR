@@ -325,16 +325,15 @@ public:
      * Fills a pixel image with the particle values at a given level and depth (z), where the particles exactly match
      * the pixels.
      */
-    template<typename T, typename ParticleDataType>
-    void update_same_level(const int level,
+    template<typename APRIteratorType, typename T, typename ParticleDataType>
+    void update_same_level(APRIteratorType& apr_it,
+                           const int level,
                            const int z,
-                           APR &apr,
                            ImageBuffer<T> &temp_vec,
                            ParticleDataType &inputParticles,
                            std::vector<int> stencil_half,
                            std::vector<int> stencil_shape){
 
-        auto apr_it = apr.iterator();
         const int x_num_m = temp_vec.x_num;
         const int y_num_m = temp_vec.y_num;
 
@@ -358,16 +357,15 @@ public:
      * Fills a pixel image with the particle values from one level below a given level and depth (z), that is, the
      * particles correspond to groups of 2^dim pixels.
      */
-    template<typename T, typename ParticleDataType>
-    void update_higher_level(const int level,
+    template<typename APRIteratorType, typename T, typename ParticleDataType>
+    void update_higher_level(APRIteratorType& apr_it,
+                             const int level,
                              const int z,
-                             APR &apr,
                              ImageBuffer<T> &temp_vec,
                              ParticleDataType &inputParticles,
                              const std::vector<int> &stencil_half,
                              const std::vector<int> &stencil_shape) {
 
-        auto apr_it = apr.iterator();
         const int x_num_m = temp_vec.x_num;
         const int y_num_m = temp_vec.y_num;
 
@@ -390,17 +388,16 @@ public:
     }
 
 
-    template<typename T, typename ParticleDataType>
-    void update_higher_level(const int level,
+    template<typename APRIteratorType, typename T, typename ParticleDataType>
+    void update_higher_level(APRIteratorType& apr_it,
+                             const int level,
                              const int z,
-                             APR &apr,
                              ImageBuffer<T> &temp_vec,
                              ParticleDataType &inputParticles,
                              const std::vector<int> &stencil_half,
                              const std::vector<int> &stencil_shape,
                              const int num_parent_levels) {
 
-        auto apr_it = apr.iterator();
         const int x_num_m = temp_vec.x_num;
         const int y_num_m = temp_vec.y_num;
 
@@ -418,12 +415,7 @@ public:
                 for (apr_it.begin(level - dlevel, z / step_size, x / step_size); apr_it < apr_it.end(); ++apr_it) {
                     int y = step_size * apr_it.y();
                     int y_m = std::min(y + step_size, (int) apr_it.y_num(level));
-                    if(y_m > y) {
-                        std::fill(temp_vec.mesh.begin() + mesh_offset + y, temp_vec.mesh.begin() + mesh_offset + y_m,
-                                  inputParticles[apr_it]);
-                    } else {
-                        std::cerr << "may be missing data at (l, z, x) = (" << level << ", " << z << ", " << x << ")" << std::endl;
-                    }
+                    std::fill(temp_vec.mesh.begin() + mesh_offset + y, temp_vec.mesh.begin() + mesh_offset + y_m, (T)inputParticles[apr_it]);
                 }
             }
         }
@@ -435,16 +427,15 @@ public:
      * pixels correspond to groups of 2^dim particles. The values must be precomputed (e.g., through APRTreeNumerics::fill_tree_mean)
      * and passed to the function through tree_data
      */
-    template<typename T, typename ParticleDataType>
-    void update_lower_level(const int level,
+    template<typename APRTreeIteratorType, typename T, typename ParticleDataType>
+    void update_lower_level(APRTreeIteratorType& tree_it,
+                            const int level,
                             const int z,
-                            APR &apr,
                             ImageBuffer<T> &temp_vec,
                             ParticleDataType &tree_data,
                             const std::vector<int> &stencil_half,
                             const std::vector<int> &stencil_shape) {
 
-        auto tree_it = apr.tree_iterator();
         const int x_num_m = temp_vec.x_num;
         const int y_num_m = temp_vec.y_num;
 
@@ -467,10 +458,11 @@ public:
     /**
      * Reconstruct isotropic neighborhoods around the particles at a given level and depth (z) in a pixel image.
      */
-    template<typename T, typename ParticleDataType, typename ParticleTreeDataType>
-    void update_dense_array(const int level,
+    template<typename APRIteratorType, typename APRTreeIteratorType, typename T, typename ParticleDataType, typename ParticleTreeDataType>
+    void update_dense_array(APRIteratorType& apr_it,
+                            APRTreeIteratorType& tree_it,
+                            const int level,
                             const int z,
-                            APR &apr,
                             ParticleDataType &tree_data,
                             ImageBuffer<T> &temp_vec,
                             ParticleTreeDataType &inputParticles,
@@ -478,14 +470,14 @@ public:
                             const std::vector<int> &stencil_half,
                             const bool boundary) {
 
-        update_same_level(level, z, apr, temp_vec, inputParticles, stencil_half, stencil_shape);
+        update_same_level(apr_it, level, z, temp_vec, inputParticles, stencil_half, stencil_shape);
 
-        if (level > apr.level_min()) {
-            update_higher_level(level, z, apr, temp_vec, inputParticles, stencil_half, stencil_shape);
+        if (level > apr_it.level_min()) {
+            update_higher_level(apr_it, level, z, temp_vec, inputParticles, stencil_half, stencil_shape);
         }
 
-        if (level < apr.level_max()) {
-            update_lower_level(level, z, apr, temp_vec, tree_data, stencil_half, stencil_shape);
+        if (level < apr_it.level_max()) {
+            update_lower_level(tree_it, level, z, temp_vec, tree_data, stencil_half, stencil_shape);
         }
 
         apply_boundary_conditions_xy(z+stencil_half[2], temp_vec, boundary, stencil_half, stencil_shape);
@@ -495,10 +487,11 @@ public:
     /**
  * Reconstruct isotropic neighborhoods around the particles at a given level and depth (z) in a pixel image.
  */
-    template<typename T, typename ParticleDataType, typename ParticleTreeDataType>
-    void update_dense_array(const int level,
+    template<typename APRIteratorType, typename APRTreeIteratorType, typename T, typename ParticleDataType, typename ParticleTreeDataType>
+    void update_dense_array(APRIteratorType& apr_it,
+                            APRTreeIteratorType& tree_it,
+                            const int level,
                             const int z,
-                            APR &apr,
                             ParticleDataType &tree_data,
                             ImageBuffer<T> &temp_vec,
                             ParticleTreeDataType &inputParticles,
@@ -507,25 +500,24 @@ public:
                             const int num_parent_levels,
                             const bool boundary) {
 
-        update_same_level(level, z, apr, temp_vec, inputParticles, stencil_half, stencil_shape);
+        update_same_level(apr_it, level, z, temp_vec, inputParticles, stencil_half, stencil_shape);
 
-        if (level > apr.level_min()) {
-            update_higher_level(level, z, apr, temp_vec, inputParticles, stencil_half, stencil_shape, num_parent_levels);
+        if (level > apr_it.level_min()) {
+            update_higher_level(apr_it, level, z, temp_vec, inputParticles, stencil_half, stencil_shape, num_parent_levels);
         }
 
-        if (level < apr.level_max()) {
-            update_lower_level(level, z, apr, temp_vec, tree_data, stencil_half, stencil_shape);
+        if (level < apr_it.level_max()) {
+            update_lower_level(tree_it, level, z, temp_vec, tree_data, stencil_half, stencil_shape);
         }
 
         apply_boundary_conditions_xy(z+stencil_half[2], temp_vec, boundary, stencil_half, stencil_shape);
     }
 
 
-    template<typename T, typename ParticleDataType>
-    void run_convolution(APR &apr, const int z, const int level, ImageBuffer<T> &temp_vec, PixelData<T> &stencil,
+    template<typename T, typename ParticleDataType, typename APRIteratorType>
+    void run_convolution(APRIteratorType &apr_it, const int z, const int level, ImageBuffer<T> &temp_vec, PixelData<T> &stencil,
                          ParticleDataType &outputParticles, const std::vector<int> &stencil_half, const std::vector<int> &stencil_shape){
 
-        auto apr_it = apr.iterator();
         const int x_num = temp_vec.x_num;
         const int y_num = temp_vec.y_num;
         int x;
@@ -540,7 +532,7 @@ public:
                 int y = apr_it.y();
                 size_t counter = 0;
 
-                // compute the value FIXME
+                // compute the value TODO: optimize this
                 for(int iz = 0; iz < stencil_shape[2]; ++iz) {
 
                     uint64_t offset = ((z + iz) % stencil_shape[2]) * x_num * y_num + x * y_num + y;
@@ -557,11 +549,10 @@ public:
     }
 
 
-    template<typename T, typename ParticleDataType>
-    void run_convolution_pencil(APR &apr, const int level, const int z, const int x, ImageBuffer<T> &temp_vec, PixelData<T> &stencil,
+    template<typename T, typename ParticleDataType, typename APRIteratorType>
+    void run_convolution_pencil(APRIteratorType &apr_it, const int level, const int z, const int x, ImageBuffer<T> &temp_vec, PixelData<T> &stencil,
                                 ParticleDataType &outputParticles, const std::vector<int> &stencil_half, const std::vector<int> &stencil_shape){
 
-        auto apr_it = apr.iterator();
         const int y_num = temp_vec.y_num;
         const int xy_num = temp_vec.x_num * y_num;
 
@@ -571,7 +562,7 @@ public:
             int y = apr_it.y();
             size_t counter = 0;
 
-            // compute the value FIXME
+            // compute the value TODO: optimize this
             for(int iz = 0; iz < stencil_shape[2]; ++iz) {
 
                 uint64_t base_offset = ((z + iz) % stencil_shape[2]) * xy_num + y;
@@ -852,11 +843,12 @@ public:
 /**
  * Reconstruct isotropic neighborhoods around the particles at a given level and depth (z) in a pixel image.
  */
-    template<typename T, typename ParticleDataType, typename ParticleTreeDataType>
-    void update_dense_array(const int level,
+    template<typename T, typename ParticleDataType, typename ParticleTreeDataType, typename APRIteratorType, typename APRTreeIteratorType>
+    void update_dense_array(APRIteratorType &apr_it,
+                            APRTreeIteratorType &tree_it,
+                            const int level,
                             const int z,
                             const int x,
-                            APR &apr,
                             ParticleDataType &tree_data,
                             ImageBuffer<T> &temp_vec,
                             ParticleTreeDataType &inputParticles,
@@ -864,16 +856,13 @@ public:
                             const std::vector<int> &stencil_half,
                             const bool boundary) {
 
-        auto apr_it = apr.iterator();
-        auto tree_it = apr.tree_iterator();
-
         update_same_level(level, z, x, apr_it, temp_vec, inputParticles, stencil_half, stencil_shape);
 
-        if (level > apr.level_min()) {
+        if (level > apr_it.level_min()) {
             update_higher_level(level, z, x, apr_it, temp_vec, inputParticles, stencil_half, stencil_shape);
         }
 
-        if (level < apr.level_max()) {
+        if (level < apr_it.level_max()) {
             update_lower_level(level, z, x, tree_it, temp_vec, tree_data, stencil_half, stencil_shape);
         }
 
@@ -940,6 +929,8 @@ template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOut
 void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output) {
 
     particle_output.init(apr);
+    auto apr_it = apr.iterator();
+    auto tree_it = apr.tree_iterator();
 
     //const bool boundary = boundary_cond;
 
@@ -982,7 +973,7 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
 
             // Initial fill of temp_vec
             for (int iz = 0; iz <= stencil_half[2]; ++iz) {
-                update_dense_array(level, iz, apr, tree_data, temp_vec, particle_input, stencil_shape, stencil_half,
+                update_dense_array(apr_it, tree_it, level, iz, tree_data, temp_vec, particle_input, stencil_shape, stencil_half,
                                    num_parent_levels, boundary_cond);
             }
 
@@ -992,28 +983,28 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
             }
 
             // first iteration out of loop to avoid extra if statements
-            run_convolution(apr, 0, level, temp_vec, stencils[stencil_num], particle_output, stencil_half,
+            run_convolution(apr_it, 0, level, temp_vec, stencils[stencil_num], particle_output, stencil_half,
                             stencil_shape);
 
             int z;
             // "interior" iterations
             for (z = 1; z < (z_num - stencil_half[2]); ++z) {
-                update_dense_array(level, z + stencil_half[2], apr, tree_data, temp_vec, particle_input, stencil_shape,
+                update_dense_array(apr_it, tree_it, level, z + stencil_half[2], tree_data, temp_vec, particle_input, stencil_shape,
                                    stencil_half, num_parent_levels, boundary_cond);
-                run_convolution(apr, z, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+                run_convolution(apr_it, z, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
             }
 
             // the remaining iterations with boundary condition in z direction (upper end)
             for (z = (z_num - stencil_half[2]); z < z_num; ++z) {
                 apply_boundary_conditions_z(z + 2 * stencil_half[2], z_num, temp_vec, boundary_cond, false,
                                             stencil_half, stencil_shape);
-                run_convolution(apr, z, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+                run_convolution(apr_it, z, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
             }
 
         } else {
 
             for (int iz = 0; iz < z_num; ++iz) {
-                update_dense_array(level, iz, apr, tree_data, temp_vec, particle_input, stencil_shape, stencil_half,
+                update_dense_array(apr_it, tree_it, level, iz, tree_data, temp_vec, particle_input, stencil_shape, stencil_half,
                                    num_parent_levels, boundary_cond);
             }
 
@@ -1026,11 +1017,11 @@ void APRFilter::convolve(APR &apr, std::vector<PixelData<T>>& stencils, Particle
                 apply_boundary_conditions_z(iz, z_num, temp_vec, boundary_cond, true, stencil_half, stencil_shape);
             }
 
-            run_convolution(apr, 0, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+            run_convolution(apr_it, 0, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
 
             for(int z = 1; z < z_num; ++z) {
                 apply_boundary_conditions_z(z+2*stencil_half[2], z_num, temp_vec, boundary_cond, false, stencil_half, stencil_shape);
-                run_convolution(apr, z, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+                run_convolution(apr_it, z, level, temp_vec, stencils[stencil_num], particle_output, stencil_half, stencil_shape);
             }
         }
     }
@@ -1041,6 +1032,8 @@ template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOut
 void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output) {
 
     particle_output.init(apr);
+    auto apr_it = apr.iterator();
+    auto tree_it = apr.tree_iterator();
 
     const bool boundary = boundary_cond;
 
@@ -1087,7 +1080,7 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
         }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x)
+#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_it, tree_it)
 #endif
         for (z = 0; z < z_num; ++z) {
 
@@ -1096,57 +1089,68 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
             thread_num = omp_get_thread_num();
 #endif
 
-            const int z_start = std::max((int)z - stencil_half[2], 0);
-            const int z_end = std::min((int)z+stencil_half[2]+1, (int)z_num);
+            const int z_start = std::max((int) z - stencil_half[2], 0);
+            const int z_end = std::min((int) z + stencil_half[2] + 1, (int) z_num);
 
             /// initial fill of temp_vec
-            for(int iz = z_start; iz < z_end; ++iz) {
+            for (int iz = z_start; iz < z_end; ++iz) {
                 for (int ix = 0; ix <= stencil_half[1]; ++ix) {
-                    update_dense_array(level, iz, ix, apr, tree_data, temp_vecs[thread_num], particle_input, stencil_shape, stencil_half, boundary);
+                    update_dense_array(apr_it, tree_it, level, iz, ix, tree_data, temp_vecs[thread_num], particle_input,
+                                       stencil_shape, stencil_half, boundary);
                 }
             }
 
             if (z < stencil_half[2]) {
-                for(int iz = z; iz < stencil_half[2]; ++iz) {
-                    apply_boundary_conditions_z(iz, z_num, temp_vecs[thread_num], boundary, true, stencil_half, stencil_shape);
+                for (int iz = z; iz < stencil_half[2]; ++iz) {
+                    apply_boundary_conditions_z(iz, z_num, temp_vecs[thread_num], boundary, true, stencil_half,
+                                                stencil_shape);
                 }
-            } else if( z >= z_num - stencil_half[2]) {
-                for(int iz = z_num - stencil_half[2]; iz <= z; ++iz) {
-                    apply_boundary_conditions_z(iz + 2*stencil_half[2], z_num, temp_vecs[thread_num], boundary, false, stencil_half, stencil_shape);
+            } else if (z >= z_num - stencil_half[2]) {
+                for (int iz = z_num - stencil_half[2]; iz <= z; ++iz) {
+                    apply_boundary_conditions_z(iz + 2 * stencil_half[2], z_num, temp_vecs[thread_num], boundary,
+                                                false, stencil_half, stencil_shape);
                 }
             } /// end of initial fill
 
             for (int ix = 0; ix < stencil_half[1]; ++ix) {
-                apply_boundary_conditions_x(ix, x_num, temp_vecs[thread_num], boundary, true, stencil_half, stencil_shape);
+                apply_boundary_conditions_x(ix, x_num, temp_vecs[thread_num], boundary, true, stencil_half,
+                                            stencil_shape);
             }
 
-            run_convolution_pencil(apr, level, z, 0, temp_vecs[thread_num], stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+            run_convolution_pencil(apr_it, level, z, 0, temp_vecs[thread_num], stencils[stencil_num], particle_output,
+                                   stencil_half, stencil_shape);
 
             for(x = 1; x < x_num; ++x) {
 
-                if( x < x_num - stencil_half[1] ){
-                    const int z_start = std::max((int)z - stencil_half[2], 0);
-                    const int z_end = std::min((int)z+stencil_half[2]+1, (int)z_num);
+                if (x < x_num - stencil_half[1]) {
+                    const int z_start = std::max((int) z - stencil_half[2], 0);
+                    const int z_end = std::min((int) z + stencil_half[2] + 1, (int) z_num);
 
-                    for(int iz = z_start; iz < z_end; ++iz) {
-                        update_dense_array(level, iz, x + stencil_half[1], apr, tree_data, temp_vecs[thread_num], particle_input, stencil_shape, stencil_half, boundary);
+                    for (int iz = z_start; iz < z_end; ++iz) {
+                        update_dense_array(apr_it, tree_it, level, iz, x + stencil_half[1], tree_data, temp_vecs[thread_num],
+                                           particle_input, stencil_shape, stencil_half, boundary);
                     }
 
-                    if(z < stencil_half[2]) {
-                        for(int iz = z; iz < stencil_half[2]; ++iz) {
-                            apply_boundary_conditions_z(iz, z_num, temp_vecs[thread_num], boundary, true, stencil_half, stencil_shape);
+                    if (z < stencil_half[2]) {
+                        for (int iz = z; iz < stencil_half[2]; ++iz) {
+                            apply_boundary_conditions_z(iz, z_num, temp_vecs[thread_num], boundary, true,
+                                                        stencil_half, stencil_shape);
                         }
-                    } else if( z >= z_num - stencil_half[2]) {
-                        for(int iz = z_num - stencil_half[2]; iz <= z; ++iz) {
-                            apply_boundary_conditions_z(iz + 2*stencil_half[2], z_num, temp_vecs[thread_num], boundary, false, stencil_half, stencil_shape);
+                    } else if (z >= z_num - stencil_half[2]) {
+                        for (int iz = z_num - stencil_half[2]; iz <= z; ++iz) {
+                            apply_boundary_conditions_z(iz + 2 * stencil_half[2], z_num, temp_vecs[thread_num],
+                                                        boundary, false, stencil_half, stencil_shape);
                         }
                     }
 
                 } else {
-                    apply_boundary_conditions_x(x + 2*stencil_half[1], x_num, temp_vecs[thread_num], boundary, false, stencil_half, stencil_shape);
+                    apply_boundary_conditions_x(x + 2 * stencil_half[1], x_num, temp_vecs[thread_num], boundary,
+                                                false, stencil_half, stencil_shape);
                 }
 
-                run_convolution_pencil(apr, level, z, x, temp_vecs[thread_num], stencils[stencil_num], particle_output, stencil_half, stencil_shape);
+                run_convolution_pencil(apr_it, level, z, x, temp_vecs[thread_num], stencils[stencil_num],
+                                       particle_output, stencil_half, stencil_shape);
+
             }
         }
     }
