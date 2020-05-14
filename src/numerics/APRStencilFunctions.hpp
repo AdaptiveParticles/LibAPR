@@ -18,9 +18,9 @@ void downsample_stencil(const PixelData<T>& aInput, PixelData<S>& aOutput, const
     const int step_size = (int)std::pow(2.0f, (float)level_delta);
     const int factor = (int)std::pow((float)step_size, (float)ndim);
 
-    const int z_num_ds = std::max(2*(((z_num-1)/2 + step_size - 1) / step_size)+1, 3);
-    const int x_num_ds = std::max(2*(((x_num-1)/2 + step_size - 1) / step_size)+1, 3);
-    const int y_num_ds = std::max(2*(((y_num-1)/2 + step_size - 1) / step_size)+1, 3);
+    const int z_num_ds = (z_num > 1) ? std::max(2*(((z_num-1)/2 + step_size - 1) / step_size)+1, 3) : 1;
+    const int x_num_ds = (x_num > 1) ? std::max(2*(((x_num-1)/2 + step_size - 1) / step_size)+1, 3) : 1;
+    const int y_num_ds = (y_num > 1) ? std::max(2*(((y_num-1)/2 + step_size - 1) / step_size)+1, 3) : 1;
 
     aOutput.initWithValue(y_num_ds, x_num_ds, z_num_ds, 0);
 
@@ -116,13 +116,8 @@ void get_downsampled_stencils(const PixelData<T>& aInput, std::vector<PixelData<
     aOutput[0].init(aInput);
     std::copy(aInput.mesh.begin(), aInput.mesh.end(), aOutput[0].mesh.begin());
 
-    PixelData<S> stencil_ds;
     for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
-
-        downsample_stencil(aInput, stencil_ds, level_delta, normalize);
-
-        aOutput[level_delta].init(stencil_ds);
-        std::copy(stencil_ds.mesh.begin(), stencil_ds.mesh.end(), aOutput[level_delta].mesh.begin());
+        downsample_stencil(aInput, aOutput[level_delta], level_delta, normalize);
     }
 }
 
