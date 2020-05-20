@@ -147,7 +147,6 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
 
     /// copy result back to host
     output_gpu.copyD2H();
-    error_check( cudaDeviceSynchronize() )
 }
 
 

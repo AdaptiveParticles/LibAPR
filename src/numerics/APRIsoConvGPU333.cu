@@ -5,7 +5,7 @@
 #include "APRIsoConvGPU333.hpp"
 
 /// -------------------------------------------------------- ///
-///            with reflective boundary condition            ///
+///                     with zero padding                    ///
 /// -------------------------------------------------------- ///
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
@@ -89,7 +89,7 @@ __global__ void conv_max_333_chunked(const uint64_t* level_xz_vec,
         y_0 = INT32_MAX;
     }
 
-    __syncthreads();
+    __syncwarp();
 
     const int y_offset_p = threadIdx.x % 2;
 
