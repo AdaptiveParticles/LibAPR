@@ -37,6 +37,7 @@ list(APPEND CMAKE_MODULE_PATH
 ###############################################################################
 # Generate configuration file
 ###############################################################################
+
 set (APR_VERSION_MAJOR 1)
 set (APR_VERSION_MINOR 1)
 set (APR_VERSION_PATCH 0)
