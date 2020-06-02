@@ -56,6 +56,11 @@ message("Configuring for APR version: " ${APR_VERSION_STRING})
 ###############################################################################
 # Find all required libraries
 ###############################################################################
+
+#pthreads
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 find_package(HDF5 REQUIRED)
 find_package(ZLIB REQUIRED)
 if(APR_USE_LIBTIFF)
