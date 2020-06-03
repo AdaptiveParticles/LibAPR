@@ -1016,20 +1016,21 @@ public:
 
         timer.start_timer("sat");
         //demo
-        calc_sat_adaptive_y(pc_image,k_img,scale_d[0],offset_max,apr.level_max());
-
+        if(pc_image.y_num > 1) {
+            calc_sat_adaptive_y(pc_image, k_img, scale_d[0], offset_max, apr.level_max());
+        }
         timer.stop_timer();
 
         timer.start_timer("sat");
-
-        calc_sat_adaptive_x(pc_image,k_img,scale_d[1],offset_max,apr.level_max());
-
+        if(pc_image.x_num > 1) {
+            calc_sat_adaptive_x(pc_image, k_img, scale_d[1], offset_max, apr.level_max());
+        }
         timer.stop_timer();
 
         timer.start_timer("sat");
-
-        calc_sat_adaptive_z(pc_image,k_img,scale_d[2],offset_max,apr.level_max());
-
+        if(pc_image.z_num > 1) {
+            calc_sat_adaptive_z(pc_image, k_img, scale_d[2], offset_max, apr.level_max());
+        }
         timer.stop_timer();
 
         pc_image.swap(out_image);
