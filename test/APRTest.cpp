@@ -2846,6 +2846,42 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 }
 
 
+bool test_interp_level(TestData &test_data) {
+
+    PixelData<uint8_t> level_recon;
+    APRReconstruction::interp_level(test_data.apr, level_recon);
+
+    auto apr_it = test_data.apr.iterator();
+    VectorData<uint8_t> level_parts;
+    level_parts.resize((apr_it.total_number_particles()));
+
+    for(uint8_t level = apr_it.level_min(); level <= apr_it.level_max(); ++level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(none) shared(level, level_parts) firstprivate(apr_it) collapse(2)
+#endif
+        for(int z = 0; z < apr_it.z_num(level); ++z) {
+            for(int x = 0; x < apr_it.x_num(level); ++x) {
+                for(apr_it.begin(level, z, x); apr_it < apr_it.end(); ++apr_it) {
+                    level_parts[apr_it] = level;
+                }
+            }
+        }
+    }
+
+    PixelData<uint8_t> level_recon_gt;
+    APRReconstruction::interp_img(test_data.apr, level_recon_gt, level_parts);
+
+    for(uint64_t idx = 0; idx < level_recon.mesh.size(); ++idx) {
+        if(level_recon.mesh[idx] != level_recon_gt.mesh[idx]) {
+            std::cout << "interp_level failed at index " << idx << ". Expected " << level_recon_gt.mesh[idx] <<
+                         " but got " << level_recon.mesh[idx] << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+
 bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
 
     std::vector<PixelData<double>> stencils;
@@ -3672,6 +3708,12 @@ TEST_F(CreatDiffDimsSphereTest, RANDOM_ACCESS) {
 
 }
 
+
+TEST_F(CreatDiffDimsSphereTest, RECONSTRUCT_LEVEL) {
+
+    ASSERT_TRUE(test_interp_level(test_data));
+
+}
 
 
 #ifndef APR_USE_CUDA
