@@ -85,7 +85,7 @@ public:
             const int step_size = (int) pow(2, max_level - level);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(none) shared(img, level, parts) private(z, x, temp_int) firstprivate(apr_iterator) collapse(2)
+#pragma omp parallel for schedule(dynamic) default(none) shared(img, level, parts, step_size) private(z, x, temp_int) firstprivate(apr_iterator) collapse(2)
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
@@ -115,7 +115,7 @@ public:
 
         // loop over max_level
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(none) shared(img, parts) private(z, x) firstprivate(apr_iterator) collapse(2)
+#pragma omp parallel for schedule(dynamic) default(none) shared(img, parts, max_level) private(z, x) firstprivate(apr_iterator) collapse(2)
 #endif
         for (z = 0; z < apr_iterator.z_num(max_level); z++) {
             for (x = 0; x < apr_iterator.x_num(max_level); ++x) {
@@ -596,7 +596,7 @@ public:
             const int step_size = pow(2, max_level - level);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(none) shared(level_val, level, img) private(z, x) firstprivate(apr_iterator) collapse(2)
+#pragma omp parallel for schedule(dynamic) default(none) shared(level_val, level, img, step_size) private(z, x) firstprivate(apr_iterator) collapse(2)
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
@@ -625,7 +625,7 @@ public:
         // loop over max_level
         level_val = max_level;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) default(none) shared(level_val, img) private(z, x) firstprivate(apr_iterator) collapse(2)
+#pragma omp parallel for schedule(dynamic) default(none) shared(level_val, img, max_level) private(z, x) firstprivate(apr_iterator) collapse(2)
 #endif
         for (z = 0; z < apr_iterator.z_num(max_level); z++) {
             for (x = 0; x < apr_iterator.x_num(max_level); ++x) {
