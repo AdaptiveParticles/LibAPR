@@ -53,11 +53,13 @@ public:
 
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
     void richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
-                         std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations);
+                         std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations,
+                         bool resume=false);
 
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
     void richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
-                         PixelData<T> &psf, int number_iterations, bool use_stencil_downsample=true, bool normalize=false);
+                         PixelData<T> &psf, int number_iterations, bool use_stencil_downsample=true, bool normalize=false,
+                         bool resume=false);
 
     bool boundary_cond = ZERO_PAD;
 
@@ -1159,14 +1161,15 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
 void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
-                                std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec, int number_iterations) {
+                                std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec,
+                                int number_iterations, bool resume) {
 
-    particle_output.init(apr.total_number_particles());
+    if(!resume) { // if not continuing from previous iterations, initialize output with 1s
+        particle_output.init(apr.total_number_particles());
+        std::fill(particle_output.data.begin(), particle_output.data.end(), 1);
+    }
     ParticleData<T> relative_blur(apr.total_number_particles());
     ParticleData<T> error_est(apr.total_number_particles());
-
-    // initialize output with 1s
-    std::fill(particle_output.data.begin(), particle_output.data.end(), 1);
 
     for(int iter = 0; iter < number_iterations; ++iter) {
 
@@ -1175,7 +1178,7 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) default(none) shared(particle_input, relative_blur, apr)
 #endif
-        for(uint64_t i = 0; i < apr.total_number_particles(); ++i) {
+        for(uint64_t i = 0; i < relative_blur.data.size(); ++i) {
             relative_blur[i] = particle_input[i] / relative_blur[i];
         }
 
@@ -1184,7 +1187,7 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) default(none) shared(particle_output, error_est, apr)
 #endif
-        for(uint64_t i = 0; i < apr.total_number_particles(); ++i) {
+        for(uint64_t i = 0; i < particle_output.data.size(); ++i) {
             particle_output[i] = particle_output[i] * error_est[i];
         }
     }
@@ -1193,7 +1196,8 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
 void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
-                                PixelData<T>& psf, int number_iterations, bool use_stencil_downsample, bool normalize) {
+                                PixelData<T>& psf, int number_iterations, bool use_stencil_downsample, bool normalize,
+                                bool resume) {
 
     PixelData<T> psf_flipped(psf, false);
     for(int i = 0; i < psf.mesh.size(); ++i) {
@@ -1207,7 +1211,7 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
     get_downsampled_stencils(psf, psf_vec, nstencils, normalize);
     get_downsampled_stencils(psf_flipped, psf_flipped_vec, nstencils, normalize);
 
-    richardson_lucy(apr, particle_input, particle_output, psf_vec, psf_flipped_vec, number_iterations);
+    richardson_lucy(apr, particle_input, particle_output, psf_vec, psf_flipped_vec, number_iterations, resume);
 }
 
 
