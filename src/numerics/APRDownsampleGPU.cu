@@ -6,14 +6,14 @@
 
 
 template<typename inputType, typename outputType>
-__global__ void _fill_tree_mean_max(const uint64_t* level_xz_vec,
-                                    const uint64_t* xz_end_vec,
-                                    const uint16_t* y_vec,
-                                    const inputType* input_particles,
-                                    const uint64_t* level_xz_vec_tree,
-                                    const uint64_t* xz_end_vec_tree,
-                                    const uint16_t* y_vec_tree,
-                                    outputType* particle_data_output,
+__global__ void _fill_tree_mean_max(const uint64_t* __restrict__ level_xz_vec,
+                                    const uint64_t* __restrict__ xz_end_vec,
+                                    const uint16_t* __restrict__ y_vec,
+                                    const inputType* __restrict__ input_particles,
+                                    const uint64_t* __restrict__ level_xz_vec_tree,
+                                    const uint64_t* __restrict__ xz_end_vec_tree,
+                                    const uint16_t* __restrict__ y_vec_tree,
+                                    outputType* __restrict__ particle_data_output,
                                     const int z_num,
                                     const int x_num,
                                     const int y_num,
@@ -21,7 +21,7 @@ __global__ void _fill_tree_mean_max(const uint64_t* level_xz_vec,
                                     const int x_num_parent,
                                     const int y_num_parent,
                                     const int level,
-                                    const int* offset_ind) {
+                                    const int* __restrict__ offset_ind) {
 
     const int index = offset_ind[blockIdx.x];
 
@@ -184,14 +184,14 @@ __global__ void _fill_tree_mean_max(const uint64_t* level_xz_vec,
 
 
 template<typename inputType, typename outputType>
-__global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
-                                         const uint64_t* xz_end_vec,
-                                         const uint16_t* y_vec,
-                                         const inputType* input_particles,
-                                         const uint64_t* level_xz_vec_tree,
-                                         const uint64_t* xz_end_vec_tree,
-                                         const uint16_t* y_vec_tree,
-                                         outputType* particle_data_output,
+__global__ void _fill_tree_mean_interior(const uint64_t* __restrict__ level_xz_vec,
+                                         const uint64_t* __restrict__ xz_end_vec,
+                                         const uint16_t* __restrict__ y_vec,
+                                         const inputType* __restrict__ input_particles,
+                                         const uint64_t* __restrict__ level_xz_vec_tree,
+                                         const uint64_t* __restrict__ xz_end_vec_tree,
+                                         const uint16_t* __restrict__ y_vec_tree,
+                                         outputType* __restrict__ particle_data_output,
                                          const int z_num,
                                          const int x_num,
                                          const int y_num,
@@ -199,7 +199,7 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
                                          const int x_num_parent,
                                          const int y_num_parent,
                                          const int level,
-                                         const int* offset_ind) {
+                                         const int* __restrict__ offset_ind) {
     //
     //  This step is required for the interior down-sampling
     //
@@ -421,14 +421,14 @@ __global__ void _fill_tree_mean_interior(const uint64_t* level_xz_vec,
 
 
 template<typename inputType, typename outputType>
-__global__ void _fill_tree_mean_max_alt(const uint64_t* level_xz_vec,
-                                        const uint64_t* xz_end_vec,
-                                        const uint16_t* y_vec,
-                                        const inputType* input_particles,
-                                        const uint64_t* level_xz_vec_tree,
-                                        const uint64_t* xz_end_vec_tree,
-                                        const uint16_t* y_vec_tree,
-                                        outputType* particle_data_output,
+__global__ void _fill_tree_mean_max_alt(const uint64_t* __restrict__ level_xz_vec,
+                                        const uint64_t* __restrict__ xz_end_vec,
+                                        const uint16_t* __restrict__ y_vec,
+                                        const inputType* __restrict__ input_particles,
+                                        const uint64_t* __restrict__ level_xz_vec_tree,
+                                        const uint64_t* __restrict__ xz_end_vec_tree,
+                                        const uint16_t* __restrict__ y_vec_tree,
+                                        outputType* __restrict__ particle_data_output,
                                         const int z_num,
                                         const int x_num,
                                         const int y_num,
@@ -589,14 +589,14 @@ __global__ void _fill_tree_mean_max_alt(const uint64_t* level_xz_vec,
 
 
 template<typename inputType, typename outputType>
-__global__ void _fill_tree_mean_interior_alt(const uint64_t* level_xz_vec,
-                                             const uint64_t* xz_end_vec,
-                                             const uint16_t* y_vec,
-                                             const inputType* input_particles,
-                                             const uint64_t* level_xz_vec_tree,
-                                             const uint64_t* xz_end_vec_tree,
-                                             const uint16_t* y_vec_tree,
-                                             outputType* particle_data_output,
+__global__ void _fill_tree_mean_interior_alt(const uint64_t* __restrict__ level_xz_vec,
+                                             const uint64_t* __restrict__ xz_end_vec,
+                                             const uint16_t* __restrict__ y_vec,
+                                             const inputType* __restrict__ input_particles,
+                                             const uint64_t* __restrict__ level_xz_vec_tree,
+                                             const uint64_t* __restrict__ xz_end_vec_tree,
+                                             const uint16_t* __restrict__ y_vec_tree,
+                                             outputType* __restrict__ particle_data_output,
                                              const int z_num,
                                              const int x_num,
                                              const int y_num,
@@ -807,12 +807,12 @@ __global__ void _fill_tree_mean_interior_alt(const uint64_t* level_xz_vec,
 
 
 template<int blockSize_z, int blockSize_x>
-__global__ void _count_ne_rows_tree_cuda(const uint64_t* level_xz_vec_tree,
-                                         const uint64_t* xz_end_vec_tree,
+__global__ void _count_ne_rows_tree_cuda(const uint64_t* __restrict__ level_xz_vec_tree,
+                                         const uint64_t* __restrict__ xz_end_vec_tree,
                                          const int z_num,
                                          const int x_num,
                                          const int level,
-                                         int* res) {
+                                         int* __restrict__ res) {
 
     __shared__ int local_counts[blockSize_x][blockSize_z];
     local_counts[threadIdx.y][threadIdx.x] = 0;
@@ -864,14 +864,14 @@ __global__ void _count_ne_rows_tree_cuda(const uint64_t* level_xz_vec_tree,
 
 
 __device__ unsigned int count = 0;
-__global__ void _fill_ne_rows_tree_cuda(const uint64_t* level_xz_vec_tree,
-                                        const uint64_t* xz_end_vec_tree,
+__global__ void _fill_ne_rows_tree_cuda(const uint64_t* __restrict__ level_xz_vec_tree,
+                                        const uint64_t* __restrict__ xz_end_vec_tree,
                                         const int z_num,
                                         const int x_num,
                                         const int level,
                                         unsigned int ne_count,
                                         unsigned int offset,
-                                        int* ne_rows) {
+                                        int* __restrict__ ne_rows) {
 
     const int z_index = blockIdx.x * blockDim.x + threadIdx.x;
 

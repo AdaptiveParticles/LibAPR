@@ -8,20 +8,20 @@
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void
-__launch_bounds__(1024, 2)
-conv_max_555_chunked(const uint64_t* level_xz_vec,
-                     const uint64_t* xz_end_vec,
-                     const uint16_t* y_vec,
-                     const inputType* input_particles,
-                     outputType* output_particles,
-                     const stencilType* stencil,
+__launch_bounds__(1024, 1)
+conv_max_555_chunked(const uint64_t* __restrict__ level_xz_vec,
+                     const uint64_t* __restrict__ xz_end_vec,
+                     const uint16_t* __restrict__ y_vec,
+                     const inputType* __restrict__ input_particles,
+                     outputType* __restrict__ output_particles,
+                     const stencilType* __restrict__ stencil,
                      const int z_num,
                      const int x_num,
                      const int y_num,
                      const int z_num_parent,
                      const int x_num_parent,
                      const int level,
-                     const int* offset_ind) {
+                     const int* __restrict__ offset_ind) {
 
     const int index = offset_ind[blockIdx.x];
 
@@ -186,24 +186,24 @@ conv_max_555_chunked(const uint64_t* level_xz_vec,
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void
-__launch_bounds__(1024, 2)
-conv_interior_555_chunked(const uint64_t* level_xz_vec,
-                          const uint64_t* xz_end_vec,
-                          const uint16_t* y_vec,
-                          const inputType* input_particles,
-                          outputType* output_particles,
-                          const stencilType* stencil,
-                          const uint64_t* level_xz_vec_tree,
-                          const uint64_t* xz_end_vec_tree,
-                          const uint16_t* y_vec_tree,
-                          const treeType* tree_data,
+__launch_bounds__(1024, 1)
+conv_interior_555_chunked(const uint64_t* __restrict__ level_xz_vec,
+                          const uint64_t* __restrict__ xz_end_vec,
+                          const uint16_t* __restrict__ y_vec,
+                          const inputType* __restrict__ input_particles,
+                          outputType* __restrict__ output_particles,
+                          const stencilType* __restrict__ stencil,
+                          const uint64_t* __restrict__ level_xz_vec_tree,
+                          const uint64_t* __restrict__ xz_end_vec_tree,
+                          const uint16_t* __restrict__ y_vec_tree,
+                          const treeType* __restrict__ tree_data,
                           const int z_num,
                           const int x_num,
                           const int y_num,
                           const int z_num_parent,
                           const int x_num_parent,
                           const int level,
-                          const int* offset_ind) {
+                          const int* __restrict__ offset_ind) {
 
     const int index = offset_ind[blockIdx.x];
 
@@ -421,20 +421,20 @@ conv_interior_555_chunked(const uint64_t* level_xz_vec,
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void
-__launch_bounds__(1024, 2)
-conv_max_555_reflective(const uint64_t* level_xz_vec,
-                        const uint64_t* xz_end_vec,
-                        const uint16_t* y_vec,
-                        const inputType* input_particles,
-                        outputType* output_particles,
-                        const stencilType* stencil,
+__launch_bounds__(1024, 1)
+conv_max_555_reflective(const uint64_t* __restrict__ level_xz_vec,
+                        const uint64_t* __restrict__ xz_end_vec,
+                        const uint16_t* __restrict__ y_vec,
+                        const inputType* __restrict__ input_particles,
+                        outputType* __restrict__ output_particles,
+                        const stencilType* __restrict__ stencil,
                         const int z_num,
                         const int x_num,
                         const int y_num,
                         const int z_num_parent,
                         const int x_num_parent,
                         const int level,
-                        const int* offset_ind) {
+                        const int* __restrict__ offset_ind) {
 
     const unsigned int N = chunkSize;
     const int index = offset_ind[blockIdx.x];
@@ -623,24 +623,24 @@ conv_max_555_reflective(const uint64_t* level_xz_vec,
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void
-__launch_bounds__(1024, 2)
-conv_interior_555_reflective(const uint64_t* level_xz_vec,
-                             const uint64_t* xz_end_vec,
-                             const uint16_t* y_vec,
-                             const inputType* input_particles,
-                             outputType* output_particles,
-                             const stencilType* stencil,
-                             const uint64_t* level_xz_vec_tree,
-                             const uint64_t* xz_end_vec_tree,
-                             const uint16_t* y_vec_tree,
-                             const treeType* tree_data,
+__launch_bounds__(1024, 1)
+conv_interior_555_reflective(const uint64_t* __restrict__ level_xz_vec,
+                             const uint64_t* __restrict__ xz_end_vec,
+                             const uint16_t* __restrict__ y_vec,
+                             const inputType* __restrict__ input_particles,
+                             outputType* __restrict__ output_particles,
+                             const stencilType* __restrict__ stencil,
+                             const uint64_t* __restrict__ level_xz_vec_tree,
+                             const uint64_t* __restrict__ xz_end_vec_tree,
+                             const uint16_t* __restrict__ y_vec_tree,
+                             const treeType* __restrict__ tree_data,
                              const int z_num,
                              const int x_num,
                              const int y_num,
                              const int z_num_parent,
                              const int x_num_parent,
                              const int level,
-                             const int* offset_ind) {
+                             const int* __restrict__ offset_ind) {
 
     const int index = offset_ind[blockIdx.x];
 
@@ -881,13 +881,13 @@ conv_interior_555_reflective(const uint64_t* level_xz_vec,
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType>
 __global__ void
-__launch_bounds__(1024, 2)
-conv_max_555_chunked(const uint64_t* level_xz_vec,
-                     const uint64_t* xz_end_vec,
-                     const uint16_t* y_vec,
-                     const inputType* input_particles,
-                     outputType* output_particles,
-                     const stencilType* stencil,
+__launch_bounds__(1024, 1)
+conv_max_555_chunked(const uint64_t* __restrict__ level_xz_vec,
+                     const uint64_t* __restrict__ xz_end_vec,
+                     const uint16_t* __restrict__ y_vec,
+                     const inputType* __restrict__ input_particles,
+                     outputType* __restrict__ output_particles,
+                     const stencilType* __restrict__ stencil,
                      const int z_num,
                      const int x_num,
                      const int y_num,
@@ -1060,17 +1060,17 @@ conv_max_555_chunked(const uint64_t* level_xz_vec,
 
 template<unsigned int chunkSize, unsigned int blockSize, typename inputType, typename outputType, typename stencilType, typename treeType>
 __global__ void
-__launch_bounds__(1024, 2)
-conv_interior_555_chunked(const uint64_t* level_xz_vec,
-                          const uint64_t* xz_end_vec,
-                          const uint16_t* y_vec,
-                          const inputType* input_particles,
-                          outputType* output_particles,
-                          const stencilType* stencil,
-                          const uint64_t* level_xz_vec_tree,
-                          const uint64_t* xz_end_vec_tree,
-                          const uint16_t* y_vec_tree,
-                          const treeType* tree_data,
+__launch_bounds__(1024, 1)
+conv_interior_555_chunked(const uint64_t* __restrict__ level_xz_vec,
+                          const uint64_t* __restrict__ xz_end_vec,
+                          const uint16_t* __restrict__ y_vec,
+                          const inputType* __restrict__ input_particles,
+                          outputType* __restrict__ output_particles,
+                          const stencilType* __restrict__ stencil,
+                          const uint64_t* __restrict__ level_xz_vec_tree,
+                          const uint64_t* __restrict__ xz_end_vec_tree,
+                          const uint16_t* __restrict__ y_vec_tree,
+                          const treeType* __restrict__ tree_data,
                           const int z_num,
                           const int x_num,
                           const int y_num,
