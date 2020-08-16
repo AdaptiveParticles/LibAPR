@@ -287,6 +287,10 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
         }
     }
 
+    if(par.output_steps) {
+        TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_rescaled.tif", local_scale_temp);
+    }
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
@@ -414,6 +418,7 @@ template<typename ImageType>
 inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
 
     applyParameters(aAPR,par);
+    aAPR.parameters = par;
 
     solveForAPR(aAPR);
 
