@@ -61,6 +61,17 @@ public:
                          PixelData<T> &psf, int number_iterations, bool use_stencil_downsample=true, bool normalize=false,
                          bool resume=false);
 
+    void richardson_lucy_tv(APR &apr, ParticleData<float> &particle_input, ParticleData<float> &particle_output,
+                            std::vector<PixelData<float>>& psf_vec, std::vector<PixelData<float>>& psf_flipped_vec,
+                            int number_iterations, float reg_factor, bool resume);
+
+    void richardson_lucy_tv(APR &apr, ParticleData<float> &particle_input, ParticleData<float> &particle_output,
+                            PixelData<float> &psf, int number_iterations, float reg_factor, bool use_stencil_downsample,
+                            bool normalize, bool resume);
+
+    void total_variation_gradient(APR &apr, ParticleData<float> &signal, ParticleData<float> &grad_x,
+                                  ParticleData<float> &grad_y, ParticleData<float> &grad_z, ParticleData<float> &result);
+
     bool boundary_cond = ZERO_PAD;
 
     bool nl_mult=false;
@@ -1159,6 +1170,149 @@ void APRFilter::convolve_pencil(APR &apr, std::vector<PixelData<T>>& stencils, P
 }
 
 
+void APRFilter::total_variation_gradient(APR &apr, ParticleData<float> &signal, ParticleData<float> &grad_x,
+                              ParticleData<float> &grad_y, ParticleData<float> &grad_z, ParticleData<float> &result) {
+
+    /// initialize central finite difference stencils for gradient computation
+    int nlevels = apr.level_max() - apr.level_min();
+    std::vector<PixelData<float>> stenc_z(nlevels);
+    std::vector<PixelData<float>> stenc_x(nlevels);
+    std::vector<PixelData<float>> stenc_y(nlevels);
+
+    for(int i = 0; i < nlevels; ++i) {
+        float val = 1.0f / std::pow(2.0f, (float)i);
+
+        stenc_z[i].init(1, 1, 3);
+        stenc_x[i].init(1, 3, 1);
+        stenc_y[i].init(3, 1, 1);
+
+        stenc_z[i].mesh[0] = -val;
+        stenc_x[i].mesh[0] = -val;
+        stenc_y[i].mesh[0] = -val;
+
+        stenc_z[i].mesh[1] = 0.0f;
+        stenc_x[i].mesh[1] = 0.0f;
+        stenc_y[i].mesh[1] = 0.0f;
+
+        stenc_z[i].mesh[2] = val;
+        stenc_x[i].mesh[2] = val;
+        stenc_y[i].mesh[2] = val;
+    }
+
+    /// compute gradient in y, x and z directions using level-adaptive central finite differences
+    convolve(apr, stenc_y, signal, grad_y);
+
+    if(apr.z_num(apr.level_max()) > 1) {
+        convolve(apr, stenc_z, signal, grad_z);
+    } else {
+        grad_z.set_to_zero();
+    }
+
+    if(apr.x_num(apr.level_max()) > 1) {
+        convolve(apr, stenc_x, signal, grad_x);
+    } else {
+        grad_x.set_to_zero();
+    }
+
+    /// normalize the gradients
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(grad_x, grad_y, grad_z)
+#endif
+    for(uint64_t i = 0; i < grad_y.size(); ++i) {
+        float gradmag = std::sqrt(grad_z[i] * grad_z[i] + grad_x[i] * grad_x[i] + grad_y[i] * grad_y[i]);
+
+        if(gradmag > 1e-8) {
+            grad_z[i] /= gradmag;
+            grad_x[i] /= gradmag;
+            grad_y[i] /= gradmag;
+        }
+    }
+
+    /// compute divergence terms
+    convolve(apr, stenc_y, grad_y, result); // y-gradient
+
+    if(apr.x_num(apr.level_max()) > 1) {
+        convolve(apr, stenc_x, grad_x, grad_y); // x-gradient
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(grad_y, result)
+#endif
+        for(uint64_t i = 0; i < grad_y.size(); ++i) {
+            result[i] += grad_y[i];
+        }
+    }
+
+    if(apr.z_num(apr.level_max()) > 1) {
+        convolve(apr, stenc_z, grad_z, grad_y); // z-gradient
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(grad_y, result)
+#endif
+        for(uint64_t i = 0; i < grad_y.size(); ++i) {
+            result[i] += grad_y[i];
+        }
+    }
+}
+
+
+void APRFilter::richardson_lucy_tv(APR &apr, ParticleData<float> &particle_input, ParticleData<float> &particle_output,
+                                   std::vector<PixelData<float>>& psf_vec, std::vector<PixelData<float>>& psf_flipped_vec,
+                                   int number_iterations, float reg_factor, bool resume) {
+
+    if(!resume) { // if not continuing from previous iterations, initialize output with 1s
+        particle_output.init(apr.total_number_particles());
+        std::fill(particle_output.data.begin(), particle_output.data.end(), 1.0f);
+    }
+    ParticleData<float> relative_blur(apr.total_number_particles());
+    ParticleData<float> error_est(apr.total_number_particles());
+    ParticleData<float> tmp1(apr.total_number_particles());
+    ParticleData<float> tmp2(apr.total_number_particles());
+    ParticleData<float> tmp3(apr.total_number_particles());
+
+    for(int iter = 0; iter < number_iterations; ++iter) {
+
+        convolve(apr, psf_flipped_vec, particle_output, relative_blur);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(particle_input, relative_blur)
+#endif
+        for(uint64_t i = 0; i < relative_blur.data.size(); ++i) {
+            relative_blur[i] = particle_input[i] / relative_blur[i];
+        }
+
+        convolve(apr, psf_vec, relative_blur, error_est);
+
+        total_variation_gradient(apr, particle_output, tmp1, tmp2, tmp3, relative_blur);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(particle_output, error_est, relative_blur, reg_factor)
+#endif
+        for(uint64_t i = 0; i < particle_output.data.size(); ++i) {
+            particle_output[i] = particle_output[i] * error_est[i] / (1 - reg_factor * relative_blur[i]);
+        }
+    }
+}
+
+void APRFilter::richardson_lucy_tv(APR &apr, ParticleData<float> &particle_input, ParticleData<float> &particle_output,
+                                   PixelData<float> &psf, int number_iterations, float reg_factor, bool use_stencil_downsample,
+                                   bool normalize, bool resume) {
+
+    PixelData<float> psf_flipped(psf, false);
+    for(int i = 0; i < psf.mesh.size(); ++i) {
+        psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
+    }
+
+    std::vector<PixelData<float>> psf_vec;
+    std::vector<PixelData<float>> psf_flipped_vec;
+
+    int nstencils = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
+    get_downsampled_stencils(psf, psf_vec, nstencils, normalize);
+    get_downsampled_stencils(psf_flipped, psf_flipped_vec, nstencils, normalize);
+
+    richardson_lucy_tv(apr, particle_input, particle_output, psf_vec, psf_flipped_vec, number_iterations, reg_factor, resume);
+}
+
+
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
 void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
                                 std::vector<PixelData<T>>& psf_vec, std::vector<PixelData<T>>& psf_flipped_vec,
@@ -1176,7 +1330,7 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
         convolve(apr, psf_flipped_vec, particle_output, relative_blur);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) default(none) shared(particle_input, relative_blur, apr)
+#pragma omp parallel for schedule(static) default(none) shared(particle_input, relative_blur)
 #endif
         for(uint64_t i = 0; i < relative_blur.data.size(); ++i) {
             relative_blur[i] = particle_input[i] / relative_blur[i];
@@ -1185,14 +1339,13 @@ void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input,
         convolve(apr, psf_vec, relative_blur, error_est);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) default(none) shared(particle_output, error_est, apr)
+#pragma omp parallel for schedule(static) default(none) shared(particle_output, error_est)
 #endif
         for(uint64_t i = 0; i < particle_output.data.size(); ++i) {
             particle_output[i] = particle_output[i] * error_est[i];
         }
     }
 }
-
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
 void APRFilter::richardson_lucy(APR &apr, ParticleDataTypeInput &particle_input, ParticleDataTypeOutput &particle_output,
