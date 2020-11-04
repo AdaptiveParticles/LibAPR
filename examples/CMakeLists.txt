@@ -4,6 +4,7 @@ macro(buildTarget TARGET)
 endmacro(buildTarget)
 
 buildTarget(Example_get_apr)
+buildTarget(Example_get_apr_by_block)
 buildTarget(Example_apr_iterate)
 buildTarget(Example_reconstruct_image)
 buildTarget(Example_compress_apr)

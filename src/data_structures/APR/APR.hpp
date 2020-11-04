@@ -19,6 +19,8 @@ class APR {
     friend class APRFile;
     template<typename T>
     friend class APRConverter;
+    template<typename T>
+    friend class APRConverterBatch;
     friend class APRBenchHelper;
 
 protected:
@@ -95,6 +97,7 @@ public:
 
     int level_max() const { return aprInfo.l_max; }
     int level_min() const { return aprInfo.l_min; }
+    int level_size(int level) const { return aprInfo.level_size[level]; }
     inline int x_num(const int level) const { return aprInfo.x_num[level]; }
     inline int y_num(const int level) const { return aprInfo.y_num[level]; }
     inline int z_num(const int level) const { return aprInfo.z_num[level]; }

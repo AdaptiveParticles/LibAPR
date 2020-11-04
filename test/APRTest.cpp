@@ -7,6 +7,7 @@
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/APRConverter.hpp"
+#include "algorithm/APRConverterBatch.hpp"
 #include <utility>
 #include <cmath>
 #include "TestTools.hpp"
@@ -2783,6 +2784,66 @@ bool test_pipeline_u16(TestData& test_data){
 
 }
 
+bool test_pipeline_u16_blocked(TestData& test_data) {
+
+    /// Checks that the blocked pipeline (APRConverterBatch) and sampling give the same result as
+    /// the standard methods, given enough ghost slices to cover the entire image (then the Bsplines,
+    /// gradients and local scales should be identical)
+
+    bool success = true;
+
+    const int z_block_size = test_data.img_original.z_num / 4; // process the image in 4 blocks
+    const int z_ghost = test_data.img_original.z_num;          // use the entire image for the computations
+
+    //the apr datastructure
+    APR apr;
+    APR aprBatch;
+    APRConverterBatch<uint16_t> converterBatch;
+    APRConverter<uint16_t> converter;
+
+    converterBatch.set_generate_linear(true);
+    converterBatch.set_sparse_pulling_scheme(false);
+    converter.set_generate_linear(true);
+    converter.set_sparse_pulling_scheme(false);
+
+    APRParameters readPars = test_data.apr.get_apr_parameters();
+    readPars.input_image_name = test_data.filename;
+    readPars.input_dir = "";
+    readPars.name = test_data.output_name;
+    readPars.output_dir = test_data.output_dir;
+    readPars.auto_parameters = false;
+    readPars.output_steps = false;
+    readPars.neighborhood_optimization = true;
+
+    converter.par = readPars;
+    converterBatch.par = readPars;
+
+    converterBatch.z_block_size = z_block_size;
+    converterBatch.ghost_z = z_ghost;
+
+    converter.get_apr(apr, test_data.img_original);
+    converterBatch.get_apr(aprBatch);
+
+    if(aprBatch.total_number_particles() != apr.total_number_particles()){
+        std::cout << "Number of particles do not match! Expected " << apr.total_number_particles() <<
+                  " but received " << aprBatch.total_number_particles() << std::endl;
+
+        return false;
+    }
+
+    ParticleData<uint16_t> parts;
+    ParticleData<uint16_t> partsBatch;
+
+    parts.sample_parts_from_img_downsampled(apr, test_data.img_original);
+    partsBatch.sample_parts_from_img_blocked(aprBatch, test_data.filename, z_block_size, z_ghost);
+
+    for(int i = 0; i < apr.total_number_particles(); ++i) {
+        if(parts[i] != partsBatch[i]) {
+            success = false;
+        }
+    }
+    return success;
+}
 
 bool test_pipeline_bound(TestData& test_data,float rel_error){
     ///
@@ -2843,6 +2904,64 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     }
 
     return success;
+}
+
+bool test_pipeline_bound_blocked(TestData& test_data, float rel_error){
+
+    /// Checks the reconstruction condition (for piecewise constant reconstruction) for the blocked pipeline
+    /// using a local scale computed by the standard APR pipeline
+
+    APRParameters par;
+    par.rel_error = rel_error;
+    par.sigma_th_max = 50;
+    par.sigma_th = 100;
+    par.lambda = 0;
+    par.Ip_th = 0;
+    par.auto_parameters = false;
+    par.output_steps = false;
+    par.neighborhood_optimization = true;
+
+    //where things are
+    par.input_image_name = test_data.filename;
+    par.input_dir = "";
+    par.name = test_data.output_name;
+    par.output_dir = test_data.output_dir;
+
+    // standard APR pipeline with output steps, to get the local intensity scale
+    APRConverter<uint16_t> converter;
+    converter.par = par;
+    converter.par.output_steps = true;
+
+    APR apr;
+    converter.get_apr(apr, test_data.img_original);
+
+    // batch APR converter for blocked conversion
+    APRConverterBatch<uint16_t> converterBatch;
+    converterBatch.par = par;
+    converterBatch.z_block_size = 32;
+    converterBatch.ghost_z = 16;
+
+    // Get the APR by block
+    APR aprBatch;
+    converterBatch.get_apr(aprBatch);
+
+    // Sample particles by block
+    ParticleData<uint16_t> particles_intensities;
+    particles_intensities.sample_parts_from_img_blocked(aprBatch, test_data.filename, 32, 32);
+
+    // Piecewise constant reconstruction
+    PixelData<uint16_t> pc_recon;
+    APRReconstruction::interp_img(aprBatch,pc_recon,particles_intensities);
+
+    //read in intensity scale computed for the entire image by the standard converter
+    PixelData<float> scale = TiffUtils::getMesh<float>(test_data.output_dir + "local_intensity_scale_step.tif");
+
+    TestBenchStats benchStats;
+    benchStats =  compare_gt(test_data.img_original, pc_recon, scale);
+
+    std::cout << "Inf norm: " << benchStats.inf_norm << " Bound: " << rel_error << std::endl;
+
+    return benchStats.inf_norm <= rel_error;
 }
 
 
@@ -3716,6 +3835,16 @@ TEST_F(CreatDiffDimsSphereTest, RECONSTRUCT_LEVEL) {
 }
 
 
+TEST_F(CreatDiffDimsSphereTest, APR_PIPELINE_3D_BLOCKED) {
+    //test blocked pipeline for different error thresholds (E)
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.2));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.1));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.05));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.01));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.001));
+}
+
+
 #ifndef APR_USE_CUDA
 
 TEST_F(CreateSmallSphereTest, PIPELINE_SIZE) {
@@ -3749,13 +3878,20 @@ TEST_F(CreateSmallSphereTest, APR_NEIGHBOUR_ACCESS) {
 }
 
 TEST_F(CreateSmallSphereTest, APR_INPUT_OUTPUT) {
-
     //test iteration
    // ASSERT_TRUE(test_apr_input_output(test_data));
-
     ASSERT_TRUE(test_apr_file(test_data));
-
 }
+
+TEST_F(CreateSmallSphereTest, APR_PIPELINE_3D_BLOCKED) {
+    //test blocked pipeline for different error thresholds (E)
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.2));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.1));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.05));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.01));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.001));
+}
+
 
 TEST_F(CreateGTSmallTest, APR_PIPELINE_3D) {
 
@@ -3767,6 +3903,17 @@ TEST_F(CreateGTSmallTest, APR_PIPELINE_3D) {
     ASSERT_TRUE(test_pipeline_bound(test_data,0.001));
 
 }
+
+
+TEST_F(CreateGTSmallTest, APR_PIPELINE_3D_BLOCKED) {
+    //test blocked pipeline for different error thresholds (E)
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.2));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.1));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.05));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.01));
+    ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.001));
+}
+
 
 #ifndef APR_USE_CUDA
 
@@ -3847,6 +3994,10 @@ TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
 
+}
+
+TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE_BLOCKED) {
+    ASSERT_TRUE(test_pipeline_u16_blocked(test_data));
 }
 
 

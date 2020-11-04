@@ -5,9 +5,11 @@
 #ifndef PARTPLAY_EXTRAPARTICLEDATA_HPP
 #define PARTPLAY_EXTRAPARTICLEDATA_HPP
 
-#include "../iterators/APRIterator.hpp"
-#include "../iterators/LinearIterator.hpp"
+#include "data_structures/APR/iterators/APRIterator.hpp"
+#include "data_structures/APR/iterators/LinearIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
+#include "data_structures/Mesh/ImagePatch.hpp"
+#include "io/TiffUtils.hpp"
 
 #include "GenData.hpp"
 
@@ -102,6 +104,10 @@ public:
         sample_parts_from_img_downsampled_gen(apr,*this,img);
     }
 
+    void sample_parts_from_img_blocked(APR& apr, const std::string& aFileName, const int z_block_size = 256, const int ghost_z = 32) {
+        sample_parts_from_img_blocked_gen(apr, *this, aFileName, z_block_size, ghost_z);
+    }
+
     template<typename S>
     void copy_parts(APR &apr, const ParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
     template<typename V,class BinaryOperation>
@@ -155,6 +161,112 @@ void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,std:
             }
         }
     }
+}
+
+
+template<typename ParticleDataType>
+void sample_parts_from_img_blocked_gen(APR& apr, ParticleDataType& parts, const std::string& aFileName, const int z_block_size = 256, const int ghost_z = 32) {
+
+    TiffUtils::TiffInfo inputTiff(aFileName);
+    if (!inputTiff.isFileOpened()) {
+        std::cerr << "ParticleData::sample_parts_from_img_blocked failed to open TIFF file " << aFileName << std::endl;
+        return;
+    }
+
+    if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT8) {
+        return sample_parts_from_img_blocked_gen<uint8_t, ParticleDataType>(apr, parts, inputTiff, z_block_size, ghost_z);
+    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_FLOAT) {
+        return sample_parts_from_img_blocked_gen<float, ParticleDataType>(apr, parts, inputTiff, z_block_size, ghost_z);
+    } else if (inputTiff.iType == TiffUtils::TiffInfo::TiffType::TIFF_UINT16) {
+        return sample_parts_from_img_blocked_gen<uint16_t, ParticleDataType>(apr, parts, inputTiff, z_block_size, ghost_z);
+    } else {
+        std::cerr << "ParticleData::sample_parts_from_img_blocked: unsupported file type. Input image must be a TIFF of data type uint8, uint16 or float32" << std::endl;
+        return;
+    }
+}
+
+
+/**
+* Samples particles from an image using an image tree (img_by_level is a vector of images)
+*/
+template<typename ImageType,typename ParticleDataType>
+void sample_parts_from_img_blocked_gen(APR& apr, ParticleDataType& parts, const TiffUtils::TiffInfo &aTiffFile, const int z_block_size, const int ghost_z){
+
+    parts.init(apr);
+
+    const int y_num = apr.org_dims(0);
+    const int x_num = apr.org_dims(1);
+    const int z_num = apr.org_dims(2);
+
+    if(aTiffFile.iImgWidth != y_num || aTiffFile.iImgHeight != x_num || aTiffFile.iNumberOfDirectories != z_num) {
+        std::cerr << "Warning: ParticleData::sample_parts_from_img_blocked - input image dimensions do not match APR dimensions" << std::endl;
+    }
+
+    const int number_z_blocks = z_num / z_block_size;
+
+    for(int block = 0; block < number_z_blocks; ++block) {
+
+        int z_0 = block * z_block_size;
+        int z_f = (block == (number_z_blocks - 1)) ? z_num : (block + 1) * z_block_size;
+
+        int z_ghost_l = std::min(z_0, ghost_z);
+        int z_ghost_r = std::min(z_num - z_f, ghost_z);
+
+        ImagePatch patch;
+        initPatchGlobal(patch, z_0 - z_ghost_l, z_f + z_ghost_r, 0, x_num, 0, y_num);
+
+        patch.z_ghost_l = z_ghost_l;
+        patch.z_ghost_r = z_ghost_r;
+        patch.z_offset = z_0 - z_ghost_l;
+
+        PixelData<ImageType> patchImage = TiffUtils::getMesh<ImageType>(aTiffFile, patch.z_begin_global, patch.z_end_global);
+        sample_parts_from_img_downsampled_patch(apr, parts, patchImage, patch);
+    }
+}
+
+template<typename ImageType,typename ParticleDataType>
+void sample_parts_from_img_downsampled_patch(APR& apr, ParticleDataType& parts, PixelData<ImageType>& input_image, ImagePatch& patch) {
+
+    auto it = apr.iterator();
+    //Down-sample the image for particle intensity estimation at coarser resolutions
+    std::vector<PixelData<ImageType>> img_by_level;
+    downsamplePyrmaid(input_image, img_by_level, apr.level_max(), apr.level_min());
+
+    for(int level = it.level_min(); level <= it.level_max(); ++level) {
+//        const int level_factor = std::pow(2,(int)it.level_max()-level);
+        const int level_factor = apr.level_size(level);
+
+        const size_t z_ghost_l = patch.z_ghost_l / level_factor;
+        const size_t z_ghost_r = patch.z_ghost_r / level_factor;
+
+        const size_t x_ghost_l = patch.x_ghost_l / level_factor;
+        const size_t x_ghost_r = patch.x_ghost_r / level_factor;
+
+        const size_t y_ghost_l = patch.y_ghost_l / level_factor;
+        const size_t y_ghost_r = patch.y_ghost_r / level_factor;
+
+        const size_t offset_x = (patch.x_offset + patch.x_ghost_l) / level_factor - x_ghost_l;
+        const size_t offset_y = (patch.y_offset + patch.y_ghost_l) / level_factor - y_ghost_l;
+        const size_t offset_z = (patch.z_offset + patch.z_ghost_l) / level_factor - z_ghost_l;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(it)
+#endif
+        for (int z = z_ghost_l; z < img_by_level[level].z_num - z_ghost_r; ++z) {
+            for (int x = x_ghost_l; x < img_by_level[level].x_num - x_ghost_r; ++x) {
+                it.begin(level, z+offset_z, x+offset_x);
+                while(it.y() < (offset_y + y_ghost_l) && it < it.end()){
+                    it++;
+                }
+                while(it.y() < (offset_y + img_by_level[level].y_num - y_ghost_r) && it < it.end()) {
+                    parts[it] = img_by_level[level].at(it.y()-offset_y, x, z);
+                    it++;
+                }
+            }
+        }
+    }
+
+    std::swap(input_image, img_by_level.back()); // revert swap made by downsamplePyramid
 }
 
 
