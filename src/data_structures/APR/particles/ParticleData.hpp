@@ -202,7 +202,7 @@ void sample_parts_from_img_blocked_gen(APR& apr, ParticleDataType& parts, const 
         std::cerr << "Warning: ParticleData::sample_parts_from_img_blocked - input image dimensions do not match APR dimensions" << std::endl;
     }
 
-    const int number_z_blocks = z_num / z_block_size;
+    const int number_z_blocks = std::max(z_num / z_block_size, 1);
 
     for(int block = 0; block < number_z_blocks; ++block) {
 

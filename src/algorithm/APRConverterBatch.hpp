@@ -121,7 +121,7 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR &aAPR, con
     if(verbose) {
         std::cout << "Full image size (z, y, x): (" << z_num << ", " << x_num << ", " << y_num << ")" << std::endl;
     }
-    const int number_z_blocks = z_num / z_block_size; // last block may be bigger
+    const int number_z_blocks = std::max(z_num / z_block_size, 1); // last block may be bigger
     std::vector<ImagePatch> patches;
     patches.resize(number_z_blocks);
 
@@ -133,30 +133,29 @@ bool APRConverterBatch<ImageType>::get_apr_batch_method_from_file(APR &aAPR, con
     }
     method_timer.stop_timer();
 
-    for (int i = 0; i < number_z_blocks; ++i) {
+    for (int block = 0; block < number_z_blocks; ++block) {
 
-        int z_0 = i * z_block_size;
-        int z_f = (i == (number_z_blocks-1)) ? z_num : (i+1) * z_block_size;
+        int z_0 = block * z_block_size;
+        int z_f = (block == (number_z_blocks - 1)) ? z_num : (block + 1) * z_block_size;
 
         int z_ghost_l = std::min(z_0, ghost_z);
         int z_ghost_r = std::min(z_num - z_f, ghost_z);
 
-        initPatchGlobal(patches[i], z_0 - z_ghost_l, z_f + z_ghost_r, 0, x_num, 0, y_num);
+        initPatchGlobal(patches[block], z_0 - z_ghost_l, z_f + z_ghost_r, 0, x_num, 0, y_num);
 
-        patches[i].z_ghost_l = z_ghost_l;
-        patches[i].z_ghost_r = z_ghost_r;
-        patches[i].z_offset = z_0 - z_ghost_l;
+        patches[block].z_ghost_l = z_ghost_l;
+        patches[block].z_ghost_r = z_ghost_r;
+        patches[block].z_offset = z_0 - z_ghost_l;
 
-        //PixelData<T> patchImage(inputImage.y_num, inputImage.x_num, number_slices);
         method_timer.start_timer("load data");
-        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile, patches[i].z_begin_global, patches[i].z_end_global);
+        PixelData<T> patchImage = TiffUtils::getMesh<T>(aTiffFile, patches[block].z_begin_global, patches[block].z_end_global);
         method_timer.stop_timer();
 
         if(verbose) {
-            std::cout << "Patch " << i+1 << " / " << number_z_blocks << " size: " << patchImage.mesh.size() * sizeof(T) * 1e-6 << " MB" << std::endl;
+            std::cout << "Block " << block + 1 << " / " << number_z_blocks << " size: " << patchImage.mesh.size() * sizeof(T) * 1e-6 << " MB" << std::endl;
         }
 
-        get_apr_method_patch(aAPR, patchImage, patches[i]);
+        get_apr_method_patch(aAPR, patchImage, patches[block]);
     }
 
     method_timer.start_timer("compute_pulling_scheme");
