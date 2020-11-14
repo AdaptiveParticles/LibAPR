@@ -67,7 +67,7 @@ cmake ..
 make
 ```
 
-This will create the `libapr.so` library in the `build` directory, as well as all of the examples.
+This will create the `libapr.dylib` library in the `build` directory, as well as all of the examples.
 
 In case you want to use the homebrew-installed clang (OpenMP support), modify the call to `cmake` above to
 
