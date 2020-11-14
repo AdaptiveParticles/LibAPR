@@ -16,7 +16,7 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 * CMake 3.6 or higher
 * LibTIFF 4.0 or higher
 
-NB: This branch introduces changes to IO and iteration that are not compatable with old versions.
+NB: This update to 2.0 introduces changes to IO and iteration that are not compatable with old versions.
 
 ## Building
 
@@ -78,7 +78,11 @@ CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS
 
 ### Building on Windows
 
+__The simplest way to utilise the library from Windows 10 is through using the Windows Subsystem for Linux; see: https://docs.microsoft.com/en-us/windows/wsl/install-win10 then follow linux instructions.__
+
 __Compilation only works with mingw64/clang or the Intel C++ Compiler, with Intel C++ being the recommended way__
+
+The below instructions for VS can be attempted; however they have not been reproduced.
 
 You need to have Visual Studio 2017 installed, with [the community edition](https://www.visualstudio.com/downloads/) being sufficient. LibAPR does not compile correctly with the default Visual Studio compiler, so you also need to have the [Intel C++ Compiler, 18.0 or higher](https://software.intel.com/en-us/c-compilers) installed. [`cmake`](https://cmake.org/download/) is also a requirement.
 
