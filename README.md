@@ -50,7 +50,7 @@ This will create the `libapr.so` library in the `build` directory, as well as al
 
 ### Docker build
 
-We provide working Dockerfile that install the library within the image on a separate [repo](https://github.com/MSusik/libaprdocker).
+We provide a working Dockerfile that install the library within the image on a separate [repo](https://github.com/MSusik/libaprdocker).
 
 ### Building on OSX
 
