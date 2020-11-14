@@ -75,7 +75,6 @@ In case you want to use the homebrew-installed clang (OpenMP support), modify th
 CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake ..
 ```
 
-
 ### Building on Windows
 
 __The simplest way to utilise the library from Windows 10 is through using the Windows Subsystem for Linux; see: https://docs.microsoft.com/en-us/windows/wsl/install-win10 then follow linux instructions.__
