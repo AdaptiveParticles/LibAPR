@@ -8,7 +8,10 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include <math_functions.h>
+//#include <math_functions.h>
+#include <cuda_runtime_api.h>
+//#include <cuda_runtime.h>
+
 
 #include <iostream>
 #include <chrono>
@@ -48,7 +51,7 @@ public:
 
     void start_timer(const std::string &timing_name) {
         if (iUseTimer) {
-            for (int i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
+            for (size_t i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
             std::cout << "--TIME-- " << iTimerName << " [" << timing_name << "]\n";
             names.push_back(timing_name);
             std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
@@ -69,7 +72,7 @@ public:
             std::chrono::duration<double> elapsedSeconds = endTime - startTime;
             auto name = names.back();
             names.pop_back();
-            for (int i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
+            for (size_t i = 0; i < iStartTimes.size(); ++i) std::cout << "    ";
             std::cout << "--TIME-- " << iTimerName << " [" << name << "] = " << elapsedSeconds.count() << "\n";
         }
     }
@@ -161,12 +164,28 @@ class ScopedCudaMemHandler {
     static_assert(DIRECTION < INVALID, "Wrong value provided for DIRECTION template parameter");
 
     QualifiedElementType *iData;
-    const size_t iSize;
-    const size_t iBytes;
+    size_t iSize;
+    size_t iBytes;
     CudaMemoryUniquePtr<ElementType> iCudaMemory;
-    const cudaStream_t iStream;
+    cudaStream_t iStream;
 
 public:
+
+    /**
+     * Default Constructor for pointer POD types
+     */
+    template <typename T = DATA_TYPE, typename std::enable_if<std::is_pointer<T>::value, int>::type = 0>
+    ScopedCudaMemHandler(){
+    }
+
+    void initialize(DATA_TYPE aData, size_t aSize, const cudaStream_t aStream = nullptr){
+        iData = aData;
+        iSize = aSize;
+        iBytes = (iSize * DataSize);
+        iStream = aStream;
+        initialize();
+    }
+
     /**
      * Constructor for pointer POD types
      */
@@ -200,9 +219,15 @@ public:
     }
 
     ElementType* get() {return iCudaMemory.get();}
+    size_t getSize() const {return iSize; }
+    size_t getNumOfBytes() const {return iBytes; }
 
     void copyH2D() {
         cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);
+    }
+
+    void copyH2D(const size_t numElements) {
+        cudaMemcpyAsync(iCudaMemory.get(), iData, numElements*DataSize, cudaMemcpyHostToDevice, iStream);
     }
 
     void copyD2H() {

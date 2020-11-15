@@ -16,7 +16,7 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 * CMake 3.6 or higher
 * LibTIFF 4.0 or higher
 
-NB: This branch introduces changes to IO and iteration that are not compatable with old versions.
+NB: This update to 2.0 introduces changes to IO and iteration that are not compatable with old versions.
 
 ## Building
 
@@ -50,7 +50,7 @@ This will create the `libapr.so` library in the `build` directory, as well as al
 
 ### Docker build
 
-We provide working Dockerfile that install the library within the image on a separate [repo](https://github.com/MSusik/libaprdocker).
+We provide a working Dockerfile that install the library within the image on a separate [repo](https://github.com/MSusik/libaprdocker).
 
 ### Building on OSX
 
@@ -75,10 +75,13 @@ In case you want to use the homebrew-installed clang (OpenMP support), modify th
 CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake ..
 ```
 
-
 ### Building on Windows
 
+__The simplest way to utilise the library from Windows 10 is through using the Windows Subsystem for Linux; see: https://docs.microsoft.com/en-us/windows/wsl/install-win10 then follow linux instructions.__
+
 __Compilation only works with mingw64/clang or the Intel C++ Compiler, with Intel C++ being the recommended way__
+
+The below instructions for VS can be attempted; however they have not been reproduced.
 
 You need to have Visual Studio 2017 installed, with [the community edition](https://www.visualstudio.com/downloads/) being sufficient. LibAPR does not compile correctly with the default Visual Studio compiler, so you also need to have the [Intel C++ Compiler, 18.0 or higher](https://software.intel.com/en-us/c-compilers) installed. [`cmake`](https://cmake.org/download/) is also a requirement.
 
@@ -96,6 +99,8 @@ cmake --build . --config Debug
 This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5. This will create the `apr.dll` library in the `build/Debug` directory, as well as all of the examples. If you need a `Release` build, run `cmake --build . --config Release` from the `build` directory.
 
 ## Examples and Documentation
+These examples can be turned on by adding -DAPR_BUILD_EXAMPLES=ON to the cmake command.
+
 There are nine basic examples, that show how to generate and compute with the APR:
 
 | Example | How to ... |
@@ -104,8 +109,6 @@ There are nine basic examples, that show how to generate and compute with the AP
 | [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate through a given APR. |
 | [Example_neighbour_access](./examples/Example_neighbour_access.cpp) | access particle and face neighbours. |
 | [Example_compress_apr](./examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR. |
-| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute a gradient based on the stored particles in an APR. |
-| [Example_produce_paraview_file](./examples/Example_produce_paraview_file.cpp) | produce a file for visualisation in ParaView or reading in Matlab. |
 | [Example_random_access](./examples/Example_random_access.cpp) | perform random access operations on particles. |
 | [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR. |
 | [Example_reconstruct_image](./examples/Example_reconstruct_image.cpp) | reconstruct a pixel image from an APR. |
@@ -114,22 +117,17 @@ All examples except Example_get_apr require an already produced APR, such as tho
 
 For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
 
+## LibAPR Tests
+
+The testing framework can be turned on by adding -DAPR_TESTS=ON to the cmake command. All tests can then be run by executing on the command line your build folder.
+```
+ctest
+```
+Please let us know by creating an issue, if any of these tests are failing on your machine.
+
 ## Python support
 
-Basic functionality is supported in Python through wrappers. To build the python module,
-use the CMake option 
-
-`-DAPR_BUILD_PYTHON_WRAPPERS=ON`
-
-Example usage of the available functionality:
-
-| Example | How to ... |
-|:--|:--|
-| [Example_get_apr_from_array](./examples/python_examples/Example_get_apr_from_array.py) | create an APR from an ndarray and store as hdf5. |
-| [Example_get_apr_from_file](./examples/python_examples/Example_get_apr_from_file.py) | create an APR from a TIFF and store as hdf5. |
-| [Example_reconstruct_image](./examples/python_examples/Example_reconstruct_image.py) | read in an APR and reconstruct a pixel image |
-
-Note that you may have to manually change the `sys.path.insert()` statements before `import pyApr` in these scripts to insert your build folder.
+Note: These have been updated and externalised, and will be released shortly.
 
 ## Java wrappers
 

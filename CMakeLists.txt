@@ -16,7 +16,6 @@ option(APR_USE_LIBTIFF "Use LibTIFF" ON)
 option(APR_TESTS "Build APR tests" OFF)
 option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
 option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
-option(APR_BUILD_PYTHON_WRAPPERS "Build APR PYTHON wrappers (experimental - under development)" OFF)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
@@ -38,8 +37,9 @@ list(APPEND CMAKE_MODULE_PATH
 ###############################################################################
 # Generate configuration file
 ###############################################################################
-set (APR_VERSION_MAJOR 1)
-set (APR_VERSION_MINOR 2)
+
+set (APR_VERSION_MAJOR 2)
+set (APR_VERSION_MINOR 0)
 set (APR_VERSION_PATCH 0)
 set (APR_VERSION_STRING ${APR_VERSION_MAJOR}.${APR_VERSION_MINOR}.${APR_VERSION_PATCH})
 execute_process(COMMAND git rev-parse HEAD
@@ -53,10 +53,14 @@ configure_file (
 include_directories("${PROJECT_BINARY_DIR}")
 message("Configuring for APR version: " ${APR_VERSION_STRING})
 
-
 ###############################################################################
 # Find all required libraries
 ###############################################################################
+
+#pthreads
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 find_package(HDF5 REQUIRED)
 find_package(ZLIB REQUIRED)
 if(APR_USE_LIBTIFF)
@@ -113,17 +117,17 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
     if(NOT WIN32)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
     endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
 endif()
 
@@ -160,8 +164,13 @@ if(APR_USE_CUDA)
 	        src/algorithm/ComputeGradientCuda.cu
             src/data_structures/Mesh/PixelData.cu
             src/algorithm/LocalIntensityScale.cu
+            src/algorithm/OVPC.cu
+            src/data_structures/APR/access/GPUAccess.cu
+            src/numerics/APRDownsampleGPU.cu
+            src/numerics/APRIsoConvGPU.cu
             )
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+
 endif()
 
 if(APR_BUILD_STATIC_LIB)
@@ -296,21 +305,15 @@ if(APR_TESTS)
 endif(APR_TESTS)
 
 ###############################################################################
-# PYTHON wrappers
+# Performance Benchmarks
 ###############################################################################
-if(APR_BUILD_PYTHON_WRAPPERS)
-    message(STATUS "APR: Building PYTHON wrappers")
-    set(PYBIND11_PYTHON_VERSION 2.7)
 
-    add_subdirectory("external/pybind11")
+if(APR_BENCHMARK)
+    message(STATUS "APR: Benchmarking performance")
+    add_subdirectory(benchmarks)
+endif(APR_BENCHMARK)
 
-    set(APR_PYTHON_MODULE_NAME pyApr)
-    add_definitions(-DAPR_PYTHON_MODULE_NAME=${APR_PYTHON_MODULE_NAME})
-    add_library(${APR_PYTHON_MODULE_NAME} MODULE src/wrapper/pythonBind.cpp $<TARGET_OBJECTS:aprObjLib>)
-    target_include_directories(${APR_PYTHON_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(${APR_PYTHON_MODULE_NAME} PRIVATE pybind11::module ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
-    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES OUTPUT_NAME ${APR_PYTHON_MODULE_NAME})
-    set_target_properties(${APR_PYTHON_MODULE_NAME} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                                               SUFFIX "${PYTHON_MODULE_EXTENSION}")
+###############################################################################
+# PYTHON wrappers These are now external please ask us for access
+###############################################################################
 
-endif(APR_BUILD_PYTHON_WRAPPERS)

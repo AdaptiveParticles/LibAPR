@@ -4,7 +4,8 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include <device_functions.h>
+//#include <device_functions.h>
+#include <cuda_runtime_api.h>
 
 #include "misc/CudaTools.cuh"
 
@@ -22,7 +23,6 @@ void downsampleMeanCuda(const PixelData<T> &input, PixelData<S> &output) {
 
     runDownsampleMean(in.get(), out.get(), input.x_num, input.y_num, input.z_num, 0);
 };
-
 
 template <typename T, typename S>
 void downsampleMaxCuda(const PixelData<T> &input, PixelData<S> &output) {

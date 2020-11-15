@@ -17,6 +17,7 @@ Additional settings (High Level):
 
 -I_th intensity_threshold  (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
 -SNR_min minimal_snr (minimal ratio of the signal to the standard deviation of the background, set by default to 6)
+-grad_th gradient threshold for ignoring small gradients.
 
 Advanced (Direct) Settings:
 
@@ -24,7 +25,6 @@ Advanced (Direct) Settings:
 -min_signal min_signal_val (directly sets a minimum absolute signal size relative to the local background, also useful for removing background, otherwise set using estimated background noise estimate and minimal SNR of 6)
 -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
--normalize_input (flag that will rescale the input from the input data range to 80% of the output data type range, useful for float scaled datasets)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
 -compress_type (Default: 0, loss-less compression of partilce intensities, (1,2) WNL (Balázs et al. 2017) - approach compression applied to particles (1 = without prediction, 2 = with)
 
@@ -37,41 +37,50 @@ Advanced (Direct) Settings:
 #include <iostream>
 #include "ConfigAPR.h"
 #include "Example_get_apr.h"
+#include "io/APRFile.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "data_structures/APR/APR.hpp"
+#include "algorithm/APRConverter.hpp"
 
 #include <future>
 #include <thread>
 
-
 int runAPR(cmdLineOptions options) {
     //the apr datastructure
-    APR<uint16_t> apr;
+    APR apr;
+
+    APRConverter<uint16_t> aprConverter;
 
     //read in the command line options into the parameters file
-    apr.parameters.Ip_th = options.Ip_th;
-    apr.parameters.rel_error = options.rel_error;
-    apr.parameters.lambda = options.lambda;
-    apr.parameters.mask_file = options.mask_file;
-    apr.parameters.min_signal = options.min_signal;
-    apr.parameters.SNR_min = options.SNR_min;
-    apr.parameters.normalized_input = options.normalize_input;
-    apr.parameters.neighborhood_optimization = options.neighborhood_optimization;
-    apr.parameters.output_steps = options.output_steps;
+    aprConverter.par.Ip_th = options.Ip_th;
+    aprConverter.par.rel_error = options.rel_error;
+    aprConverter.par.lambda = options.lambda;
+    aprConverter.par.mask_file = options.mask_file;
+    aprConverter.par.min_signal = options.min_signal;
+    aprConverter.par.SNR_min = options.SNR_min;
+    aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
+    aprConverter.par.output_steps = options.output_steps;
+    aprConverter.par.grad_th = options.grad_th;
 
     //where things are
-    apr.parameters.input_image_name = options.input;
-    apr.parameters.input_dir = options.directory;
-    apr.parameters.name = options.output;
-    apr.parameters.output_dir = options.output_dir;
+    aprConverter.par.input_image_name = options.input;
+    aprConverter.par.input_dir = options.directory;
+    aprConverter.par.name = options.output;
+    aprConverter.par.output_dir = options.output_dir;
 
-    apr.apr_converter.fine_grained_timer.verbose_flag = false;
-    apr.apr_converter.method_timer.verbose_flag = false;
-    apr.apr_converter.computation_timer.verbose_flag = false;
-    apr.apr_converter.allocation_timer.verbose_flag = false;
-    apr.apr_converter.total_timer.verbose_flag = true;
+    aprConverter.fine_grained_timer.verbose_flag = false;
+    aprConverter.method_timer.verbose_flag = false;
+    aprConverter.computation_timer.verbose_flag = false;
+    aprConverter.allocation_timer.verbose_flag = false;
+    aprConverter.total_timer.verbose_flag = true;
+
+    PixelData<uint16_t> input_img = TiffUtils::getMesh<uint16_t>(options.directory + options.input);
 
     //Gets the APR
-    if(apr.get_apr()){
+    if(aprConverter.get_apr(apr, input_img)){
 
+        ParticleData<uint16_t> particle_intensities;
+        particle_intensities.sample_parts_from_img_downsampled(apr,input_img); // sample your particles from your image
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 
         //output
@@ -83,62 +92,42 @@ int runAPR(cmdLineOptions options) {
         timer.verbose_flag = true;
 
         std::cout << std::endl;
-        float original_pixel_image_size = (2.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1000000.0);
+        float original_pixel_image_size = (2.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/(1000000.0);
         std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
 
         timer.start_timer("writing output");
 
         std::cout << "Writing the APR to hdf5..." << std::endl;
 
-        //feel free to change
-        unsigned int blosc_comp_type = BLOSC_ZSTD; //Lizard Codec
-        unsigned int blosc_comp_level = 4;
-        unsigned int blosc_shuffle = 1;
-
-        apr.apr_compress.set_compression_type(options.compress_type);
-        apr.apr_compress.set_quantization_factor(options.quantization_factor);
-
         //write the APR to hdf5 file
-        FileSizeInfo fileSizeInfo = apr.write_apr(save_loc,file_name,blosc_comp_type,blosc_comp_level,blosc_shuffle,options.store_tree);
-        float apr_file_size = fileSizeInfo.total_file_size;
+        APRFile aprFile;
+
+        aprFile.open(save_loc + file_name + ".apr");
+
+        aprFile.set_read_write_tree(false); //not writing tree to file.
+
+        aprFile.write_apr(apr);
+        aprFile.write_particles("particle_intensities",particle_intensities);
+
+        float apr_file_size = aprFile.current_file_size_MB();
 
         timer.stop_timer();
 
-        float computational_ratio = (1.0f*apr.orginal_dimensions(0)*apr.orginal_dimensions(1)*apr.orginal_dimensions(2))/(1.0f*apr.total_number_particles());
+        float computational_ratio = (1.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/(1.0f*apr.total_number_particles());
 
         std::cout << std::endl;
         std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
         std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
         std::cout << std::endl;
 
-        if(options.output_steps) {
-
-            PixelData<uint16_t> level;
-
-            apr.interp_level(level);
-
-            std::cout << std::endl;
-
-            std::cout << "Saving Particle Cell level as tiff image" << std::endl;
-
-            std::string output_path = save_loc + file_name + "_level.tif";
-            //write output as tiff
-            TiffUtils::saveMeshAsTiff(output_path, level);
-
-            PixelData<uint16_t> pc_img;
-
-            apr.interp_img(pc_img,apr.particles_intensities);
-
-            std::cout << std::endl;
-
-            std::cout << "Saving piece-wise constant image recon as tiff image" << std::endl;
-
-            output_path = save_loc + file_name + "_pc.tif";
-            //write output as tiff
-            TiffUtils::saveMeshAsTiff(output_path, pc_img);
+        if(aprConverter.par.output_steps){
+            particle_intensities.fill_with_levels(apr);
+            PixelData<uint16_t> level_img;
+            APRReconstruction::interp_img(apr,level_img,particle_intensities);
+            TiffUtils::saveMeshAsTiff(options.output_dir + "level_image.tif",level_img);
         }
 
-        } else {
+    } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
     }
     return 0;
@@ -239,6 +228,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-I_th"))
     {
         result.Ip_th = std::stof(std::string(get_command_option(argv, argv + argc, "-I_th")));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-grad_th"))
+    {
+        result.grad_th = std::stof(std::string(get_command_option(argv, argv + argc, "-grad_th")));
     }
 
     if(command_option_exists(argv, argv + argc, "-SNR_min"))

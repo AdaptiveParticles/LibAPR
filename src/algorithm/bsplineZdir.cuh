@@ -94,6 +94,7 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
         int64_t offset = xDirOffset + 2 * nextElementZdirOffset + yDirOffset;
         int64_t offsetLimit = xDirOffset + (dirLen - 2) * nextElementZdirOffset;
         while (offset < offsetLimit) {
+            __syncthreads(); // only needed for speed imporovement (memory coalescing)
             const float temp = temp1 * b2 + temp2 * b1 + image[offset];
             image[offset] = temp;
             temp1 = temp2;
@@ -106,7 +107,7 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
         offset = xDirOffset + (dirLen - 3) * nextElementZdirOffset + yDirOffset;
         offsetLimit = xDirOffset;
         while (offset >= offsetLimit) {
-            // do calculations and store
+            __syncthreads(); // only needed for speed imporovement (memory coalescing)
             const float temp = temp3 * b1 + temp4 * b2 + image[offset];
             image[offset] = temp * norm_factor;
             temp4 = temp3;
@@ -124,7 +125,7 @@ template<typename T>
 void runBsplineZdir(T *cudaImage, size_t x_num, size_t y_num, size_t z_num,
                     const float *bc1, const float *bc2, const float *bc3, const float *bc4,
                     size_t k0, float b1, float b2, float norm_factor, cudaStream_t aStream) {
-    constexpr int numOfWorkersYdir = 64;
+    constexpr int numOfWorkersYdir = 128;
     dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
     dim3 numBlocksZ(1,
                     (y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,

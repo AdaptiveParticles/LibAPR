@@ -7,7 +7,8 @@
 #include "algorithm/APRParameters.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/APR/APR.hpp"
-
+#include "algorithm/APRConverter.hpp"
+#include "io/APRWriter.hpp"
 
 struct cmdLineOptions{
     std::string gt_input = "";
@@ -31,6 +32,7 @@ struct cmdLineOptions{
     float lambda = -1;
     float min_signal = -1;
     float rel_error = 0.1;
+    float grad_th = 1;
 };
 
 bool command_option_exists(char **begin, char **end, const std::string &option);

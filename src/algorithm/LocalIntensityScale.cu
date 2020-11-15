@@ -7,7 +7,8 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include <math_functions.h>
+//#include <cuda_runtime_api.h>
+//#include <cuda_runtime.h>
 
 #include "misc/CudaTools.cuh"
 
@@ -102,8 +103,8 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
     float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
-    int currElementOffset = 0;
-    int saveElementOffset = 0;
+    size_t currElementOffset = 0;
+    size_t saveElementOffset = 0;
 
     if (workerYoffset < y_num) {
         // clear shared mem
@@ -182,8 +183,8 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
     float (*data)[NumberOfWorkers] = (float (*)[NumberOfWorkers])sharedMem;
 
     const int divisor = 2 * offset  + 1;
-    int currElementOffset = 0;
-    int saveElementOffset = 0;
+    size_t currElementOffset = 0;
+    size_t saveElementOffset = 0;
 
     if (workerYoffset < y_num) {
         // clear shared mem
@@ -203,7 +204,7 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // Pointer in circular buffer
         int beginPtr = offset;
 
-        // main loop going through all elements in range [0, x_num-offset)
+        // main loop going through all elements in range [0, z_num-offset)
         for (int z = 0; z < z_num - offset; ++z) {
             // Read new element
             T v = image[workerOffset + currElementOffset];
@@ -336,7 +337,7 @@ template <typename T, typename S>
 void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream) {
     float var_rescale;
     std::vector<int> var_win;
-    LocalIntensityScale().get_window(var_rescale, var_win, par);
+    LocalIntensityScale().get_window_alt(var_rescale, var_win, par,image);
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
     size_t win_z = var_win[2];
@@ -361,8 +362,10 @@ template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>
 template <typename T>
 void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
     ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
-
+    APRTimer timer(true);
+    timer.start_timer("GpuDeviceTimeFull");
     runMean(cudaImage.get(), image, offset, offset, offset, flags, 0);
+    timer.stop_timer();
 }
 
 // explicit instantiation of handled types
