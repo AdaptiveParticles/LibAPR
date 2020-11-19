@@ -47,6 +47,11 @@ public:
         compressor = parts2Copy.compressor;
     }
 
+    void swap(ParticleData& aObj) {
+        std::swap(compressor, aObj.compressor);
+        data.swap(aObj.data);
+    }
+
     void init(uint64_t aTotalNumberOfParticles) { data.resize(aTotalNumberOfParticles); }
     /*
      * Init dataset with enough particles up to level
@@ -84,7 +89,7 @@ public:
 
     uint64_t size() const  { return data.size(); }
     inline DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
-
+    inline const DataType& operator[](uint64_t aGlobalIndex) const { return data[aGlobalIndex]; }
 
     inline DataType& operator[](const LinearIterator& it)  {
         return data[it.global_index()];
@@ -120,7 +125,11 @@ public:
     inline void map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
 
     void set_to_zero()  {
-        std::fill(data.begin(),data.end(),0);
+        data.fill(0);
+    }
+
+    void fill(DataType val) {
+        data.fill(val);
     }
 
 

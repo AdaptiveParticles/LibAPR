@@ -199,9 +199,8 @@ public :
         vec.set(array, size);
     }
 
-    inline T& operator[](size_t index){
-        return vec[index];
-    };
+    inline T& operator[](size_t index){ return vec[index]; };
+    inline const T& operator[](size_t index) const { return vec[index]; };
 
     /**
     * Fills the array with a given value
@@ -229,6 +228,16 @@ public :
     void copy(const VectorData<CopyType>& ToCopy){
         resize(ToCopy.size());
         std::copy(ToCopy.begin(),ToCopy.end(),begin());
+    }
+
+    /**
+     * Swaps data of VectorData this <-> aObj
+     * @param aObj
+     */
+    void swap(VectorData &aObj) {
+        std::swap(usePinnedMemory, aObj.usePinnedMemory);
+        std::swap(vecMemory, aObj.vecMemory);
+        vec.swap(aObj.vec);
     }
 
 
