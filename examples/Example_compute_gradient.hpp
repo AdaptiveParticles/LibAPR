@@ -9,18 +9,17 @@
 #include <string>
 
 #include "data_structures/APR/APR.hpp"
-#include "numerics/APRNumerics.hpp"
 #include "numerics/MeshNumerics.hpp"
 
 struct cmdLineOptions{
-    std::string output = "output";
+    std::string output = "";
     std::string stats = "";
     std::string directory = "";
     std::string input = "";
-    bool stats_file = false;
-    std::string original_image = "";
-    unsigned int smooth_number = 0;
-    float anisotropy_z = 1.0f;
+    bool sobel = false;
+    float dx = 1.0f;
+    float dy = 1.0f;
+    float dz = 1.0f;
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv);

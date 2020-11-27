@@ -37,10 +37,8 @@ int main(int argc, char **argv) {
 
         benchAPRHelper.generate_dataset(i,apr,parts);
 
-        ParticleData<float> floatparts(apr.total_number_particles());
-        for(int j = 0; j < parts.size(); ++j) {
-            floatparts[j] = parts[j];
-        }
+        ParticleData<float> floatparts;
+        floatparts.copy(parts);
 
         //put benchmark funtions here..
 

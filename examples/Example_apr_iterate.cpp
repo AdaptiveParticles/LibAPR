@@ -7,7 +7,7 @@ Examples of simple iteration an access to Particle Cell, and particle informatio
 
 Usage:
 
-(using *_apr.h5 output of Example_get_apr)
+(using *.apr output of Example_get_apr)
 
 Example_apr_iterate -i input_image_tiff -d input_directory
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     aprFile.read_apr(apr);
 
     ParticleData<uint16_t>parts;
-    aprFile.read_particles(apr,"particle_intensities",parts);
+    aprFile.read_particles(apr,"particles",parts);
 
     aprFile.close();
     timer.stop_timer();
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR serial iterator loop");
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parrellel iterator loop by level");
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator loop");
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
     //compare to explicit loop
     timer.start_timer("Using parallel iterator loop: square the dataset");
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
     timer.start_timer("Take the absolute value and output");
     ParticleData<float> output_1;
     //return the absolute value of the part dataset (includes initialization of the output result)
-    calc_ex.map(apr,output_1,[](const float &a) { return std::abs(a); });
+    calc_ex.map(apr, output_1, [](const float &a) { return std::abs(a); });
     timer.stop_timer();
 
     /// Two datasets, binary operation, return result to the particle dataset form which it is performed.

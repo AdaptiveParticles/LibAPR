@@ -20,9 +20,9 @@ namespace {
     template<typename T>
     bool compare(PixelData<T> &mesh, const float *data, const float epsilon) {
         size_t dataIdx = 0;
-        for (size_t z = 0; z < mesh.z_num; ++z) {
-            for (size_t y = 0; y < mesh.y_num; ++y) {
-                for (size_t x = 0; x < mesh.x_num; ++x) {
+        for (int z = 0; z < mesh.z_num; ++z) {
+            for (int y = 0; y < mesh.y_num; ++y) {
+                for (int x = 0; x < mesh.x_num; ++x) {
                     bool v = std::abs(mesh(y, x, z) - data[dataIdx]) < epsilon;
                     if (v == false) {
                         std::cerr << "Mesh and expected data differ. First place at (Y, X, Z) = " << y << ", " << x
@@ -83,9 +83,9 @@ namespace {
     template<typename T>
     bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
         size_t dataIdx = 0;
-        for (size_t z = 0; z < mesh.z_num; ++z) {
-            for (size_t y = 0; y < mesh.y_num; ++y) {
-                for (size_t x = 0; x < mesh.x_num; ++x) {
+        for (int z = 0; z < mesh.z_num; ++z) {
+            for (int y = 0; y < mesh.y_num; ++y) {
+                for (int x = 0; x < mesh.x_num; ++x) {
                     mesh(y, x, z) = data[dataIdx];
                     ++dataIdx;
                 }

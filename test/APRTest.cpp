@@ -128,7 +128,7 @@ bool compare_two_iterators(Iterator1& it1, Iterator2& it2,bool success = true){
     uint64_t counter_1 = 0;
     uint64_t counter_2 = 0;
 
-    for (unsigned int level = it1.level_min(); level <= it1.level_max(); ++level) {
+    for (int level = it1.level_min(); level <= it1.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -179,7 +179,7 @@ bool compare_two_iterators(Iterator1& it1, Iterator2& it2,bool success = true){
 
 
 
-    for (unsigned int level = it2.level_min(); level <= it2.level_max(); ++level) {
+    for (int level = it2.level_min(); level <= it2.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -315,7 +315,7 @@ bool test_random_access_it(TestData& test_data){
     uint64_t delta = std::floor(test_data.apr.total_number_particles()/(test_number*1.0)) - 1;
 
     // choose approximately test_number particles to search for.
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -461,9 +461,9 @@ bool check_symmetry(PixelData<DataType>& img){
 
     //difference of two allowed to account for rounding both ways error.
 
-    for (size_t k = 0; k < img.z_num; ++k) {
-        for (size_t j = 0; j < img.x_num; ++j) {
-            for (size_t i = 0; i < img.y_num; ++i) {
+    for (int k = 0; k < img.z_num; ++k) {
+        for (int j = 0; j < img.x_num; ++j) {
+            for (int i = 0; i < img.y_num; ++i) {
 
                  {
 
@@ -918,7 +918,7 @@ bool test_linear_access_create(TestData& test_data) {
 
     auto it = apr.iterator();
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -1955,7 +1955,7 @@ bool test_apr_neighbour_access(TestData& test_data){
     ParticleData<uint16_t> y_p(test_data.apr.total_number_particles());
     ParticleData<uint16_t> z_p(test_data.apr.total_number_particles());
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -1986,7 +1986,7 @@ bool test_apr_neighbour_access(TestData& test_data){
 
     uint64_t counter = 0;
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2071,7 +2071,7 @@ bool test_apr_neighbour_access(TestData& test_data){
         }
     }
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2179,7 +2179,7 @@ bool test_particle_structures(TestData& test_data) {
 
     auto counter_p = 0;
 
-    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+    for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
         int z = 0;
 
         for (z = 0; z < lin_it.z_num(level); z++) {
@@ -2213,7 +2213,7 @@ bool test_particle_structures(TestData& test_data) {
 
     auto counter_pc = 0;
 
-    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+    for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
         int z = 0;
 
         for (z = 0; z < lin_it.z_num(level); z++) {
@@ -2255,7 +2255,7 @@ bool test_particle_structures(TestData& test_data) {
     level_p.fill_with_levels(test_data.apr);
     level_pc.fill_with_levels(test_data.apr);
 
-    for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+    for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
         int z = 0;
 
         for (z = 0; z < lin_it.z_num(level); z++) {
@@ -2284,7 +2284,7 @@ bool test_particle_structures(TestData& test_data) {
     level_p_tree.fill_with_levels_tree(test_data.apr);
     level_pc_tree.fill_with_levels_tree(test_data.apr);
 
-    for (unsigned int level = it_tree.level_min(); level <= it_tree.level_max(); ++level) {
+    for (int level = it_tree.level_min(); level <= it_tree.level_max(); ++level) {
         int z = 0;
 
         for (z = 0; z < it_tree.z_num(level); z++) {
@@ -2335,7 +2335,7 @@ bool test_linear_iterate(TestData& test_data) {
     parts.init(test_data.apr.total_number_particles());
 
     uint64_t c_t = 0;
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2353,7 +2353,7 @@ bool test_linear_iterate(TestData& test_data) {
 
 
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2428,7 +2428,7 @@ bool test_linear_iterate(TestData& test_data) {
 
     //Test parallel loop
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2494,7 +2494,7 @@ bool test_linear_iterate(TestData& test_data) {
 
     auto it_l = test_data.apr.iterator();
 
-    for (unsigned int level = it_l.level_min(); level <= it_l.level_max(); ++level) {
+    for (int level = it_l.level_min(); level <= it_l.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2538,7 +2538,7 @@ bool test_apr_random_iterate(TestData& test_data){
 
     uint64_t particle_number = 0;
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2602,7 +2602,7 @@ bool test_apr_random_iterate(TestData& test_data){
 
     //Test parallel loop
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2667,7 +2667,7 @@ bool test_apr_random_iterate(TestData& test_data){
     }
 
     uint64_t counter = 0;
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -2838,7 +2838,7 @@ bool test_pipeline_u16_blocked(TestData& test_data) {
     parts.sample_parts_from_img_downsampled(apr, test_data.img_original);
     partsBatch.sample_parts_from_img_blocked(aprBatch, test_data.filename, z_block_size, z_ghost);
 
-    for(int i = 0; i < apr.total_number_particles(); ++i) {
+    for(size_t i = 0; i < apr.total_number_particles(); ++i) {
         if(parts[i] != partsBatch[i]) {
             success = false;
         }
@@ -3010,7 +3010,7 @@ bool test_convolve_pencil(TestData &test_data, const bool boundary = false, cons
 
     double sz = stenc.mesh.size();
     double sum = sz * (sz-1)/2;
-    for(int i = 0; i < stenc.mesh.size(); ++i){
+    for(size_t i = 0; i < stenc.mesh.size(); ++i){
         stenc.mesh[i] = i / sum;
     }
 
@@ -3051,7 +3051,7 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const std::
 
     double sz = stenc.mesh.size();
     double sum = sz * (sz-1)/2;
-    for(int i = 0; i < stenc.mesh.size(); ++i){
+    for(size_t i = 0; i < stenc.mesh.size(); ++i){
         stenc.mesh[i] = i / sum;
     }
 
@@ -4011,7 +4011,7 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
 
     std::cout << "comparing downsampled stencils for VectorData and PixelData inputs" << std::endl;
 
-    for(int i = 0; i < stencil_vec_pd.size(); ++i) {
+    for(size_t i = 0; i < stencil_vec_pd.size(); ++i) {
         if( std::abs( stencil_vec_pd[i] - stencil_vec_vd[i] ) > 1e-5 ) {
             std::cout << "stencil_vec_vd = " << stencil_vec_vd[i] << " stencil_vec_pd = " << stencil_vec_pd[i] << " at index " << i << std::endl;
             success = false;
@@ -4025,8 +4025,8 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
     std::cout << "comparing downsampeld stencils for VectorData and std::vector<PixelData> output" << std::endl;
     success = true;
     int c = 0;
-    for(int dlvl = 0; dlvl < pd_vec.size(); ++dlvl) {
-        for(int i = 0; i < pd_vec[dlvl].mesh.size(); ++i) {
+    for(size_t dlvl = 0; dlvl < pd_vec.size(); ++dlvl) {
+        for(size_t i = 0; i < pd_vec[dlvl].mesh.size(); ++i) {
             if( std::abs( pd_vec[dlvl].mesh[i] - stencil_vec_pd[c] ) > 1e-5 ) {
                 std::cout << "pd_vec = " << pd_vec[dlvl].mesh[i] << " stencil_vec_pd = " << stencil_vec_pd[c] <<
                           " at dlvl = " << dlvl << " and i = " << i << std::endl;

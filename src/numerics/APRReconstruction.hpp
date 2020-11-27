@@ -48,7 +48,7 @@ public:
         parts.data.resize(it.total_number_particles());
         std::cout << "Total number of particles: " << it.total_number_particles() << std::endl;
 
-        for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+        for (int level = it.level_min(); level <= it.level_max(); ++level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(it)
 #endif
@@ -175,7 +175,7 @@ public:
         temp_imgs[apr.level_max()].swap(img);
 
 
-        for (unsigned int level = apr_iterator.level_min(); level <= (apr_iterator.level_max()+delta); ++level) {
+        for (int level = apr_iterator.level_min(); level <= (apr_iterator.level_max()+delta); ++level) {
             int z = 0;
             int x = 0;
 
@@ -276,7 +276,7 @@ public:
         temp_imgs[apr.level_max()].swap(img);
 
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -547,7 +547,7 @@ public:
 #ifdef HAVE_OPENMP
 	#pragma omp parallel for schedule(static) firstprivate(apr_iterator)
 #endif
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -637,14 +637,14 @@ public:
 
 
     template<typename T>
-    static void calc_sat_adaptive_y(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
+    static void calc_sat_adaptive_y(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in, int offset_max_in,const int d_max){
         //
         //  Bevan Cheeseman 2016
         //
         //  Calculates a O(1) recursive mean using SAT.
         //
 
-        offset_max_in = std::min(offset_max_in,(unsigned int)(input.y_num/2 - 1));
+        offset_max_in = std::min(offset_max_in, (input.y_num/2 - 1));
 
         const int64_t z_num = input.z_num;
         const int64_t x_num = input.x_num;
@@ -762,19 +762,19 @@ public:
 
 
     template<typename T>
-    static void calc_sat_adaptive_x(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max){
+    static void calc_sat_adaptive_x(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in, int offset_max_in,const int d_max){
         //
         //  Adaptive form of Matteusz' SAT code.
         //
         //
 
-        offset_max_in = std::min(offset_max_in,(unsigned int)(input.x_num/2 - 1));
+        offset_max_in = std::min(offset_max_in, (input.x_num/2 - 1));
 
         const int64_t z_num = input.z_num;
         const int64_t x_num = input.x_num;
         const int64_t y_num = input.y_num;
 
-        unsigned int offset_max = offset_max_in;
+        int offset_max = offset_max_in;
 
         std::vector<float> temp_vec;
         temp_vec.resize(y_num*(2*offset_max + 2),0);
@@ -882,11 +882,11 @@ public:
 
 
     template<typename T>
-    static void calc_sat_adaptive_z(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in,unsigned int offset_max_in,const unsigned int d_max ){
+    static void calc_sat_adaptive_z(PixelData<T>& input,PixelData<uint8_t>& offset_img,float scale_in, int offset_max_in,const int d_max ){
 
         // The same, but in place
 
-        offset_max_in = std::min(offset_max_in,(unsigned int)(input.z_num/2 - 1));
+        offset_max_in = std::min(offset_max_in, (input.z_num/2 - 1));
 
         const int64_t z_num = input.z_num;
         const int64_t x_num = input.x_num;
@@ -1007,7 +1007,7 @@ public:
         PixelData<U> pc_image;
         PixelData<uint8_t> k_img;
 
-        unsigned int offset_max = 20;
+        int offset_max = 20;
 
         interp_img(apr,pc_image,interp_data);
 
@@ -1047,14 +1047,14 @@ public:
         PixelData<U> pc_image;
         PixelData<uint8_t> k_img;
 
-        unsigned int offset_max = 10;
+        int offset_max = 10;
 
         //get depth
         ParticleData<U> level_parts(apr.total_number_particles());
 
         auto apr_iterator = apr.iterator();
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -1063,8 +1063,7 @@ public:
 #endif
             for (z = 0; z < apr_iterator.z_num(level); z++) {
                 for (x = 0; x < apr_iterator.x_num(level); ++x) {
-                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end();
-                         apr_iterator++) {
+                    for (apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end(); apr_iterator++) {
                         //
                         //  Demo APR iterator
                         //
@@ -1082,7 +1081,7 @@ public:
         auto apr_iteratorTree = apr.tree_iterator();
 
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -1197,18 +1196,18 @@ private:
         }
 
         //note the use of the dynamic OpenMP schedule.
-        for (unsigned int level = std::min((int)max_level,(int)apr.level_max()); level >= apr_iterator.level_min(); --level) {
+        for (int level = std::min(max_level, apr.level_max()); level >= apr_iterator.level_min(); --level) {
 
             const float step_size = pow(2,max_level - level);
 
             int x_begin_l = (int) floor(x_begin/step_size);
-            int x_end_l = std::min((int)ceil(x_end/step_size),(int) apr_iterator.x_num(level));
+            int x_end_l = std::min((int)ceil(x_end/step_size), apr_iterator.x_num(level));
 
             int z_begin_l= (int)floor(z_begin/step_size);
-            int z_end_l= std::min((int)ceil(z_end/step_size),(int) apr_iterator.z_num(level));
+            int z_end_l= std::min((int)ceil(z_end/step_size), apr_iterator.z_num(level));
 
             int y_begin_l =  (int)floor(y_begin/step_size);
-            int y_end_l = std::min((int)ceil(y_end/step_size),(int) apr_iterator.y_num(level));
+            int y_end_l = std::min((int)ceil(y_end/step_size), apr_iterator.y_num(level));
 
             int z = 0;
             int x = 0;
@@ -1329,18 +1328,18 @@ private:
             APRTreeIterator aprTreeIterator = apr.random_tree_iterator();
 
 
-            unsigned int level = max_level;
+            int level = max_level;
 
             const float step_size = pow(2, max_level - level);
 
             int x_begin_l = (int) floor(x_begin / step_size);
-            int x_end_l = std::min((int) ceil(x_end / step_size), (int) apr_iterator.x_num(level));
+            int x_end_l = std::min((int) ceil(x_end / step_size), apr_iterator.x_num(level));
 
             int z_begin_l = (int) floor(z_begin / step_size);
-            int z_end_l = std::min((int) ceil(z_end / step_size), (int) apr_iterator.z_num(level));
+            int z_end_l = std::min((int) ceil(z_end / step_size), apr_iterator.z_num(level));
 
             int y_begin_l = (int) floor(y_begin / step_size);
-            int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr_iterator.y_num(level));
+            int y_end_l = std::min((int) ceil(y_end / step_size), apr_iterator.y_num(level));
 
             int z = 0;
             int x = 0;

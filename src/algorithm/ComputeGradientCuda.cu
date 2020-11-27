@@ -254,7 +254,7 @@ public:
         bc2(params.bc2.get(), params.k0, iStream),
         bc3(params.bc3.get(), params.k0, iStream),
         bc4(params.bc4.get(), params.k0, iStream),
-        boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * image.x_num * image.z_num},
+        boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)image.x_num * (size_t)image.z_num},
         boundary{nullptr, boundaryLen, iStream}
     {
 //        std::cout << "\n=============== GpuProcessingTaskImpl ===================\n\n";

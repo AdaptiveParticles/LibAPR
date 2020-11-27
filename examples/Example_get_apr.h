@@ -27,10 +27,11 @@ struct cmdLineOptions{
     bool store_tree = false;
     float quantization_factor = 0.5;
 
-    float Ip_th = -1;
-    float SNR_min = -1;
+    bool auto_parameters = false;
+
+    float Ip_th = 0;
     float lambda = -1;
-    float min_signal = -1;
+    float sigma_th = 0;
     float rel_error = 0.1;
     float grad_th = 1;
 };

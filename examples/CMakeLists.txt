@@ -8,9 +8,8 @@ buildTarget(Example_get_apr_by_block)
 buildTarget(Example_apr_iterate)
 buildTarget(Example_reconstruct_image)
 buildTarget(Example_compress_apr)
-#buildTarget(Example_produce_paraview_file) #not likely to be supported going forward
 buildTarget(Example_apr_neighbour_access)
-#buildTarget(Example_compute_gradient)  #needs to be updated to new methods
+buildTarget(Example_compute_gradient)
 buildTarget(Example_random_access)
 
 #buildTarget(Example_reconstruct_patch)  #The way this is working is going to be re-designed.

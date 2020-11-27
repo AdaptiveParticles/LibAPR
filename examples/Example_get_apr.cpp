@@ -11,18 +11,19 @@ Usage:
 
 (minimal with auto-parameters)
 
-Example_get_apr -i input_image_tiff -d input_directory [-o name_of_output]
+Example_get_apr -i input_image_tiff -d input_directory [-o name_of_output] -auto_parameters
+
+Note: auto_parameters sets some parameters by a heuristic, which does not always work very well
 
 Additional settings (High Level):
 
--I_th intensity_threshold  (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
--SNR_min minimal_snr (minimal ratio of the signal to the standard deviation of the background, set by default to 6)
--grad_th gradient threshold for ignoring small gradients.
+-I_th       intensity_threshold (will ignore areas of image below this threshold, useful for removing camera artifacts or auto-flouresence)
+-sigma_th   lower threshold for the local intensity scale
+-grad_th    ignore areas in the image where the gradient magnitude is lower than this value
 
 Advanced (Direct) Settings:
 
 -lambda lambda_value (directly set the value of the gradient smoothing parameter lambda (reasonable range 0.1-10, default: 3)
--min_signal min_signal_val (directly sets a minimum absolute signal size relative to the local background, also useful for removing background, otherwise set using estimated background noise estimate and minimal SNR of 6)
 -mask_file mask_file_tiff (takes an input image uint16_t, assumes all zero regions should be ignored by the APR, useful for pre-processing of isolating desired content, or using another channel as a mask)
 -rel_error rel_error_value (Reasonable ranges are from .08-.15), Default: 0.1
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
@@ -42,8 +43,6 @@ Advanced (Direct) Settings:
 #include "data_structures/APR/APR.hpp"
 #include "algorithm/APRConverter.hpp"
 
-#include <future>
-#include <thread>
 
 int runAPR(cmdLineOptions options) {
     //the apr datastructure
@@ -56,8 +55,8 @@ int runAPR(cmdLineOptions options) {
     aprConverter.par.rel_error = options.rel_error;
     aprConverter.par.lambda = options.lambda;
     aprConverter.par.mask_file = options.mask_file;
-    aprConverter.par.min_signal = options.min_signal;
-    aprConverter.par.SNR_min = options.SNR_min;
+    aprConverter.par.sigma_th = options.sigma_th;
+    aprConverter.par.auto_parameters = options.auto_parameters;
     aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
     aprConverter.par.output_steps = options.output_steps;
     aprConverter.par.grad_th = options.grad_th;
@@ -92,7 +91,7 @@ int runAPR(cmdLineOptions options) {
         timer.verbose_flag = true;
 
         std::cout << std::endl;
-        float original_pixel_image_size = (2.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/(1000000.0);
+        float original_pixel_image_size = (2.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/1000000.0f;
         std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
 
         timer.start_timer("writing output");
@@ -107,7 +106,7 @@ int runAPR(cmdLineOptions options) {
         aprFile.set_read_write_tree(false); //not writing tree to file.
 
         aprFile.write_apr(apr);
-        aprFile.write_particles("particle_intensities",particle_intensities);
+        aprFile.write_particles("particles",particle_intensities);
 
         float apr_file_size = aprFile.current_file_size_MB();
 
@@ -138,22 +137,6 @@ int main(int argc, char **argv) {
 
     //input parsing
     cmdLineOptions options = read_command_line_options(argc, argv);
-
-//    std::vector<std::future<int>> fv;
-//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
-//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
-//    fv.emplace_back(std::async(std::launch::async, [=]{ return runAPR(options); }));
-//    int n = 2;
-//    fv[0].
-//    std::cout << "Waintig..." <<std::endl;
-//    for (int i = 0; i < fv.size()*3; ++i) {
-//        fv[i % n].wait();
-//        fv[i % n] = std::async(std::launch::async, [=]{ return runAPR(options); });
-//    }
-//
-//    for (int i = 0; i < fv.size(); ++i) fv[i].wait();
-//
-//    std::cout << "DONE!" <<std::endl;
 
     return runAPR(options);
 }
@@ -235,15 +218,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.grad_th = std::stof(std::string(get_command_option(argv, argv + argc, "-grad_th")));
     }
 
-    if(command_option_exists(argv, argv + argc, "-SNR_min"))
+    if(command_option_exists(argv, argv + argc, "-sigma_th"))
     {
-        result.SNR_min = std::stof(std::string(get_command_option(argv, argv + argc, "-SNR_min")));
+        result.sigma_th = std::stof(std::string(get_command_option(argv, argv + argc, "-sigma_th")));
     }
 
-    if(command_option_exists(argv, argv + argc, "-min_signal"))
-    {
-        result.min_signal = std::stof(std::string(get_command_option(argv, argv + argc, "-min_signal")));
-    }
 
     if(command_option_exists(argv, argv + argc, "-rel_error"))
     {
@@ -289,6 +268,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-store_tree"))
     {
         result.store_tree = true;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-auto_parameters"))
+    {
+        result.auto_parameters = true;
     }
 
     return result;

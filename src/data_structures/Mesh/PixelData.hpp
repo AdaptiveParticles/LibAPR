@@ -371,16 +371,16 @@ public :
     using value_type = T;
 
     // size of mesh and container for data
-    size_t y_num;
-    size_t x_num;
-    size_t z_num;
+    int y_num;
+    int x_num;
+    int z_num;
     std::unique_ptr<T[]> meshMemory;
 #ifdef APR_USE_CUDA
     PinnedMemoryUniquePtr<T> meshMemoryPinned;
 #endif
     ArrayWrapper<T> mesh;
     
-    uint64_t size() { return x_num * y_num * z_num * sizeof(T); }
+    uint64_t size() { return (uint64_t) x_num * y_num * z_num * sizeof(T); }
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
@@ -457,16 +457,16 @@ public :
      * @param z
      * @return element @(y, x, z)
      */
-    T& operator()(size_t y, size_t x, size_t z) {
+    T& operator()(int y, int x, int z) {
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);
 
-        y = std::max(y, (size_t)0);
-        x = std::max(x, (size_t)0);
-        z = std::max(z, (size_t)0);
+        y = std::max(y, 0);
+        x = std::max(x, 0);
+        z = std::max(z, 0);
 
-        size_t idx = (size_t)z * x_num * y_num + x * y_num + y;
+        size_t idx = (size_t) z * x_num * y_num + x * y_num + y;
         return mesh[idx];
     }
 
@@ -746,14 +746,14 @@ public :
      * @param aNumberOfBlocks - in how many chunks copy will be done
      */
     template<typename U, typename R>
-    void copyFromMeshWithUnaryOp(const PixelData<U> &aInputMesh, R aOp, size_t aNumberOfBlocks = 10) {
-        aNumberOfBlocks = std::min(aInputMesh.z_num, (size_t)aNumberOfBlocks);
+    void copyFromMeshWithUnaryOp(const PixelData<U> &aInputMesh, R aOp, int aNumberOfBlocks = 10) {
+        aNumberOfBlocks = std::min(aInputMesh.z_num, aNumberOfBlocks);
         size_t numOfElementsPerBlock = aInputMesh.z_num/aNumberOfBlocks;
 
         #ifdef HAVE_OPENMP
         #pragma omp parallel for schedule(static)
         #endif
-        for (size_t blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
+        for (int blockNum = 0; blockNum < aNumberOfBlocks; ++blockNum) {
             const size_t elementSize = (size_t)aInputMesh.x_num * aInputMesh.y_num;
             const size_t blockSize = numOfElementsPerBlock * elementSize;
             size_t offsetBegin = blockNum * blockSize;
@@ -777,8 +777,8 @@ public :
      */
     std::string getStrIndex(size_t aIdx) const {
         if (aIdx >= mesh.size()) return "(ErrIdx)";
-        size_t z = aIdx / (x_num * y_num);
-        aIdx -= z * (x_num * y_num);
+        size_t z = aIdx / ((size_t) x_num * y_num);
+        aIdx -= z * ((size_t) x_num * y_num);
         size_t x = aIdx / y_num;
         aIdx -= x * y_num;
         size_t y = aIdx;
@@ -795,10 +795,10 @@ public :
         std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed;
 
         if (aXYplanes) {
-            for (size_t z = 0; z < z_num; ++z) {
+            for (int z = 0; z < z_num; ++z) {
                 std::cout << "z=" << z << "\n";
-                for (size_t y = 0; y < y_num; ++y) {
-                    for (size_t x = 0; x < x_num; ++x) {
+                for (int y = 0; y < y_num; ++y) {
+                    for (int x = 0; x < x_num; ++x) {
                         std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
@@ -807,10 +807,10 @@ public :
             }
         }
         else { // X-Z planes
-            for (size_t y = 0; y < y_num; ++y) {
+            for (int y = 0; y < y_num; ++y) {
                 std::cout << "y=" << y << "\n";
-                for (size_t z = 0; z < z_num; ++z) {
-                    for (size_t x = 0; x < x_num; ++x) {
+                for (int z = 0; z < z_num; ++z) {
+                    for (int x = 0; x < x_num; ++x) {
                         std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
@@ -831,10 +831,10 @@ public :
         std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed;
 
         if (aXYplanes) {
-            for (size_t z = 0; z < z_num; ++z) {
+            for (int z = 0; z < z_num; ++z) {
                 std::cout << "z=" << z << "\n";
-                for (size_t x = 0; x < x_num; ++x) {
-                    for (size_t y = 0; y < y_num; ++y) {
+                for (int x = 0; x < x_num; ++x) {
+                    for (int y = 0; y < y_num; ++y) {
                         std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
@@ -843,10 +843,10 @@ public :
             }
         }
         else { // X-Z planes
-            for (size_t y = 0; y < y_num; ++y) {
+            for (int y = 0; y < y_num; ++y) {
                 std::cout << "y=" << y << "\n";
-                for (size_t x = 0; x < x_num; ++x) {
-                    for (size_t z = 0; z < z_num; ++z) {
+                for (int x = 0; x < x_num; ++x) {
+                    for (int z = 0; z < z_num; ++z) {
                         std::cout << std::setw(aColumnWidth) << std::setprecision(aFloatPrecision) << std::fixed << (sizeof(T) == 1 ? (int)at(y, x, z) : at(y, x, z)) << " ";
                     }
                     std::cout << "\n";
@@ -874,14 +874,14 @@ private:
 
 template<typename T, typename S, typename R, typename C>
 void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
-    const size_t z_num = aInput.z_num;
-    const size_t x_num = aInput.x_num;
-    const size_t y_num = aInput.y_num;
+    const int z_num = aInput.z_num;
+    const int x_num = aInput.x_num;
+    const int y_num = aInput.y_num;
 
     // downsampled dimensions twice smaller (rounded up)
-    const size_t z_num_ds = ceil(z_num/2.0);
-    const size_t x_num_ds = ceil(x_num/2.0);
-    const size_t y_num_ds = ceil(y_num/2.0);
+    const int z_num_ds = ceil(z_num/2.0);
+    const int x_num_ds = ceil(x_num/2.0);
+    const int y_num_ds = ceil(y_num/2.0);
 
     APRTimer timer;
     timer.verbose_flag = false;
@@ -896,19 +896,19 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
     #ifdef HAVE_OPENMP
     #pragma omp parallel for default(shared)
     #endif
-    for (size_t z = 0; z < z_num_ds; ++z) {
-        for (size_t x = 0; x < x_num_ds; ++x) {
+    for (int z = 0; z < z_num_ds; ++z) {
+        for (int x = 0; x < x_num_ds; ++x) {
 
             // shifted +1 in original inMesh space
-            const int64_t shx = std::min(2*x + 1, x_num - 1);
-            const int64_t shz = std::min(2*z + 1, z_num - 1);
+            const int shx = std::min(2*x + 1, x_num - 1);
+            const int shz = std::min(2*z + 1, z_num - 1);
 
             const ArrayWrapper<T> &inMesh = aInput.mesh;
             ArrayWrapper<S> &outMesh = aOutput.mesh;
 
-            for (size_t y = 0; y < y_num_ds; ++y) {
-                const int64_t shy = std::min(2*y + 1, y_num - 1);
-                const int64_t idx = z * x_num_ds * y_num_ds + x * y_num_ds + y;
+            for (int y = 0; y < y_num_ds; ++y) {
+                const int shy = std::min(2*y + 1, y_num - 1);
+                const size_t idx = (size_t) z * x_num_ds * y_num_ds + x * y_num_ds + y;
                 outMesh[idx] =  constant_operator(
                         reduce(reduce(reduce(reduce(reduce(reduce(reduce(        // inMesh coordinates
                                inMesh[2*z * x_num * y_num + 2*x * y_num + 2*y],  // z,   x,   y
@@ -959,15 +959,13 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
 
     timer.start_timer("up_sample_const");
 
-    unsigned int j, i, k;
+    int j, i, k;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds*x_num_ds > 100)
 #endif
     for(j = 0;j < z_num_ds;j++){
-
         for(i = 0;i < x_num_ds;i++){
-
 
             //first take into cache
             for (k = 0; k < y_num_ds;k++){
@@ -975,8 +973,8 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
             }
 
 
-            for (int z = 2*j; z <= std::min((int)(2*j+1),z_num-1); ++z) {
-                for (int x = 2*i; x <= std::min((int)(2*i+1),x_num-1); ++x) {
+            for (int z = 2*j; z <= std::min(2*j+1, z_num-1); ++z) {
+                for (int x = 2*i; x <= std::min(2*i+1, x_num-1); ++x) {
                     for (int y = 0; y < y_num; ++y) {
 
                         input_us.mesh[z*x_num*y_num + x*y_num + y] = temp_vec[y/2];
@@ -1004,7 +1002,7 @@ void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &
 
     // calculate downsampled in range (l_max, l_min]
     auto sum = [](const float x, const float y) -> float { return x + y; };
-    auto divide_by_8 = [](const float x) -> float { return x/8.0; };
+    auto divide_by_8 = [](const float x) -> float { return x/8.0f; };
     for (size_t level = l_max; level > l_min; --level) {
         downsample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
     }
@@ -1023,19 +1021,19 @@ template<typename T>
 void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, int sz_z){
 
     if(input.y_num > 1){
-        sz_y = std::min(sz_y,(int) (input.y_num-1));
+        sz_y = std::min(sz_y, input.y_num-1);
     } else {
         sz_y = 0;
     }
 
     if(input.x_num > 1){
-        sz_x =  std::min(sz_x,(int) (input.x_num-1));
+        sz_x =  std::min(sz_x, input.x_num-1);
     } else {
         sz_x = 0;
     }
 
     if(input.z_num > 1){
-        sz_z =  std::min(sz_z, (int) (input.z_num-1));
+        sz_z =  std::min(sz_z, input.z_num-1);
     } else {
         sz_z = 0;
     }
@@ -1056,23 +1054,22 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
         }
     }
 
-
     if(input.y_num > 1) {
         //reflect y
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < (int) output.z_num; ++j) {
-            for (int i = 0; i < (int) output.x_num; ++i) {
+        for (j = 0; j < output.z_num; ++j) {
+            for (int i = 0; i < output.x_num; ++i) {
 
-                for (int k = 0; k < (sz_y); ++k) {
+                for (int k = 0; k < sz_y; ++k) {
                     output.at(k, i, j) = output.at(2 * sz_y - k, i, j);
                 }
 
                 int idx = sz_y+2;
-                for (int k = ((int) output.y_num - (sz_y)); k < (int) output.y_num; ++k) {
+                for (int k = output.y_num - sz_y; k < output.y_num; ++k) {
 
-                    output.at(k, i, j) = output.at((int) output.y_num - idx, i, j);
+                    output.at(k, i, j) = output.at(output.y_num - idx, i, j);
                     idx++;
                 }
             }
@@ -1084,15 +1081,15 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < (int) output.z_num; ++j) {
-            for (int i = 0; i < (sz_x); ++i) {
-                for (int k = 0; k < (int) output.y_num; ++k) {
+        for (j = 0; j < output.z_num; ++j) {
+            for (int i = 0; i < sz_x; ++i) {
+                for (int k = 0; k < output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, 2 * sz_x - i, j);
                 }
             }
             int idx = sz_x+2;
-            for (int i = (output.x_num - (sz_x)); i < (int) output.x_num; ++i) {
-                for (int k = 0; k < (int) output.y_num; ++k) {
+            for (int i = output.x_num - sz_x; i < output.x_num; ++i) {
+                for (int k = 0; k < output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, output.x_num - idx, j);
 
                 }
@@ -1106,9 +1103,9 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (j = 0; j < (sz_z); ++j) {
-            for (int i = 0; i < (int) output.x_num; ++i) {
-                for (int k = 0; k < (int) output.y_num; ++k) {
+        for (j = 0; j < sz_z; ++j) {
+            for (int i = 0; i < output.x_num; ++i) {
+                for (int k = 0; k < output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, i, 2 * sz_z - j);
                 }
             }
@@ -1117,18 +1114,15 @@ void paddPixels(PixelData<T> &input, PixelData<T> &output, int sz_y, int sz_x, i
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
-        for (int j = ((int)output.z_num - (sz_z)); j < (int)output.z_num; ++j) {
-            auto idx = sz_z+2 + j - (output.z_num - (sz_z));
-            for (int i = 0; i < (int) output.x_num; ++i) {
-                for (int k = 0; k < (int) output.y_num; ++k) {
+        for (int j = output.z_num - sz_z; j < output.z_num; ++j) {
+            auto idx = sz_z+2 + j - (output.z_num - sz_z);
+            for (int i = 0; i < output.x_num; ++i) {
+                for (int k = 0; k < output.y_num; ++k) {
                     output.at(k, i, j) = output.at(k, i, output.z_num - idx);
                 }
             }
-
         }
     }
-
-
 }
 
 
@@ -1156,9 +1150,9 @@ void unpaddPixels(PixelData<T> &input, PixelData<T> &output, int org_dim_y, int 
 #pragma omp parallel for schedule(dynamic) private(j)
 #endif
     //copy across internal
-    for (j = 0; j < (int) output.z_num; ++j) {
-        for (int i = 0; i <  (int) output.x_num; ++i) {
-            for (int k = 0; k <  (int) output.y_num; ++k) {
+    for (j = 0; j < output.z_num; ++j) {
+        for (int i = 0; i < output.x_num; ++i) {
+            for (int k = 0; k < output.y_num; ++k) {
                 output.at(k,i,j) = input.at(k + sz_y, i + sz_x, j + sz_z);
             }
         }

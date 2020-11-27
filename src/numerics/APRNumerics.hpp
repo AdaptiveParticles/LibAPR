@@ -11,6 +11,7 @@
 #include "numerics/APRStencil.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 
+
 namespace APRNumerics {
 
     /**
@@ -217,28 +218,24 @@ void APRNumerics::gradient_magnitude_cfd(APR& apr,
     gradient_cfd(apr, inputParticles, outputParticles, 0, deltas[0]);
 
     // square the result
-    outputParticles.unary_map(outputParticles, [](const GradientType& a){ return a*a; });
+    auto square_h = [](const GradientType& a) -> GradientType { return a*a; };
+    outputParticles.unary_map(outputParticles, square_h);
+
+    auto add_square_h = [](const GradientType &a, const GradientType &b) -> GradientType { return a + b*b; };
 
     if (apr.org_dims(1) > 1) {
-        // compute x gradient
-        gradient_cfd(apr, inputParticles, tmp, 1, deltas[1]);
-
-        // add squared x-gradient to outputParticles
-        tmp.binary_map(outputParticles, outputParticles,
-                       [](const GradientType &a, const GradientType &b) { return a * a + b; });
+        gradient_cfd(apr, inputParticles, tmp, 1, deltas[1]);             // compute x gradient
+        outputParticles.binary_map(tmp, outputParticles, add_square_h);   // add squared x-gradient to outputParticles
     }
 
     if (apr.org_dims(2) > 1) {
-        // compute z gradient
-        gradient_cfd(apr, inputParticles, tmp, 2, deltas[2]);
-
-        // add squared gradient to outputParticles
-        tmp.binary_map(outputParticles, outputParticles,
-                       [](const GradientType &a, const GradientType &b) { return a * a + b; });
+        gradient_cfd(apr, inputParticles, tmp, 2, deltas[2]);             // compute z gradient
+        outputParticles.binary_map(tmp, outputParticles, add_square_h);   // add squared x-gradient to outputParticles
     }
 
     // square root
-    outputParticles.unary_map(outputParticles, [](const GradientType& a){ return sqrtf(a); });
+    auto sqrtf_h = [](const GradientType& a) -> GradientType { return sqrtf(a); };
+    outputParticles.unary_map(outputParticles, sqrtf_h);
 }
 
 
@@ -256,27 +253,24 @@ void APRNumerics::gradient_magnitude_sobel(APR& apr,
     gradient_sobel(apr, inputParticles, outputParticles, 0, deltas[0]);
 
     // square the result
-    outputParticles.unary_map(outputParticles, [](const GradientType& a){ return a*a; });
+    auto square_h = [](const GradientType& a) -> GradientType { return a*a; };
+    outputParticles.unary_map(outputParticles, square_h);
+
+    auto add_square_h = [](const GradientType &a, const GradientType &b) -> GradientType { return a + b*b; };
 
     if (apr.org_dims(1) > 1) {
-        // compute x gradient
-        gradient_sobel(apr, inputParticles, tmp, 1, deltas[1]);
-
-        // add squared x-gradient to outputParticles
-        tmp.binary_map(outputParticles, outputParticles,
-                       [](const GradientType &a, const GradientType &b) { return a * a + b; });
+        gradient_sobel(apr, inputParticles, tmp, 1, deltas[1]);           // compute x gradient
+        outputParticles.binary_map(tmp, outputParticles, add_square_h);   // add squared x-gradient to outputParticles
     }
 
     if (apr.org_dims(2) > 1) {
-        // compute z gradient
-        gradient_sobel(apr, inputParticles, tmp, 2, deltas[2]);
-
-        // add squared gradient to outputParticles
-        tmp.binary_map(outputParticles, outputParticles,
-                       [](const GradientType &a, const GradientType &b) { return a * a + b; });
+        gradient_sobel(apr, inputParticles, tmp, 2, deltas[2]);           // compute z gradient
+        outputParticles.binary_map(tmp, outputParticles, add_square_h);   // add squared gradient to outputParticles
     }
+
     // square root
-    outputParticles.unary_map(outputParticles, [](const GradientType& a){ return sqrtf(a); });
+    auto sqrtf_h = [](const GradientType& a) -> GradientType { return sqrtf(a); };
+    outputParticles.unary_map(outputParticles, sqrtf_h);
 }
 
 
@@ -289,7 +283,7 @@ void APRNumerics::seperable_face_neighbour_filter(APR &apr, const ParticleData<S
     ParticleData<U> tmp;
     tmp.copy(input_data);
 
-    for (unsigned int i = 0; i < repeats; ++i) {
+    for(int i = 0; i < repeats; ++i) {
         face_neighbour_filter(apr, tmp, output_data, filter, 0);
         face_neighbour_filter(apr, output_data, tmp, filter, 1);
         face_neighbour_filter(apr, tmp, output_data, filter, 2);
@@ -312,7 +306,7 @@ void APRNumerics::face_neighbour_filter(APR &apr, const ParticleData<S>& input_d
 
     const std::vector<float> filter_t = {filter[2], filter[0]};
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(apr_iterator, neighbour_iterator)
@@ -373,14 +367,16 @@ void APRNumerics::local_std(APR& apr,
     APRFilter::convolve_pencil(apr, box_dense, input_temp, tree_data, loc_mean, true, true, true);
 
     // square input copy and tree data
-    input_temp.unary_map(input_temp, [](const OutputType &a) { return a * a; });
-    tree_data.unary_map(tree_data, [](const OutputType &a) { return a * a; });
+    auto square_h = [](const OutputType &a) -> OutputType { return a * a; };
+    input_temp.unary_map(input_temp, square_h);
+    tree_data.unary_map(tree_data, square_h);
 
     // compute local means of squared data
     APRFilter::convolve_pencil(apr, box_dense, input_temp, tree_data, outputParticles, true, true, true);
 
     // compute standard deviation
-    outputParticles.binary_map(loc_mean, outputParticles, [](const OutputType &a, const OutputType &b) {return sqrtf(std::max(a-b*b, 0.0f));});
+    auto fun_h = [](const OutputType &a, const OutputType &b) -> OutputType {return sqrtf(std::max(a-b*b, 0.0f));};
+    outputParticles.binary_map(loc_mean, outputParticles, fun_h);
 }
 
 
@@ -433,6 +429,8 @@ void APRNumerics::div_norm_grad(APR &apr,
                                 ParticleData<GradientType> &result,
                                 const std::vector<float>& deltas) {
 
+    auto add_h = [](const GradientType& a, const GradientType& b) -> GradientType { return a + b; };
+
     /// compute gradient in y, x and z directions using level-adaptive central finite differences
     gradient_cfd(apr, input, grad_y, 0, deltas[0]);
 
@@ -465,16 +463,16 @@ void APRNumerics::div_norm_grad(APR &apr,
     }
 
     /// compute divergence
-    gradient_cfd(apr, grad_y, result, 0, deltas[0]); // y-gradient -> result
+    gradient_cfd(apr, grad_y, result, 0, deltas[0]);        // y-gradient -> result
 
     if(apr.x_num(apr.level_max()) > 1) {
-        gradient_cfd(apr, grad_x, grad_y, 1, deltas[1]); // x-gradient -> grad_y
-        result.binary_map(grad_y, result, [](const GradientType& a, const GradientType& b){ return a+b; }); // add grad_y to result
+        gradient_cfd(apr, grad_x, grad_y, 1, deltas[1]);    // x-gradient -> grad_y
+        result.binary_map(grad_y, result, add_h);           // add grad_y to result
     }
 
     if(apr.z_num(apr.level_max()) > 1) {
-        gradient_cfd(apr, grad_z, grad_y, 2, deltas[2]); // z-gradient -> grad_y
-        result.binary_map(grad_y, result, [](const GradientType& a, const GradientType& b){ return a+b; }); // add grad_y to result
+        gradient_cfd(apr, grad_z, grad_y, 2, deltas[2]);    // z-gradient -> grad_y
+        result.binary_map(grad_y, result, add_h);           // add grad_y to result
     }
 }
 
@@ -484,6 +482,8 @@ template<typename InputType, typename StencilType, typename OutputType,
 void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
                                    std::vector<PixelData<StencilType>>& psf_vec, std::vector<PixelData<StencilType>>& psf_flipped_vec,
                                    int number_iterations, float reg_factor, bool resume) {
+
+    auto divide_h = [](const StencilType& a, const InputType& b) -> StencilType {return b / a;};
 
     // if not continuing from previous iterations, initialize output with 1s
     if(!resume) {
@@ -499,13 +499,12 @@ void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle
 
     for(int iter = 0; iter < number_iterations; ++iter) {
 
-        APRFilter::convolve(apr, psf_flipped_vec, particle_output, relative_blur);
-        relative_blur.binary_map(particle_input, relative_blur,
-                                 [](const StencilType& a, const InputType& b){return b/a;}); // particle_input / relative_blur
-        APRFilter::convolve(apr, psf_vec, relative_blur, error_est);
+        APRFilter::convolve(apr, psf_flipped_vec, particle_output, relative_blur);  // re-blur estimate
+        relative_blur.binary_map(particle_input, relative_blur, divide_h);          // particle_input / relative_blur
+        APRFilter::convolve(apr, psf_vec, relative_blur, error_est);                // correlate ratio
+        div_norm_grad(apr, particle_output, tmp1, tmp2, tmp3, relative_blur);       // divergence of normalized gradient
 
-        div_norm_grad(apr, particle_output, tmp1, tmp2, tmp3, relative_blur);
-
+        // update estimate
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) default(none) shared(particle_output, error_est, relative_blur, reg_factor)
 #endif
@@ -523,7 +522,7 @@ void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle
                                    bool normalize, bool resume) {
 
     PixelData<StencilType> psf_flipped(psf, false);
-    for(int i = 0; i < psf.mesh.size(); ++i) {
+    for(size_t i = 0; i < psf.mesh.size(); ++i) {
         psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
     }
 
@@ -544,6 +543,9 @@ void APRNumerics::richardson_lucy(APR &apr, ParticleData<InputType> &particle_in
                                 std::vector<PixelData<StencilType>>& psf_vec, std::vector<PixelData<StencilType>>& psf_flipped_vec,
                                 int number_iterations, bool resume) {
 
+    auto divide_h = [](const StencilType& a, const InputType& b) -> StencilType {return b/a;};
+    auto multiply_h = [](const StencilType& a, const StencilType&b) -> StencilType { return a*b; };
+
     // if not continuing from previous iterations, initialize output with 1s
     if(!resume) {
         particle_output.init(apr.total_number_particles());
@@ -553,23 +555,21 @@ void APRNumerics::richardson_lucy(APR &apr, ParticleData<InputType> &particle_in
     ParticleData<StencilType> error_est(apr.total_number_particles());
 
     for(int iter = 0; iter < number_iterations; ++iter) {
-        APRFilter::convolve_pencil(apr, psf_flipped_vec, particle_output, relative_blur);           // re-blur current estimate
-        relative_blur.binary_map(particle_input, relative_blur,
-                                 [](const StencilType& a, const InputType& b){ return b/a; });      // input / blurred estimate
-        APRFilter::convolve_pencil(apr, psf_vec, relative_blur, error_est);                         // correlate ratio
-        particle_output.binary_map(error_est, particle_output,
-                                   [](const StencilType& a, const StencilType&b){ return a*b; });   // update estimate
+        APRFilter::convolve_pencil(apr, psf_flipped_vec, particle_output, relative_blur);   // re-blur current estimate
+        relative_blur.binary_map(particle_input, relative_blur, divide_h);                  // input / blurred estimate
+        APRFilter::convolve_pencil(apr, psf_vec, relative_blur, error_est);                 // correlate ratio
+        particle_output.binary_map(error_est, particle_output, multiply_h);                 // update estimate
     }
 }
 
 template<typename InputType, typename StencilType,typename OutputType,
         std::enable_if_t<std::is_floating_point<StencilType>::value, bool>>
 void APRNumerics::richardson_lucy(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                                PixelData<StencilType>& psf, int number_iterations, bool use_stencil_downsample, bool normalize,
-                                bool resume) {
+                                  PixelData<StencilType>& psf, int number_iterations, bool use_stencil_downsample, bool normalize,
+                                  bool resume) {
 
     PixelData<StencilType> psf_flipped(psf, false);
-    for(int i = 0; i < psf.mesh.size(); ++i) {
+    for(size_t i = 0; i < psf.mesh.size(); ++i) {
         psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
     }
 

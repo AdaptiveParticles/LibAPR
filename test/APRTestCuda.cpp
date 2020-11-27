@@ -1585,7 +1585,7 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
 
     std::cout << "comparing downsampled stencils for VectorData and PixelData inputs" << std::endl;
 
-    for(int i = 0; i < stencil_vec_pd.size(); ++i) {
+    for(size_t i = 0; i < stencil_vec_pd.size(); ++i) {
         if( std::abs( stencil_vec_pd[i] - stencil_vec_vd[i] ) > 1e-5 ) {
             std::cout << "stencil_vec_vd = " << stencil_vec_vd[i] << " stencil_vec_pd = " << stencil_vec_pd[i] << " at index " << i << std::endl;
             success = false;
@@ -1599,8 +1599,8 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
     std::cout << "comparing downsampeld stencils for VectorData and std::vector<PixelData> output" << std::endl;
     success = true;
     int c = 0;
-    for(int dlvl = 0; dlvl < pd_vec.size(); ++dlvl) {
-        for(int i = 0; i < pd_vec[dlvl].mesh.size(); ++i) {
+    for(size_t dlvl = 0; dlvl < pd_vec.size(); ++dlvl) {
+        for(size_t i = 0; i < pd_vec[dlvl].mesh.size(); ++i) {
             if( std::abs( pd_vec[dlvl].mesh[i] - stencil_vec_pd[c] ) > 1e-5 ) {
                 std::cout << "pd_vec = " << pd_vec[dlvl].mesh[i] << " stencil_vec_pd = " << stencil_vec_pd[c] <<
                             " at dlvl = " << dlvl << " and i = " << i << std::endl;

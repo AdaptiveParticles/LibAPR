@@ -81,7 +81,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
 
     //burn in
     for (int r = 0; r < 10; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
 
 #ifdef HAVE_OPENMP
@@ -103,7 +103,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("iteration_y_openmp");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(lin_it)
@@ -125,7 +125,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("iteration_y_openmp_static");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) firstprivate(lin_it)
@@ -149,7 +149,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("iteration_y");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
 
             for (int z = 0; z < lin_it.z_num(level); z++) {
                 for (int x = 0; x < lin_it.x_num(level); ++x) {
@@ -167,7 +167,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("iteration_noy_openmp");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(lin_it)
@@ -193,7 +193,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("iteration_parent");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             for (int z = 0; z < lin_it.z_num(level); z++) {
                 for (int x = 0; x < lin_it.x_num(level); ++x) {
 
@@ -218,7 +218,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("iteration_parent_openmp");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_max(); level >= lin_it.level_min(); --level) {
+        for (int level = lin_it.level_max(); level >= lin_it.level_min(); --level) {
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(lin_it, parent_it)
@@ -247,7 +247,7 @@ inline void bench_apr_iteration(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("iteration_parent_blocked_openmp");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(lin_it, parent_it)
@@ -374,9 +374,9 @@ void bench_pixel_iteration(APR& apr,ParticleData<partsType>& parts,int num_rep,A
 
     for (int r = 0; r < num_rep; ++r) {
 
-        for (size_t z = 0; z < test_img.z_num; ++z) {
-            for (size_t x = 0; x < test_img.x_num; ++x) {
-                for (size_t y = 0; y < test_img.y_num; ++y) {
+        for (int z = 0; z < test_img.z_num; ++z) {
+            for (int x = 0; x < test_img.x_num; ++x) {
+                for (int y = 0; y < test_img.y_num; ++y) {
 
                     test_img.at(y,x,z) = test_img.at(y,x,z) + 1;
 

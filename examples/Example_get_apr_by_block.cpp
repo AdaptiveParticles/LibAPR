@@ -22,7 +22,7 @@ Parameter explanations:
 
 Additional settings controlling the memory usage:
 
--z_block_size value     (number of z-slices to process in each tile. default: 256)
+-z_block_size value     (number of z-slices to process in each tile. default: 128)
 -z_ghost value          (number of ghost slices to use in both directions for the blocked APR pipeline. default: 16)
 -z_ghost_sampling value (number of ghost slices to use in both directions for the blocked particle sampling. default: 64)
 
@@ -96,7 +96,7 @@ int runAPR(cmdLineOptions options) {
         std::string file_name = options.output;
 
         std::cout << std::endl;
-        float original_pixel_image_size = (2.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/(1000000.0);
+        float original_pixel_image_size = (2.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/1000000.0f;
         std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
 
         //write the APR and particles to hdf5 file
@@ -117,13 +117,6 @@ int runAPR(cmdLineOptions options) {
         std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
         std::cout << "Lossy Compression Ratio: " << compression_ratio << std::endl;
         std::cout << std::endl;
-
-        if(aprConverter.par.output_steps){
-            parts.fill_with_levels(apr);
-            PixelData<uint16_t> level_img;
-            APRReconstruction::interp_img(apr, level_img, parts);
-            TiffUtils::saveMeshAsTiff(options.output_dir + "level_image.tif",level_img);
-        }
 
     } else {
         std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;

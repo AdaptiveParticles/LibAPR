@@ -265,9 +265,9 @@ public:
 
         auto it = apr_input.iterator();
 
-        float check_y = log2(1.0f * it.org_dims(0));
-        float check_x = log2(1.0f * it.org_dims(1));
-        float check_z = log2(1.0f * it.org_dims(2));
+        float check_y = log2f(1.0f * it.org_dims(0));
+        float check_x = log2f(1.0f * it.org_dims(1));
+        float check_z = log2f(1.0f * it.org_dims(2));
 
         //this function only works for datasets that are powers of 2.
         bool pow_2y = (check_y - std::floor(check_y)) == 0;
@@ -320,7 +320,7 @@ public:
         timer.start_timer("first loop");
 
         //first do the y extension.
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -364,7 +364,7 @@ public:
         timer.start_timer("second loop");
 
         //first do the y extension.
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
             int x = 0;
 

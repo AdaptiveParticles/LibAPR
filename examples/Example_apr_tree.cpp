@@ -15,7 +15,7 @@ Example using the APR Tree
 
 Usage:
 
-(using *_apr.h5 output of Example_get_apr)
+(using *.apr output of Example_get_apr)
 
 Example_random_accesss -i input_apr_hdf5 -d input_directory
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     aprFile.read_apr(apr);
 
     ParticleData<uint16_t>parts;
-    aprFile.read_particles(apr,"particle_intensities",parts);
+    aprFile.read_particles(apr,"particles",parts);
 
     aprFile.close();
 
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 
     //iteration over the interior tree is identical to that over the standard APR, simply using the APRTreeIterator.
 
-    for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
+    for (int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
-    for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
+    for (int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 

@@ -245,6 +245,20 @@ namespace {
     }
 
 
+    TEST(MeshDataSimpleTest, SizeOverflowTest) {
+        // Assign large dimensions, without allocating memory
+        PixelData<int> tmp;
+        tmp.z_num = 1000000;
+        tmp.x_num = 1000000;
+        tmp.y_num = 1000000;
+
+        // Check that PixelData::size does not overflow
+        size_t sz = tmp.size();
+        size_t sz_gt = 4000000000000000000;
+        ASSERT_EQ(sz, sz_gt);
+    }
+
+
 
     TEST(MeshDataSimpleTest, ConstructorTest) {
         // default

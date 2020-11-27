@@ -9,7 +9,7 @@ Example setting the APR iterator using random access
 
 Usage:
 
-(using *_apr.h5 output of Example_get_apr)
+(using *.apr output of Example_get_apr)
 
 Example_random_accesss -i input_apr_hdf5 -d input_directory
 
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     aprFile.read_apr(apr);
 
     ParticleData<uint16_t> parts;
-    aprFile.read_particles(apr,"particle_intensities",parts);
+    aprFile.read_particles(apr,"particles",parts);
 
     aprFile.close();
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
         found = apr_iterator.set_iterator_by_global_coordinate(x, y, z);
 
         std::cout << std::endl;
-        std::cout << "Searching for Particle Cell thats spatial domain contains (x,y,z)=(" << x << "," << y << "," << z << ") " << std::endl;
+        std::cout << "Searching for the Particle Cell whose spatial domain contains (x,y,z)=(" << x << "," << y << "," << z << ") " << std::endl;
         std::cout << "--------------------" << std::endl;
 
         if(!found){

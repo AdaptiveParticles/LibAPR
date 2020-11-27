@@ -13,11 +13,11 @@ Outputs various reconstructed images from the APR.
 
 Usage:
 
-(using *_apr.h5 output of Example_get_apr)
+(using *.apr output of Example_get_apr)
 
 Example_reconstruct_image -i inputfile [-d directory] -o output_name
 
-e.g. Example_reconstruct_image -i nuc_apr.h5 -d /Test/Input_examples/ -o nuclei
+e.g. Example_reconstruct_image -i nuclei.apr -d /Test/Input_examples/ -o nuclei
 
 Default: Piece-wise constant reconstruction
 
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
     aprFile.read_apr(apr);
 
     ParticleData<uint16_t>parts;
-    aprFile.read_particles(apr,"particle_intensities",parts);
+    aprFile.read_particles(apr,"particles",parts);
 
     aprFile.close();
     apr.name = options.output;
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
 
 
         timer.start_timer("APR parallel iterator loop");
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 

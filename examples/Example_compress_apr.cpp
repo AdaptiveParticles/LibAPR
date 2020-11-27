@@ -10,7 +10,13 @@ Example of performing additional compression on the APR intensities (APR adaptat
 
 Usage:
 
-Example_compress_apr -i input_image_tiff -d input_directory
+(using *.apr output of Example_get_apr)
+
+Example_compress_apr -i input_apr_hdf5 -d input_directory
+
+Note: inpute file path is 'input_apr_hdf5 + input_directory'
+      writes the compressed APR to a file *_compressed.apr in the input directory
+      optionally writes a reconstructed TIFF image to *_compressed.tif (if the flag -output_tiff is given)
 
 Optional:
 
@@ -18,7 +24,7 @@ Optional:
 -quantization_level (Default 1: higher increasing the loss nature of the WNL compression aproach)
 -compress_level (the IO uses BLOSC for lossless compression of the APR, this can be set from 1-9, where higher increases the compression level. Note, this can come at a significant time increase.)
 
-e.g. Example_compress_apr -i nuc_apr.h5 -d /Test/Input_examples/ -compress_type 1
+e.g. Example_compress_apr -i nuclei.apr -d /Test/Input_examples/ -compress_type 1
 
 Note: fine grained parameters can be tuned within the file, to play with lossless compression level, method used, and other parameters.
 
@@ -43,6 +49,10 @@ int main(int argc, char **argv) {
     // Filename
     std::string file_name = options.directory + options.input;
 
+    std::string name = options.input;
+    name.erase(name.end()-4,name.end());
+    std::string output_file_name = options.directory + name + "_compressed.apr";
+
     // Read the apr file into the part cell structure
     APRTimer timer;
 
@@ -57,17 +67,13 @@ int main(int argc, char **argv) {
     aprFile.read_apr(apr);
 
     ParticleData<uint16_t>parts;
-    aprFile.read_particles(apr,"particle_intensities",parts);
+    aprFile.read_particles(apr,"particles",parts);
 
     aprFile.close();
 
 
-    std::string name = options.input;
-    //remove the file extension
-    name.erase(name.end()-3,name.end());
-
     APRFile compFile;
-    compFile.open(options.directory,"WRITE");
+    compFile.open(output_file_name,"WRITE");
 
     parts.compressor.set_quantization_factor(options.quantization_level); //set this to adjust the compression factor for WNL
     parts.compressor.set_compression_type(options.compress_type);
@@ -81,14 +87,14 @@ int main(int argc, char **argv) {
     //compress the APR and write to disk
     timer.start_timer("compress and write");
 
-    compFile.write_particles("comp_parts",parts);
+    compFile.write_particles("particles",parts);
 
     timer.stop_timer();
 
     float time_write = timer.timings.back();
 
 
-    float original_pixel_image_size = (2.0f*apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2))/(1000000.0);
+    float original_pixel_image_size = (2.0f*apr.org_dims(0)*apr.org_dims(1)*apr.org_dims(2))/(1000000.0f);
     std::cout << std::endl;
     std::cout << std::endl;
     std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
@@ -98,8 +104,8 @@ int main(int argc, char **argv) {
     compFile.close();
 
     timer.start_timer("decompress and read");
-    compFile.open(options.directory,"READ");
-    compFile.read_particles(apr,"comp_parts",parts);
+    compFile.open(output_file_name,"READ");
+    compFile.read_particles(apr,"particles",parts);
     compFile.close();
     timer.stop_timer();
 
@@ -120,7 +126,7 @@ int main(int argc, char **argv) {
     if(options.output_tiff) {
         PixelData<uint16_t> img;
         APRReconstruction::interp_img(apr,img, parts);
-        std::string output = options.directory + name + "_compress.tif";
+        std::string output = options.directory + name + "_compressed.tif";
         TiffUtils::saveMeshAsTiff(output, img);
     }
 }
@@ -138,7 +144,7 @@ char* get_command_option(char **begin, char **end, const std::string &option)
     {
         return *itr;
     }
-    return 0;
+    return nullptr;
 }
 
 

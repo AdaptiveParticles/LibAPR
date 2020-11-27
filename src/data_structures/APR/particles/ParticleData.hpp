@@ -54,7 +54,7 @@ public:
     /*
      * Init dataset with enough particles up to level
      */
-    void init(APR& apr,unsigned int level)  {
+    void init(APR& apr, int level)  {
         auto it = apr.iterator();
         if(level==0){
             level = it.level_max();
@@ -64,7 +64,7 @@ public:
     /*
      * Init dataset with enough particles up to level for tree
      */
-    void init_tree(APR& apr,unsigned int level)  {
+    void init_tree(APR& apr, int level)  {
         auto it = apr.tree_iterator();
         data.resize(it.total_number_particles(level),0);
     }
@@ -169,7 +169,7 @@ void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,std:
     auto it = apr.iterator();
     parts.init(apr);
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(it)
 #endif
@@ -219,7 +219,7 @@ void sample_parts_from_img_blocked_gen(APR& apr, ParticleDataType& parts, const 
     const int x_num = apr.org_dims(1);
     const int z_num = apr.org_dims(2);
 
-    if(aTiffFile.iImgWidth != y_num || aTiffFile.iImgHeight != x_num || aTiffFile.iNumberOfDirectories != z_num) {
+    if((int) aTiffFile.iImgWidth != y_num || (int) aTiffFile.iImgHeight != x_num || (int) aTiffFile.iNumberOfDirectories != z_num) {
         std::cerr << "Warning: ParticleData::sample_parts_from_img_blocked - input image dimensions do not match APR dimensions" << std::endl;
     }
 
@@ -257,18 +257,18 @@ void sample_parts_from_img_downsampled_patch(APR& apr, ParticleDataType& parts, 
 //        const int level_factor = std::pow(2,(int)it.level_max()-level);
         const int level_factor = apr.level_size(level);
 
-        const size_t z_ghost_l = patch.z_ghost_l / level_factor;
-        const size_t z_ghost_r = patch.z_ghost_r / level_factor;
+        const int z_ghost_l = patch.z_ghost_l / level_factor;
+        const int z_ghost_r = patch.z_ghost_r / level_factor;
 
-        const size_t x_ghost_l = patch.x_ghost_l / level_factor;
-        const size_t x_ghost_r = patch.x_ghost_r / level_factor;
+        const int x_ghost_l = patch.x_ghost_l / level_factor;
+        const int x_ghost_r = patch.x_ghost_r / level_factor;
 
-        const size_t y_ghost_l = patch.y_ghost_l / level_factor;
-        const size_t y_ghost_r = patch.y_ghost_r / level_factor;
+        const int y_ghost_l = patch.y_ghost_l / level_factor;
+        const int y_ghost_r = patch.y_ghost_r / level_factor;
 
-        const size_t offset_x = (patch.x_offset + patch.x_ghost_l) / level_factor - x_ghost_l;
-        const size_t offset_y = (patch.y_offset + patch.y_ghost_l) / level_factor - y_ghost_l;
-        const size_t offset_z = (patch.z_offset + patch.z_ghost_l) / level_factor - z_ghost_l;
+        const int offset_x = (patch.x_offset + patch.x_ghost_l) / level_factor - x_ghost_l;
+        const int offset_y = (patch.y_offset + patch.y_ghost_l) / level_factor - y_ghost_l;
+        const int offset_z = (patch.z_offset + patch.z_ghost_l) / level_factor - z_ghost_l;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(it)
@@ -304,7 +304,7 @@ void general_fill_level(APR &apr,ParticleDataType& parts,bool tree){
         parts.init(apr);
     }
 
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
+    for (int level = it.level_min(); level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 

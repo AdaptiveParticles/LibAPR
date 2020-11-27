@@ -74,7 +74,7 @@ inline void bench_particle_data(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("particle_data");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -102,7 +102,7 @@ inline void bench_particle_data(APR& apr,ParticleData<partsType>& parts,int num_
     timer.start_timer("partcell_data");
 
     for (int r = 0; r < num_rep; ++r) {
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
             int x = 0;
 

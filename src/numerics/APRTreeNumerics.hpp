@@ -304,7 +304,7 @@ void APRTreeNumerics::face_neighbour_filter(APR &apr, const ParticleData<S>& inp
     const int level_max = tree_iterator.level_max() - ignore_levels;
     const std::vector<float> filter_t = {filter[2], filter[0]};
 
-    for (unsigned int level = tree_iterator.level_min(); level <= level_max; ++level) {
+    for (int level = tree_iterator.level_min(); level <= level_max; ++level) {
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) firstprivate(tree_iterator, neighbour_iterator)
@@ -344,7 +344,7 @@ void APRTreeNumerics::seperable_face_neighbour_filter(APR &apr, const ParticleDa
     ParticleData<U> tmp(apr.total_number_tree_particles());
     tmp.data.copy(input_data.data);
 
-    for (unsigned int i = 0; i < repeats; ++i) {
+    for(int i = 0; i < repeats; ++i) {
         face_neighbour_filter(apr, tmp, output_data, filter, 0, ignore_levels);
         face_neighbour_filter(apr, output_data, tmp, filter, 1, ignore_levels);
         face_neighbour_filter(apr, tmp, output_data, filter, 2, ignore_levels);

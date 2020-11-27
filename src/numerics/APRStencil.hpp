@@ -135,7 +135,7 @@ namespace APRStencil {
         aOutput.init(aInput);
         const float step_size = std::pow(2, level_delta);
 
-        for (int i = 0; i < aInput.mesh.size(); ++i) {
+        for (size_t i = 0; i < aInput.mesh.size(); ++i) {
             aOutput.mesh[i] = aInput.mesh[i] / step_size;
         }
     }

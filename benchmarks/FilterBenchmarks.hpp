@@ -10,6 +10,7 @@
 
 #include "APRBenchHelper.hpp"
 #include "numerics/APRFilter.hpp"
+#include "numerics/APRStencil.hpp"
 
 #ifdef APR_USE_CUDA
 #include "numerics/APRNumericsGPU.hpp"
@@ -43,20 +44,17 @@ inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_r
 
     std::vector<PixelData<float>> stencils;
     int nstencils = ds_stencil ? it.level_max() - it.level_min() : 1;
-    get_downsampled_stencils(stenc, stencils, nstencils, false);
-
-    APRFilter filterfns;
-    filterfns.boundary_cond = false;
+    APRStencil::get_downsampled_stencils(stenc, stencils, nstencils, false);
 
     ParticleData<float> output;
     int burn_in = std::max( std::min(num_rep / 10, 10), 1 );
     for (int r = 0; r < burn_in; ++r) {
-        filterfns.convolve(apr, stencils, parts, output);
+        APRFilter::convolve(apr, stencils, parts, output, false);
     }
 
     timer.start_timer("apr_filter" + std::to_string(stencil_size));
     for (int r = 0; r < num_rep; ++r) {
-        filterfns.convolve(apr, stencils, parts, output);
+        APRFilter::convolve(apr, stencils, parts, output, false);
     }
     timer.stop_timer();
 
@@ -89,20 +87,17 @@ inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,in
 
     std::vector<PixelData<float>> stencils;
     int nstencils = ds_stencil ? it.level_max() - it.level_min() : 1;
-    get_downsampled_stencils(stenc, stencils, nstencils, false);
-
-    APRFilter filterfns;
-    filterfns.boundary_cond = false;
+    APRStencil::get_downsampled_stencils(stenc, stencils, nstencils, false);
 
     ParticleData<float> output;
     int burn_in = std::max( std::min(num_rep / 10, 10), 1 );
     for (int r = 0; r < burn_in; ++r) {
-        filterfns.convolve_pencil(apr, stencils, parts, output);
+        APRFilter::convolve_pencil(apr, stencils, parts, output, false);
     }
 
     timer.start_timer("apr_filter_pencil" + std::to_string(stencil_size));
     for (int r = 0; r < num_rep; ++r) {
-        filterfns.convolve_pencil(apr, stencils, parts, output);
+        APRFilter::convolve_pencil(apr, stencils, parts, output, false);
     }
     timer.stop_timer();
 
@@ -808,7 +803,7 @@ inline void bench_richardson_lucy_apr(APR& apr, ParticleData<partsType>& parts, 
     VectorData<float> stencil;
     stencil.resize(125, 1.0f/125.0f);
     VectorData<float> stencil_vec;
-    get_downsampled_stencils(stencil, stencil_vec, apr.level_max()-apr.level_min(), true);
+    APRStencil::get_downsampled_stencils(stencil, stencil_vec, apr.level_max()-apr.level_min(), true);
 
     VectorData<float> output;
     output.resize(access.total_number_particles());
