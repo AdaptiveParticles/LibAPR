@@ -498,18 +498,15 @@ bool test_gpu_conv_333_alt(TestDataGPU& test_data, bool use_stencil_downsample){
         int c = 1;
         PixelData<double> stencil_ds;
         for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            APRStencil::downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
             stencil_vec[c].init(stencil_ds);
             stencil_vec[c].copyFromMesh(stencil_ds);
             c++;
         }
     }
 
-    APRFilter filterfns;
-    filterfns.boundary_cond = false; // zero padding
-
     ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
+    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -653,18 +650,15 @@ bool test_gpu_conv_333(TestDataGPU& test_data, bool reflective_bc, bool use_sten
         int c = 1;
         PixelData<double> stencil_ds;
         for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            APRStencil::downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
             stencil_vec[c].init(stencil_ds);
             stencil_vec[c].copyFromMesh(stencil_ds);
             c++;
         }
     }
 
-    APRFilter filterfns;
-    filterfns.boundary_cond = reflective_bc;
-
     ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
+    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, reflective_bc);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -854,18 +848,15 @@ bool test_gpu_conv_555_alt(TestDataGPU& test_data, bool use_stencil_downsample) 
         int c = 1;
         PixelData<double> stencil_ds;
         for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            APRStencil::downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
             stencil_vec[c].init(stencil_ds);
             stencil_vec[c].copyFromMesh(stencil_ds);
             c++;
         }
     }
 
-    APRFilter filterfns;
-    filterfns.boundary_cond = false; // zero padding
-
     ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
+    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -1009,18 +1000,15 @@ bool test_gpu_conv_555(TestDataGPU& test_data, bool reflective_bc, bool use_sten
         int c = 1;
         PixelData<double> stencil_ds;
         for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
+            APRStencil::downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
             stencil_vec[c].init(stencil_ds);
             stencil_vec[c].copyFromMesh(stencil_ds);
             c++;
         }
     }
 
-    APRFilter filterfns;
-    filterfns.boundary_cond = reflective_bc;
-
     ParticleData<float> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt);
+    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, reflective_bc);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -1196,8 +1184,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_333) {
 
     PixelData<float> output_gt;
 
-    APRFilter filterfns;
-    filterfns.convolve_pixel(test_data.img_original, output_gt, stencil);
+    APRFilter::convolve_pixel(test_data.img_original, output_gt, stencil);
 
     auto c_fail = compareMeshes(output_gt, output, /*error threshold*/ 1e-2);
 
@@ -1219,8 +1206,7 @@ TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_PIXEL_555) {
 
     PixelData<float> output_gt;
 
-    APRFilter filterfns;
-    filterfns.convolve_pixel(test_data.img_original, output_gt, stencil);
+    APRFilter::convolve_pixel(test_data.img_original, output_gt, stencil);
 
     auto c_fail = compareMeshes(output_gt, output, /*error threshold*/ 1e-2);
 
@@ -1589,9 +1575,9 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
 
     int nlevels = 7;
 
-    get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, false);
-    get_downsampled_stencils(stencil_pd, pd_vec, nlevels, false);
-    get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_pd, pd_vec, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, false);
 
     // compare outputs for PixelData and VectorData inputs
     bool success = true;

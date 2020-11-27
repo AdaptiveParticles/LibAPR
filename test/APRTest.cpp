@@ -11,9 +11,10 @@
 #include <utility>
 #include <cmath>
 #include "TestTools.hpp"
+#include "numerics/APRNumerics.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 #include "io/APRWriter.hpp"
-#include "numerics/APRStencilFunctions.hpp"
+#include "numerics/APRStencil.hpp"
 #include "data_structures/APR/particles/LazyData.hpp"
 
 #include "io/APRFile.hpp"
@@ -62,7 +63,7 @@ public:
 };
 
 
-class CreatDiffDimsSphereTest : public CreateAPRTest
+class CreateDiffDimsSphereTest : public CreateAPRTest
 {
 public:
     void SetUp() override;
@@ -3001,74 +3002,11 @@ bool test_interp_level(TestData &test_data) {
 }
 
 
-bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
-
-    std::vector<PixelData<double>> stencils;
-    stencils.resize(3);
+bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const std::vector<int>& stencil_size = {3, 3, 3}) {
 
     auto it = test_data.apr.iterator();
 
-    for(size_t i = 0; i < 3; ++i) {
-        if (it.number_dimensions() == 3) {
-            stencils[i].init(stencil_size, stencil_size, stencil_size);
-        } else if (it.number_dimensions() == 2) {
-            stencils[i].init(stencil_size, stencil_size, 1);
-        } else if (it.number_dimensions() == 1) {
-            stencils[i].init(stencil_size, 1, 1);
-        }
-    }
-
-    // unique stencil elements
-    double sum = 0;
-    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
-        sum += i;
-    }
-    for(size_t i = 0; i < stencils[0].mesh.size(); ++i) {
-        stencils[0].mesh[i] = ((double) i) / sum;
-        stencils[1].mesh[i] = ((double) i + sum) / (2*sum);
-        stencils[2].mesh[i] = ((double) i +2*sum) / (3*sum);
-    }
-
-    APRFilter filterfns;
-    filterfns.boundary_cond = boundary;
-
-    ParticleData<double> output;
-    filterfns.convolve_pencil(test_data.apr, stencils, test_data.particles_intensities, output);
-
-    ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
-
-
-    if(output.size() != output_gt.size()) {
-        std::cerr << "output sizes differ" << std::endl;
-        return false;
-    }
-
-    double eps = 1e-2;
-    bool success = true;
-
-    for(uint64_t x=0; x < output.size(); ++x) {
-        if(std::abs(output[x] - output_gt[x]) > eps) {
-            std::cerr << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
-            success = false;
-        }
-    }
-    return success;
-}
-
-
-bool test_convolve(TestData &test_data, const bool boundary = false, const int stencil_size = 3) {
-
-    auto it = test_data.apr.iterator();
-
-    PixelData<double> stenc;
-    if (it.number_dimensions() == 3) {
-        stenc.init(stencil_size, stencil_size, stencil_size);
-    } else if (it.number_dimensions() == 2) {
-        stenc.init(stencil_size, stencil_size, 1);
-    } else if (it.number_dimensions() == 1) {
-        stenc.init(stencil_size, 1, 1);
-    }
+    PixelData<double> stenc(stencil_size[0], stencil_size[1], stencil_size[2]);
 
     double sz = stenc.mesh.size();
     double sum = sz * (sz-1)/2;
@@ -3077,20 +3015,57 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const int s
     }
 
     std::vector<PixelData<double>> stencils;
-    get_downsampled_stencils(stenc, stencils, it.level_max()-it.level_min(), true);
-
-    APRFilter filterfns;
-    filterfns.boundary_cond = boundary;
+    APRStencil::get_downsampled_stencils(stenc, stencils, it.level_max()-it.level_min(), true);
 
     ParticleData<double> output;
-    filterfns.convolve(test_data.apr, stencils, test_data.particles_intensities, output);
+    APRFilter::convolve_pencil(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
 
     ParticleData<double> output_gt;
-    filterfns.create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt);
+    APRFilter::create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
 
 
     if(output.size() != output_gt.size()) {
         std::cerr << "output sizes differ" << std::endl;
+        return false;
+    }
+
+    double eps = 1e-2;
+    size_t failures = 0;
+
+    for(uint64_t x=0; x < output.size(); ++x) {
+        if(std::abs(output[x] - output_gt[x]) > eps) {
+            std::cout << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
+            failures++;
+        }
+    }
+    std::cout << failures << " failures out of " << it.total_number_particles() << std::endl;
+    return (failures==0);
+}
+
+
+bool test_convolve(TestData &test_data, const bool boundary = false, const std::vector<int>& stencil_size = {3, 3, 3}) {
+
+    auto it = test_data.apr.iterator();
+
+    PixelData<double> stenc(stencil_size[0], stencil_size[1], stencil_size[2]);
+
+    double sz = stenc.mesh.size();
+    double sum = sz * (sz-1)/2;
+    for(int i = 0; i < stenc.mesh.size(); ++i){
+        stenc.mesh[i] = i / sum;
+    }
+
+    std::vector<PixelData<double>> stencils;
+    APRStencil::get_downsampled_stencils(stenc, stencils, it.level_max()-it.level_min(), true);
+
+    ParticleData<double> output;
+    APRFilter::convolve(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
+
+    ParticleData<double> output_gt;
+    APRFilter::create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
+
+    if(output.size() != output_gt.size()) {
+        std::cout << "output sizes differ" << std::endl;
         return false;
     }
 
@@ -3113,6 +3088,7 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const int s
     std::cout << failures << " failures out of " << it.total_number_particles() << std::endl;
     return (failures==0);
 }
+
 
 bool test_iterator_methods(TestData &test_data){
     //
@@ -3307,7 +3283,7 @@ void CreateSmallSphereTest::SetUp(){
     test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_120/";
 }
 
-void CreatDiffDimsSphereTest::SetUp(){
+void CreateDiffDimsSphereTest::SetUp(){
 
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_diff_dims/sphere.apr";
     test_data.apr_filename = file_name;
@@ -3508,8 +3484,8 @@ TEST_F(CreateGTSmall1DTestProperties, APR_PARTICLES) {
 }
 
 TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
-    ASSERT_TRUE(test_convolve(test_data));
-    ASSERT_TRUE(test_convolve_pencil(test_data));
+    ASSERT_TRUE(test_convolve(test_data, false, {5, 1, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, {5, 1, 1}));
 
 }
 
@@ -3616,8 +3592,8 @@ TEST_F(CreateGTSmall2DTestProperties, APR_PARTICLES) {
 }
 
 TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
-    ASSERT_TRUE(test_convolve(test_data));
-    ASSERT_TRUE(test_convolve_pencil(test_data));
+    ASSERT_TRUE(test_convolve(test_data, false, {5, 5, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, {5, 5, 1}));
 }
 
 TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
@@ -3698,7 +3674,7 @@ ASSERT_TRUE(test_auto_parameters(test_data));
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, AUTO_PARAMETERS) {
+TEST_F(CreateDiffDimsSphereTest, AUTO_PARAMETERS) {
 
 //test iteration
 ASSERT_TRUE(test_auto_parameters(test_data));
@@ -3735,13 +3711,13 @@ TEST_F(CreateSmallSphereTest, TEST_COPY) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, PULLING_SCHEME_SPARSE) {
+TEST_F(CreateDiffDimsSphereTest, PULLING_SCHEME_SPARSE) {
     //tests the linear access geneartions and io
     ASSERT_TRUE(test_pulling_scheme_sparse(test_data));
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, ITERATOR_METHODS) {
+TEST_F(CreateDiffDimsSphereTest, ITERATOR_METHODS) {
 
     ASSERT_TRUE(test_iterator_methods(test_data));
 
@@ -3766,13 +3742,13 @@ TEST_F(CreateSmallSphereTest, LINEAR_ACCESS_IO) {
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, LINEAR_ACCESS_CREATE) {
+TEST_F(CreateDiffDimsSphereTest, LINEAR_ACCESS_CREATE) {
 
     ASSERT_TRUE(test_linear_access_create(test_data));
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, LINEAR_ACCESS_IO) {
+TEST_F(CreateDiffDimsSphereTest, LINEAR_ACCESS_IO) {
 
     ASSERT_TRUE(test_linear_access_io(test_data));
 
@@ -3784,7 +3760,8 @@ TEST_F(CreateSmallSphereTest, PARTIAL_READ) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, PARTIAL_READ) {
+
+TEST_F(CreateDiffDimsSphereTest, PARTIAL_READ) {
 
     ASSERT_TRUE(test_read_upto_level(test_data));
 
@@ -3796,7 +3773,7 @@ TEST_F(CreateSmallSphereTest, LAZY_PARTICLES) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, LAZY_PARTICLES) {
+TEST_F(CreateDiffDimsSphereTest, LAZY_PARTICLES) {
 
     ASSERT_TRUE(test_lazy_particles(test_data));
 
@@ -3808,7 +3785,7 @@ TEST_F(CreateSmallSphereTest, COMPRESS_PARTICLES) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, COMPRESS_PARTICLES) {
+TEST_F(CreateDiffDimsSphereTest, COMPRESS_PARTICLES) {
 
     ASSERT_TRUE(test_particles_compress(test_data));
 
@@ -3821,21 +3798,21 @@ TEST_F(CreateSmallSphereTest, RANDOM_ACCESS) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, RANDOM_ACCESS) {
+TEST_F(CreateDiffDimsSphereTest, RANDOM_ACCESS) {
 
     ASSERT_TRUE(test_random_access_it(test_data));
 
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, RECONSTRUCT_LEVEL) {
+TEST_F(CreateDiffDimsSphereTest, RECONSTRUCT_LEVEL) {
 
     ASSERT_TRUE(test_interp_level(test_data));
 
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, APR_PIPELINE_3D_BLOCKED) {
+TEST_F(CreateDiffDimsSphereTest, APR_PIPELINE_3D_BLOCKED) {
     //test blocked pipeline for different error thresholds (E)
     ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.2));
     ASSERT_TRUE(test_pipeline_bound_blocked(test_data,0.1));
@@ -3860,7 +3837,6 @@ TEST_F(CreateSmallSphereTest, PIPELINE_SIZE) {
 }
 
 #endif
-
 
 
 TEST_F(CreateSmallSphereTest, APR_TREE) {
@@ -3941,7 +3917,7 @@ TEST_F(CreateGTSmall1DTest, APR_PIPELINE_1D) {
 
 #endif
 
-TEST_F(CreatDiffDimsSphereTest, APR_ITERATION) {
+TEST_F(CreateDiffDimsSphereTest, APR_ITERATION) {
 
 //test iteration
     ASSERT_TRUE(test_apr_random_iterate(test_data));
@@ -3949,14 +3925,14 @@ TEST_F(CreatDiffDimsSphereTest, APR_ITERATION) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, APR_TREE) {
+TEST_F(CreateDiffDimsSphereTest, APR_TREE) {
 
 //test iteration
     ASSERT_TRUE(test_apr_tree(test_data));
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, APR_NEIGHBOUR_ACCESS) {
+TEST_F(CreateDiffDimsSphereTest, APR_NEIGHBOUR_ACCESS) {
 
 //test iteration
     ASSERT_TRUE(test_apr_neighbour_access(test_data));
@@ -3964,7 +3940,7 @@ TEST_F(CreatDiffDimsSphereTest, APR_NEIGHBOUR_ACCESS) {
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, APR_PARTICLES) {
+TEST_F(CreateDiffDimsSphereTest, APR_PARTICLES) {
 
     ASSERT_TRUE(test_particle_structures(test_data));
 }
@@ -3975,12 +3951,9 @@ TEST_F(CreateSmallSphereTest, APR_PARTICLES) {
 }
 
 
-TEST_F(CreatDiffDimsSphereTest, APR_INPUT_OUTPUT) {
+TEST_F(CreateDiffDimsSphereTest, APR_INPUT_OUTPUT) {
 
-//test iteration
-    //ASSERT_TRUE(test_apr_input_output(test_data));
     ASSERT_TRUE(test_apr_file(test_data));
-
 
 }
 
@@ -3990,7 +3963,7 @@ TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE) {
 
 }
 
-TEST_F(CreatDiffDimsSphereTest, PIPELINE_COMPARE) {
+TEST_F(CreateDiffDimsSphereTest, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
 
@@ -4003,18 +3976,10 @@ TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE_BLOCKED) {
 
 TEST_F(CreateSmallSphereTest, RUN_RICHARDSON_LUCY) {
 
-    PixelData<float> stenc(5, 5, 5);
-
-    float sz = stenc.mesh.size();
-    for(int i = 0; i < stenc.mesh.size(); ++i){
-        stenc.mesh[i] = 1.f / sz;
-    }
-
-    APRFilter filter_fns;
-    filter_fns.boundary_cond = true;
+    auto stenc = APRStencil::create_mean_filter<float>({5, 5, 5});
 
     ParticleData<float> output;
-    filter_fns.richardson_lucy(test_data.apr, test_data.particles_intensities, output, stenc, 10, true, true);
+    APRNumerics::richardson_lucy(test_data.apr, test_data.particles_intensities, output, stenc, 10, true, true, false);
 }
 
 
@@ -4036,9 +4001,9 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
 
     int nlevels = 7;
 
-    get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, false);
-    get_downsampled_stencils(stencil_pd, pd_vec, nlevels, false);
-    get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_pd, pd_vec, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, false);
 
     // compare outputs for PixelData and VectorData inputs
     bool success = true;
@@ -4080,29 +4045,68 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
 
 
 TEST_F(CreateSmallSphereTest, APR_FILTER) {
-    ASSERT_TRUE(test_convolve(test_data, false, 13));
-    ASSERT_TRUE(test_convolve(test_data, true, 13));
-    ASSERT_TRUE(test_convolve(test_data, false, 5));
-    ASSERT_TRUE(test_convolve(test_data, true, 5));
+    // 3D filters
+    ASSERT_TRUE(test_convolve(test_data, false, {7, 7, 7}));
+    ASSERT_TRUE(test_convolve(test_data, true, {7, 7, 7}));
+    ASSERT_TRUE(test_convolve(test_data, false, {3, 3, 3}));
+    ASSERT_TRUE(test_convolve(test_data, true, {3, 3, 3}));
 
-    ASSERT_TRUE(test_convolve_pencil(test_data, false, 3));
-    ASSERT_TRUE(test_convolve_pencil(test_data, true, 3));
-    ASSERT_TRUE(test_convolve_pencil(test_data, false, 5));
-    ASSERT_TRUE(test_convolve_pencil(test_data, true, 5));
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, {9, 9, 9}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {9, 9, 9}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, {3, 3, 3}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {3, 3, 3}));
+
+    // 2D filters
+    ASSERT_TRUE(test_convolve(test_data, true, {13, 13, 1}));
+    ASSERT_TRUE(test_convolve(test_data, true, {13, 1, 13}));
+    ASSERT_TRUE(test_convolve(test_data, true, {1, 13, 13}));
+
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 13, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 1, 13}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 13, 13}));
+
+    // 1D filters
+    ASSERT_TRUE(test_convolve(test_data, true, {17, 1, 1}));
+    ASSERT_TRUE(test_convolve(test_data, true, {1, 17, 1}));
+    ASSERT_TRUE(test_convolve(test_data, true, {1, 1, 17}));
+
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {17, 1, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 17, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 1, 17}));
 }
 
-TEST_F(CreatDiffDimsSphereTest, APR_FILTER) {
-    ASSERT_TRUE(test_convolve(test_data, false, 3));
-    ASSERT_TRUE(test_convolve(test_data, true, 3));
-    ASSERT_TRUE(test_convolve(test_data, false, 5));
-    ASSERT_TRUE(test_convolve(test_data, true, 5));
 
-    ASSERT_TRUE(test_convolve_pencil(test_data, false, 3));
-    ASSERT_TRUE(test_convolve_pencil(test_data, true, 3));
-    ASSERT_TRUE(test_convolve_pencil(test_data, false, 5));
-    ASSERT_TRUE(test_convolve_pencil(test_data, true, 5));
+TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
+
+    // 3D filters
+    ASSERT_TRUE(test_convolve(test_data, false, {13, 13, 13}));
+    ASSERT_TRUE(test_convolve(test_data, true, {13, 13, 13}));
+    ASSERT_TRUE(test_convolve(test_data, false, {3, 3, 3}));
+    ASSERT_TRUE(test_convolve(test_data, true, {3, 3, 3}));
+
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, {13, 13, 13}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 13, 13}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, false, {3, 3, 3}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {3, 3, 3}));
+
+    // 2D filters
+    ASSERT_TRUE(test_convolve(test_data, true, {13, 13, 1}));
+    ASSERT_TRUE(test_convolve(test_data, true, {13, 1, 13}));
+    ASSERT_TRUE(test_convolve(test_data, true, {1, 13, 13}));
+
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 13, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 1, 13}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 13, 13}));
+
+    // 1D filters
+    ASSERT_TRUE(test_convolve(test_data, true, {13, 1, 1}));
+    ASSERT_TRUE(test_convolve(test_data, true, {1, 13, 1}));
+    ASSERT_TRUE(test_convolve(test_data, true, {1, 1, 13}));
+
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 1, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 13, 1}));
+    ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 1, 13}));
 }
-
 
 
 

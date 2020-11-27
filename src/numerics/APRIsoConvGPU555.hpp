@@ -6,7 +6,7 @@
 #define LIBAPR_APRISOCONVGPU555_HPP
 
 #include "APRDownsampleGPU.hpp"
-#include "APRStencilFunctions.hpp"
+#include "APRStencil.hpp"
 #include "miscCuda.hpp"
 #include "APRIsoConvGPU333.hpp"
 

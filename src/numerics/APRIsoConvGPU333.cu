@@ -1534,7 +1534,7 @@ void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_acces
     /// downsample the stencil
     VectorData<stencilType> stencil_vec;
     if(use_stencil_downsample) {
-        get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
+        APRStencil::get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
     }
 
     /// allocate GPU memory
@@ -1593,7 +1593,7 @@ void isotropic_convolve_333_alt(GPUAccessHelper& access, GPUAccessHelper& tree_a
     /// downsample the stencil
     VectorData<stencilType> stencil_vec;
     if(use_stencil_downsample) {
-        get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
+        APRStencil::get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
     }
 
     /// allocate GPU memory

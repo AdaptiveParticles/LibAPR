@@ -1755,7 +1755,7 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
     if(use_stencil_downsample) {
         compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
 
-        get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
+        APRStencil::get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
     }
 
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
@@ -1820,7 +1820,7 @@ void isotropic_convolve_555_alt(GPUAccessHelper& access, GPUAccessHelper& tree_a
 
     VectorData<stencilType> stencil_vec;
     if(use_stencil_downsample) {
-        get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
+        APRStencil::get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
     }
 
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());

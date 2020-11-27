@@ -7,9 +7,6 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include "misc/APRTimer.hpp"
-
-//#include "../src/Numerics/GenerateStencils.hpp"
-
 #include "io/TiffUtils.hpp"
 
 

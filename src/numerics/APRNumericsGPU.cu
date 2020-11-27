@@ -117,8 +117,8 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
     VectorData<stencilType> psf_flipped_vec;
 
     if(use_stencil_downsample) {
-        get_downsampled_stencils(psf, psf_vec, access.level_max() - access.level_min(), normalize_stencil);
-        get_downsampled_stencils(psf_flipped, psf_flipped_vec, access.level_max() - access.level_min(), normalize_stencil);
+        APRStencil::get_downsampled_stencils(psf, psf_vec, access.level_max() - access.level_min(), normalize_stencil);
+        APRStencil::get_downsampled_stencils(psf_flipped, psf_flipped_vec, access.level_max() - access.level_min(), normalize_stencil);
     }
 
     output.resize(input.size());
