@@ -22,33 +22,23 @@ public:
     float psfy = 2;
     float psfz = 2;
 
+    // main pipeline parameters
     float Ip_th = 0;
-    float SNR_min = 0;
     float lambda = 3.0;
-    float min_signal = 0;
     float rel_error = 0.1;
-
     float sigma_th = 0;
     float sigma_th_max = 0;
-
     float grad_th = 0;
-
-    int extra_smooth = 0;
-
-    float noise_sd_estimate = 0;
-    float background_intensity_estimate = 0;
-
     bool auto_parameters = false;
-    bool full_resolution = false;
 
+    // additional pipeline parameters
+    bool reflect_bc_lis = true;
+    int extra_smooth = 0;
     bool check_input = false;
     bool swap_dimensions = false;
     bool neighborhood_optimization = true;
-
     bool constant_intensity_scale = false;
     bool output_steps = false;
-
-    bool reflect_bc_lis = true;
 
     std::string name;
     std::string output_dir;
@@ -56,11 +46,13 @@ public:
     std::string input_dir;
     std::string mask_file;
 
+    // compression
+    float noise_sd_estimate = 0;
+    float background_intensity_estimate = 0;
+
     friend std::ostream & operator<<(std::ostream &os, const APRParameters &obj) {
         os << "Ip_th=" << obj.Ip_th << "\n";
-        os << "SNR_min=" << obj.SNR_min << "\n";
         os << "lambda=" << obj.lambda << "\n";
-        os << "min_signal=" << obj.min_signal << "\n";
         os << "rel_error=" << obj.rel_error << "\n";
         os << "sigma_th=" << obj.sigma_th << "\n";
         os << "sigma_th_max=" << obj.sigma_th_max << "\n";
@@ -68,7 +60,7 @@ public:
         os << "neighborhood_optimization=" << (obj.neighborhood_optimization ? "true" : "false") << "\n";
         os << "output_steps=" << (obj.output_steps ? "true" : "false") << "\n";
 
-	return os;
+	    return os;
     }
 };
 

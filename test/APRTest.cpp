@@ -817,12 +817,9 @@ bool test_pulling_scheme_sparse(TestData& test_data){
     aprConverter.par.rel_error = 0.1;
     aprConverter.par.lambda = 2;
     aprConverter.par.mask_file = "";
-    aprConverter.par.min_signal = -1;
 
     aprConverter.par.sigma_th_max = 50;
     aprConverter.par.sigma_th = 100;
-
-    aprConverter.par.SNR_min = -1;
 
     aprConverter.par.auto_parameters = false;
 
@@ -883,12 +880,9 @@ bool test_linear_access_create(TestData& test_data) {
     aprConverter.par.rel_error = 0.1;
     aprConverter.par.lambda = 2;
     aprConverter.par.mask_file = "";
-    aprConverter.par.min_signal = -1;
 
     aprConverter.par.sigma_th_max = 50;
     aprConverter.par.sigma_th = 100;
-
-    aprConverter.par.SNR_min = -1;
 
     aprConverter.par.auto_parameters = false;
 
@@ -2714,12 +2708,10 @@ bool test_pipeline_u16(TestData& test_data){
     aprConverter.par.Ip_th = 0;
     aprConverter.par.rel_error = readPars.rel_error;
     aprConverter.par.lambda = readPars.lambda;
-    aprConverter.par.min_signal = readPars.min_signal;
 
     aprConverter.par.sigma_th_max = readPars.sigma_th_max;
     aprConverter.par.sigma_th = readPars.sigma_th;
 
-    aprConverter.par.SNR_min = readPars.SNR_min;
     aprConverter.par.grad_th = readPars.grad_th;
 
     aprConverter.par.auto_parameters = false;
@@ -2862,12 +2854,9 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     aprConverter.par.rel_error = rel_error;
     aprConverter.par.lambda = 0;
     aprConverter.par.mask_file = "";
-    aprConverter.par.min_signal = -1;
 
     aprConverter.par.sigma_th_max = 50;
     aprConverter.par.sigma_th = 100;
-
-    aprConverter.par.SNR_min = -1;
 
     aprConverter.par.auto_parameters = false;
 
