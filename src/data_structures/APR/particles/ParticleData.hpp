@@ -5,6 +5,7 @@
 #ifndef PARTPLAY_EXTRAPARTICLEDATA_HPP
 #define PARTPLAY_EXTRAPARTICLEDATA_HPP
 
+#include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/iterators/APRIterator.hpp"
 #include "data_structures/APR/iterators/LinearIterator.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
@@ -12,9 +13,6 @@
 #include "io/TiffUtils.hpp"
 
 #include "GenData.hpp"
-
-#include "../APR.hpp"
-#include "numerics/APRNumerics.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -88,6 +86,7 @@ public:
     }
 
     uint64_t size() const  { return data.size(); }
+
     inline DataType& operator[](uint64_t aGlobalIndex) { return data[aGlobalIndex]; }
     inline const DataType& operator[](uint64_t aGlobalIndex) const { return data[aGlobalIndex]; }
 
@@ -114,6 +113,13 @@ public:
     }
 
     template<typename S>
+    void copy(const ParticleData<S>& partsToCopy) {
+        compressor = partsToCopy.compressor;
+        data.copy(partsToCopy.data);
+    }
+
+
+    template<typename S>
     void copy_parts(APR &apr, const ParticleData<S> &particlesToCopy, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
     template<typename V,class BinaryOperation>
     void zip_inplace(APR &apr, const ParticleData<V> &parts2, BinaryOperation op, uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
@@ -122,16 +128,22 @@ public:
     template<class UnaryOperator>
     void map_inplace(APR& apr,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
     template<typename U,class UnaryOperator>
-    inline void map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level = 0,unsigned int aNumberOfBlocks = 10);
+    inline void map(APR& apr,ParticleData<U>& output,UnaryOperator op,const uint64_t level = 0, unsigned int aNumberOfBlocks = 10);
 
-    void set_to_zero()  {
-        data.fill(0);
-    }
 
-    void fill(DataType val) {
-        data.fill(val);
-    }
+    /// simplified (parallelized) unary and binary map operations, applied to the entire data vector
+    template<typename V, typename UnaryOperator>
+    inline void unary_map(ParticleData<V>& output, UnaryOperator op) { data.map(output.data, op); }
+    template<typename V, typename UnaryOperator>
+    inline void unary_map(ParticleData<V>& output, UnaryOperator op) const { data.map(output.data, op); }
 
+    template<typename S, typename U, typename BinaryOperator>
+    inline void binary_map(const ParticleData<S>& parts2, ParticleData<U>& output, BinaryOperator op) { data.zip(parts2.data, output.data, op); }
+    template<typename S, typename U, typename BinaryOperator>
+    inline void binary_map(const ParticleData<S>& parts2, ParticleData<U>& output, BinaryOperator op) const { data.zip(parts2.data, output.data, op); }
+
+    inline void set_to_zero()  { data.fill(0); }
+    inline void fill(DataType val) { data.fill(val); }
 
 };
 

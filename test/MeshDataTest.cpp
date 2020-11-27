@@ -112,6 +112,68 @@ namespace {
 
     }
 
+    template<typename T, typename S, typename UnaryOperator>
+    void map_const(const VectorData<T>& v1, VectorData<S>& out, UnaryOperator op) {
+        v1.map(out, op);
+    }
+
+    TEST_F(VectorDataTest, MapTest) {
+
+        VectorData<int> v1;
+        v1.copy(m);
+        v1.map(v1, [](const int& a){ return a*a; });
+
+        for(size_t i = 0; i < v1.size(); ++i) {
+            ASSERT_EQ(v1[i],m[i]*m[i]);
+        }
+
+        VectorData<float> v2;
+        float val = 3.0f;
+        v1.map(v2, [val](const int& a){return a/val;});
+
+        for(size_t i = 0; i < v1.size(); ++i) {
+            ASSERT_FLOAT_EQ(v2[i], (m[i]*m[i])/val);
+        }
+
+        VectorData<float> v3;
+        map_const(v2, v3, [](const float& a){ return a-1;});
+
+        for(size_t i = 0; i < v1.size(); ++i) {
+            ASSERT_FLOAT_EQ(v3[i], v2[i]-1);
+        }
+
+    }
+
+    template<typename T, typename S, typename U, typename BinaryOperator>
+    void zip_const(const VectorData<T>& v1, const VectorData<S>& v2, VectorData<U>& out, BinaryOperator op) {
+        v1.zip(v2, out, op);
+    }
+
+    TEST_F(VectorDataTest, ZipTest) {
+
+        VectorData<int> v1;
+        v1.copy(m);
+        v1.zip(m, v1, [](const int& a, const int& b){ return a*(b-1); });
+
+        for(size_t i = 0; i < v1.size(); ++i) {
+            ASSERT_EQ(v1[i],m[i]*(m[i]-1));
+        }
+
+        VectorData<float> v2;
+        v2.copy(m);
+        v1.zip(v2, v2, [](const int& a, const float& b){return a/(b+1);});
+
+        for(size_t i = 0; i < v1.size(); ++i) {
+            ASSERT_FLOAT_EQ(v2[i], (m[i]*(m[i]-1))/((float)m[i]+1));
+        }
+
+        VectorData<float> v3;
+        zip_const(m, v2, v3, [](const int& a, const float& b){return a+b;});
+        for(size_t i = 0; i < v1.size(); ++i) {
+            ASSERT_FLOAT_EQ(v3[i], m[i]+v2[i]);
+        }
+    }
+
 
 
     class MeshDataTest : public ::testing::Test {

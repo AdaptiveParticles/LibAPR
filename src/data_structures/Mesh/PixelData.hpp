@@ -18,6 +18,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <numeric>
 
 #include "misc/APRTimer.hpp"
 
@@ -154,13 +155,11 @@ public :
      * @param size
      */
     inline void resize(uint64_t size){
-
         if(size <= vec.capacity()){
             vec.resize(size);
         } else{
             init(size);
         }
-
     }
 
     /**
@@ -169,16 +168,13 @@ public :
      * @param T aInitval fills the resized array with a given value.
      */
     inline void resize(uint64_t size,T aInitVal){
-
         resize(size);
-
         fill(aInitVal);
     }
 
     /**
     * initializes the array regardless if there was previosly memory allocated.
     * @param size
-    * @param T aInitval fills the resized array with a given value.
     */
     inline void init(uint64_t size){
         T *array = nullptr;
@@ -227,7 +223,21 @@ public :
     template <typename CopyType>
     void copy(const VectorData<CopyType>& ToCopy){
         resize(ToCopy.size());
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size() / numOfThreads;
+            auto begin_ = ToCopy.begin() + chunkSize * threadNum;
+            auto end_ = (threadNum == numOfThreads - 1) ? ToCopy.begin() + size() : begin_ + chunkSize;
+            auto out_ = begin() + chunkSize * threadNum;
+            std::copy(begin_, end_, out_);
+        }
+#else
         std::copy(ToCopy.begin(),ToCopy.end(),begin());
+#endif
     }
 
     /**
@@ -238,6 +248,104 @@ public :
         std::swap(usePinnedMemory, aObj.usePinnedMemory);
         std::swap(vecMemory, aObj.vecMemory);
         vec.swap(aObj.vec);
+    }
+
+
+    /**
+     * Apply unary operator to each element in parallel, writing the result to VectorData 'output'.
+     * @tparam S
+     * @tparam UnaryOperator
+     * @param output            output VectorData (can be the 'this')
+     * @param op                operator to apply
+     */
+    template<typename S, typename UnaryOperator>
+    void map(VectorData<S>& output, UnaryOperator op) {
+        output.resize(size());
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size() / numOfThreads;
+            auto begin_ = begin() + chunkSize * threadNum;
+            auto end_ = (threadNum == numOfThreads - 1) ? begin() + size() : begin_ + chunkSize;
+            auto out_ = output.begin() + chunkSize * threadNum;
+            std::transform(begin_, end_, out_, op);
+        }
+#else
+        std::transform(begin(), end(), output.begin(), op);
+#endif
+    }
+
+    template<typename S, typename UnaryOperator>
+    void map(VectorData<S>& output, UnaryOperator op) const {
+        output.resize(size());
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size() / numOfThreads;
+            auto begin_ = begin() + chunkSize * threadNum;
+            auto end_ = (threadNum == numOfThreads - 1) ? begin() + size() : begin_ + chunkSize;
+            auto out_ = output.begin() + chunkSize * threadNum;
+            std::transform(begin_, end_, out_, op);
+        }
+#else
+        std::transform(begin(), end(), output.begin(), op);
+#endif
+    }
+
+
+    /**
+     * Apply binary operator to each element of 'this' and VectorData 'parts2', writing the result to 'output'
+     * @tparam S
+     * @tparam U
+     * @tparam BinaryOperator
+     * @param parts2            another VectorData
+     * @param output            output VectorData (can be 'this' or 'parts2')
+     * @param op                binary operator
+     */
+    template<typename S, typename U, typename BinaryOperator>
+    void zip(const VectorData<S>& parts2, VectorData<U>& output, BinaryOperator op) {
+        output.resize(size());
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size() / numOfThreads;
+            auto begin1_ = begin() + chunkSize * threadNum;
+            auto end1_ = (threadNum == numOfThreads - 1) ? begin() + size() : begin1_ + chunkSize;
+            auto begin2_ = parts2.begin() + chunkSize * threadNum;
+            auto out_ = output.begin() + chunkSize * threadNum;
+            std::transform(begin1_, end1_, begin2_, out_, op);
+        }
+#else
+        std::transform(begin(), end(), parts2.begin(), output.begin(), op);
+#endif
+    }
+
+    template<typename S, typename U, typename BinaryOperator>
+    void zip(const VectorData<S>& parts2, VectorData<U>& output, BinaryOperator op) const {
+        output.resize(size());
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+        {
+            auto threadNum = omp_get_thread_num();
+            auto numOfThreads = omp_get_num_threads();
+            auto chunkSize = size() / numOfThreads;
+            auto begin1_ = begin() + chunkSize * threadNum;
+            auto end1_ = (threadNum == numOfThreads - 1) ? begin() + size() : begin1_ + chunkSize;
+            auto begin2_ = parts2.begin() + chunkSize * threadNum;
+            auto out_ = output.begin() + chunkSize * threadNum;
+            std::transform(begin1_, end1_, begin2_, out_, op);
+        }
+#else
+        std::transform(begin(), end(), parts2.begin(), output.begin(), op);
+#endif
     }
 
 
@@ -614,6 +722,19 @@ public :
         std::swap(z_num, aObj.z_num);
         meshMemory.swap(aObj.meshMemory);
         mesh.swap(aObj.mesh);
+    }
+
+
+    /**
+     * Normalize the elements of the mesh to sum to unity. Does nothing if data type T is not floating point.
+     */
+    void normalize() {
+        if(std::is_floating_point<T>::value) {
+            float sum = std::accumulate(mesh.begin(), mesh.end(), 0.0f);
+            if(std::abs(sum) > 1e-6 && sum != 1.0f) {
+                std::transform(mesh.begin(), mesh.end(), mesh.begin(), [sum](T &a) { return a / sum; });
+            }
+        }
     }
 
     /**
