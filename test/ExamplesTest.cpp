@@ -15,8 +15,10 @@
 #include "data_structures/APR/particles/LazyData.hpp"
 
 #include "io/APRFile.hpp"
-#include "../examples/Example_denoise.hpp"
 
+#ifdef APR_DENOISE
+#include "../examples/Example_denoise.hpp"
+#endif
 
 struct TestData{
 
@@ -198,6 +200,8 @@ void CreateGTSmall1DTestProperties::SetUp(){
     test_data.output_dir = get_source_directory_apr() + "files/Apr/sphere_1D/";
 }
 
+#ifdef APR_DENOISE
+
 bool run_denoise_example(TestData& testData){
 
     cmdLineOptionsDenoise options;
@@ -236,6 +240,8 @@ TEST_F(CreatDiffDimsSphereTest, EXAMPLE_DENOISE) {
     ASSERT_TRUE(run_denoise_example(test_data));
 
 }
+
+#endif
 
 int main(int argc, char **argv) {
 

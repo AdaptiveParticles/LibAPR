@@ -19,6 +19,7 @@ option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs inste
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
+option(APR_DENOISE "enable denoising code" OFF)
 
 # Validation of options
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
@@ -42,6 +43,7 @@ set (APR_VERSION_MAJOR 2)
 set (APR_VERSION_MINOR 0)
 set (APR_VERSION_PATCH 0)
 set (APR_VERSION_STRING ${APR_VERSION_MAJOR}.${APR_VERSION_MINOR}.${APR_VERSION_PATCH})
+
 execute_process(COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         OUTPUT_VARIABLE APR_GIT_HASH)
@@ -50,6 +52,7 @@ configure_file (
         "${PROJECT_SOURCE_DIR}/src/ConfigAPR.h.in"
         "${PROJECT_BINARY_DIR}/ConfigAPR.h"
 )
+
 include_directories("${PROJECT_BINARY_DIR}")
 message("Configuring for APR version: " ${APR_VERSION_STRING})
 
@@ -63,10 +66,19 @@ find_package(Threads REQUIRED)
 
 find_package(HDF5 REQUIRED)
 find_package(ZLIB REQUIRED)
+
 if(APR_USE_LIBTIFF)
     find_package(TIFF)
     set(CMAKE_C_FLAGS "${CMAKE_CFLAGS} -DHAVE_LIBTIFF")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXXFLAGS} -DHAVE_LIBTIFF")
+endif()
+
+if(APR_DENOISE)
+    find_package(Eigen3 REQUIRED)
+    MESSAGE( [Main] " EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
+    include_directories(${EIGEN3_INCLUDE_DIRS})
+    set(CMAKE_C_FLAGS "${CMAKE_CFLAGS} -DAPR_DENOISE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXXFLAGS} -DAPR_DENOISE")
 endif()
 
 # Handle OpenMP
