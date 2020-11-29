@@ -16,6 +16,7 @@
 #include "io/hdf5functions_blosc.h"
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/particles/ParticleData.hpp"
+#include "numerics/APRReconstruction.hpp"
 
 //Helper classes
 
@@ -418,6 +419,8 @@ public:
         //  Trains a level dependent de-noising model
         //
 
+        bool verbose = false;
+
         aprStencils.init(apr);
 
         float tol_ = .05;
@@ -476,7 +479,7 @@ public:
 
             //change the stencil size, the stencil is way to big for the lower levels.
             assemble_system_guided(apr, parts, parts_gt, setUp, aprStencils.stencils[level], N, it, level,
-                                   tol_);
+                                   tol_,verbose);
 
             tol_ = tol_ / 8;
 
@@ -612,21 +615,13 @@ public:
                         local_vec[i] = pad_img.mesh[global_off_l + stencilSetUp.index[i]];
                     }
 
-                    //store_val;
-                    //img.mesh[img_off + y] = std::inner_product(local_vec.begin(),local_vec.end(),stencil.linear_coeffs.begin(),temp_val);
 
-                    //parts[apr_iterator] =  std::inner_product(local_vec.begin(),local_vec.end(),stencil.linear_coeffs.begin(),temp_val);
-
-
-//                    parts[it] = level;
 
                     parts[it] = pad_img.mesh[global_off_l] * factor + (1 - factor) *
                                                                       std::inner_product(local_vec.begin(),
                                                                                          local_vec.end(),
                                                                                          stencil.linear_coeffs.begin(),
                                                                                          temp_val);
-//                     parts[it] = std::inner_product(local_vec.begin(),local_vec.end(),stencil.linear_coeffs.begin(),temp_val);
-//                    parts[it] =  pad_img.mesh[global_off_l];
 
                 }
             }
@@ -728,14 +723,38 @@ public:
                            bool verbose = false) {
 
         timer.verbose_flag = verbose;
+        timer.verbose_flag = true;
 
         PixelData<T> img; //change to be level dependent
         // apr.interp_img(img,parts);
         int delta = (level - apr.level_max());
 
-        APRReconstruction::interp_img_us_smooth(apr, img, parts, false, delta);
+        auto level_ = level;
 
+        auto apr_iterator = apr.iterator();
+
+        uint64_t total_parts = apr_iterator.particles_level_end(level_) - apr_iterator.particles_level_begin(level_);
+
+        APRReconstruction::interp_img_us_smooth(apr, img, parts, false, delta);
         stencilSetUp.calculate_global_index(img);
+
+        if (total_parts < N) {
+
+            if(total_parts < 10){
+
+                //do nothing, not enough points to train.
+                stencil.linear_coeffs.resize(stencilSetUp.index.size(), 0);
+                stencil.linear_coeffs[stencilSetUp.center_index] = 1.0f;
+                stencil.non_linear_coeffs.resize(stencilSetUp.nl_index_1.size(), 0);
+
+                return;
+            } else {
+                //try this default
+                N = total_parts / 2;
+            }
+
+        }
+
 
         PixelData<T> pad_img;
 
@@ -779,23 +798,6 @@ public:
         timer.start_timer("assemble");
 
 
-        auto level_ = level;
-
-
-        auto apr_iterator = apr.iterator();
-
-        uint64_t total_parts = apr_iterator.particles_level_end(level_) - apr_iterator.particles_level_begin(level_);
-
-        if (total_parts < N) {
-            //default kernel of do nothing.
-
-            stencil.linear_coeffs.resize(stencilSetUp.index.size(), 0);
-            stencil.linear_coeffs[stencilSetUp.center_index] = 1.0f;
-            stencil.non_linear_coeffs.resize(stencilSetUp.nl_index_1.size(), 0);
-
-            return;
-        }
-
         auto total_p = (img.x_num * img.z_num * img.y_num) / N;
 
         total_p = total_parts / N;
@@ -836,8 +838,16 @@ public:
             }
         }
 
+        timer.stop_timer();
+
+        timer.start_timer("solve loop");
+
 
         for (int l = 0; l < num_rep; ++l) {
+
+            APRTimer timer_l(verbose);
+
+            timer_l.start_timer("random");
 
             random_index[0] = std::rand() % total_p + 1;
 
@@ -846,14 +856,14 @@ public:
                 random_index[j] = random_index[j - 1] + std::rand() % total_p + 1;
             }
 
-            uint64_t k = 0;
+            timer_l.stop_timer();
 
-            APRTimer timer_l(verbose);
+            uint64_t k = 0;
 
             timer_l.start_timer("A");
 
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(k) firstprivate(local_vec)
+#pragma omp parallel for schedule(static) private(k) firstprivate(local_vec)
 #endif
             for (k = 0; k < N; ++k) {
 
@@ -930,10 +940,6 @@ public:
 
             Eigen::LeastSquaresConjugateGradient<Eigen::MatrixXd, Eigen::IdentityPreconditioner> solver;
 
-            //Eigen::BiCGSTAB<Eigen::MatrixXd> solver;
-
-            // Eigen::GMRES<Eigen::MatrixXd> solver;
-
             //Need to compute desired tol
             float val = factor;
             Eigen::VectorXf ones_v = val * Eigen::VectorXf::Ones(N);
@@ -943,18 +949,9 @@ public:
 
             float tol = norm_e / norm_b;
 
-            //tol = pow(10,-6);
-
-//            lscg.setMaxIterations(400);
-//            lscg.setTolerance(tol);
-
             solver.setMaxIterations(800);
             solver.setTolerance(tol);
             solver.compute(A.transpose());
-
-            //solver.set_restart(1);
-
-            //solver.compute(A*A.transpose());
 
             for (int m = 0; m < coeff_prev.size(); ++m) {
                 coeff_prev(m) = coeff_prev(m) * norm_c_(m);
@@ -962,20 +959,12 @@ public:
 
             if (l > 0) {
                 solver.setMaxIterations(20);
-
-                //coeff = lscg.solve(b);
                 coeff = solver.solveWithGuess(b, coeff_prev);
-                //coeff = solver.solveWithGuess(A*b,coeff_prev);
-                //coeff = solver.solve(A*b);
             } else {
                 tol *= 0.0001;
                 solver.setTolerance(tol);
                 coeff = solver.solve(b);
 
-                //coeff = solver.solveWithGuess(b,coeff_prev);
-
-                //coeff = solver.solve(A*b);
-                //coeff = (A.transpose()).bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
             }
 
 
