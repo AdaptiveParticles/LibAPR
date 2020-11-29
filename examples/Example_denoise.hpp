@@ -46,7 +46,6 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     // Filename
     std::string file_name = options.directory + options.input;
 
-    // Read the apr file into the part cell structure
     APRTimer timer;
 
     timer.verbose_flag = true;
@@ -61,43 +60,47 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     aprFile.read_apr(apr);
 
     ParticleData<uint16_t>parts;
-    aprFile.read_particles(apr,parts);
+    aprFile.read_particles(apr,parts); //default read, will take the first particles added to the file
 
     aprFile.close();
     timer.stop_timer();
 
-    ///////////////////////////
-    ///
-    /// Serial Iteration (For use with neighbour access see Example_apr_neigh)
-    ///
-    /// Looping over with full access to particle information and access to particle datasets.
-    ///
-    /////////////////////////////////
+    //    APRStencils aprStencils;
+//    aprStencils.dim = 2; //get the dimension from the file.
 
-    //Create particle datasets, once intiailized this has the same layout as the Particle Cells
-    ParticleData<float> calc_ex(apr.total_number_particles());
 
-    auto it = apr.iterator(); // not STL type iteration
+    PixelData<float> recon_pc;
 
-    timer.start_timer("APR serial iterator loop");
-
-    for (unsigned int level = it.level_min(); level <= it.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < it.z_num(level); z++) {
-            for (x = 0; x < it.x_num(level); ++x) {
-                for (it.begin(level, z, x); it < it.end(); it++) {
-
-                    //you can then also use it to access any particle properties stored as ExtraParticleData
-                    calc_ex[it] = 10.0f * parts[it];
-                }
-            }
-        }
-
-    }
-
+    timer.start_timer("pc interp");
+    //perform piece-wise constant interpolation
+    APRReconstruction::interp_img(apr,recon_pc, parts);
     timer.stop_timer();
+
+//    //load in an APR
+//    LearnDenoise learnDenoise;
+//
+//    learnDenoise.iteration_others = 3; //default = 1 (Changed)
+//
+//    learnDenoise.train_denoise(apr,parts,aprStencils);
+//
+//    learnDenoise.apply_denoise(apr,parts,aprStencils);
+//
+//
+//    timer.start_timer("pc interp");
+//    //perform piece-wise constant interpolation
+//    APRReconstruction::interp_img(apr,recon_pc, parts);
+//    timer.stop_timer();
+//
+//    std::string image_file_name = options.directory +  apr.name + "_denoised.tif";
+//    TiffUtils::saveMeshAsTiffUint16(image_file_name, recon_pc,false);
+//
+//    file_name = options.directory + options.output;
+//
+//    aprFile.open(file_name,"WRITE");
+//    aprFile.write_apr(apr);
+//    aprFile.write_particles("particles",parts);
+//    aprFile.close();
+
 
     return true;
 }
