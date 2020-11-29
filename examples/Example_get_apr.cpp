@@ -107,7 +107,7 @@ int runAPR(cmdLineOptions options) {
         aprFile.set_read_write_tree(false); //not writing tree to file.
 
         aprFile.write_apr(apr);
-        aprFile.write_particles("particle_intensities",particle_intensities);
+        aprFile.write_particles("particles",particle_intensities);
 
         float apr_file_size = aprFile.current_file_size_MB();
 
