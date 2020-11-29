@@ -278,6 +278,9 @@ endif(APR_INSTALL)
 ###############################################################################
 if(APR_BUILD_EXAMPLES)
     message(STATUS "APR: Building examples")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_EXAMPLES")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_EXAMPLES")
+
     add_subdirectory(examples)
 endif(APR_BUILD_EXAMPLES)
 
