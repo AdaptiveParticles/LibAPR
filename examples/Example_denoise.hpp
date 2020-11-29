@@ -18,6 +18,7 @@
 #include "io/APRFile.hpp"
 #include "numerics/APRDenoise.hpp"
 
+
 #include "ExampleHelpers.hpp"
 
 const char* usage = R"(
@@ -87,7 +88,10 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     //load in an APR
     APRDenoise aprDenoise;
 
-    aprDenoise.iteration_others = 3; //default = 1 (Changed)
+    aprDenoise.iteration_others = 1; //default = 1 (Changed)
+
+    aprDenoise.N_ = 100;
+    aprDenoise.N_max = 100;
 
     aprDenoise.train_denoise(apr,parts,aprStencils);
 
@@ -107,6 +111,14 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     aprFile.write_apr(apr);
     aprFile.write_particles("particles",parts);
     aprFile.close();
+
+    //IO is to do, just need to extend the existing code to handle the APR case, and load and read appropriately.
+
+//    StencilSetUp su;
+//    std::string file_name = "";
+//    Stencil<T> stencil;
+//
+//    su.write_stencil(file_name,stencil,su);
 
     return true;
 }
