@@ -8,12 +8,15 @@
 #include <functional>
 #include <string>
 
+#include <io/TiffUtils.hpp>
 #include "data_structures/APR/APR.hpp"
 #include <algorithm>
 #include <iostream>
 #include <cmath>
-#include"data_structures/APR/particles/ParticleData.hpp"
-#include"io/APRFile.hpp"
+
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "io/APRFile.hpp"
+#include "numerics/APRDenoise.hpp"
 
 #include "ExampleHelpers.hpp"
 
@@ -65,9 +68,11 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     aprFile.close();
     timer.stop_timer();
 
-    //    APRStencils aprStencils;
-//    aprStencils.dim = 2; //get the dimension from the file.
+    APRStencils aprStencils;
 
+    auto it = apr.iterator();
+
+    aprStencils.dim = it.number_dimensions(); //get the dimension from the file.
 
     PixelData<float> recon_pc;
 
@@ -76,31 +81,32 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     APRReconstruction::interp_img(apr,recon_pc, parts);
     timer.stop_timer();
 
-//    //load in an APR
-//    LearnDenoise learnDenoise;
-//
-//    learnDenoise.iteration_others = 3; //default = 1 (Changed)
-//
-//    learnDenoise.train_denoise(apr,parts,aprStencils);
-//
-//    learnDenoise.apply_denoise(apr,parts,aprStencils);
-//
-//
-//    timer.start_timer("pc interp");
-//    //perform piece-wise constant interpolation
-//    APRReconstruction::interp_img(apr,recon_pc, parts);
-//    timer.stop_timer();
-//
-//    std::string image_file_name = options.directory +  apr.name + "_denoised.tif";
-//    TiffUtils::saveMeshAsTiffUint16(image_file_name, recon_pc,false);
-//
-//    file_name = options.directory + options.output;
-//
-//    aprFile.open(file_name,"WRITE");
-//    aprFile.write_apr(apr);
-//    aprFile.write_particles("particles",parts);
-//    aprFile.close();
+    std::string image_file_name = options.directory +  apr.name + "_org.tif";
+    TiffUtils::saveMeshAsTiffUint16(image_file_name, recon_pc,false);
 
+    //load in an APR
+    APRDenoise aprDenoise;
+
+    aprDenoise.iteration_others = 3; //default = 1 (Changed)
+
+    aprDenoise.train_denoise(apr,parts,aprStencils);
+
+    aprDenoise.apply_denoise(apr,parts,aprStencils);
+
+    timer.start_timer("pc interp");
+    //perform piece-wise constant interpolation
+    APRReconstruction::interp_img(apr,recon_pc, parts);
+    timer.stop_timer();
+
+    image_file_name = options.directory +  apr.name + "_denoised.tif";
+    TiffUtils::saveMeshAsTiffUint16(image_file_name, recon_pc,false);
+
+    file_name = options.directory + options.output;
+
+    aprFile.open(file_name,"WRITE");
+    aprFile.write_apr(apr);
+    aprFile.write_particles("particles",parts);
+    aprFile.close();
 
     return true;
 }

@@ -60,6 +60,7 @@ message("Configuring for APR version: " ${APR_VERSION_STRING})
 # Find all required libraries
 ###############################################################################
 
+
 #pthreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -67,18 +68,20 @@ find_package(Threads REQUIRED)
 find_package(HDF5 REQUIRED)
 find_package(ZLIB REQUIRED)
 
-if(APR_USE_LIBTIFF)
-    find_package(TIFF)
-    set(CMAKE_C_FLAGS "${CMAKE_CFLAGS} -DHAVE_LIBTIFF")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXXFLAGS} -DHAVE_LIBTIFF")
-endif()
-
 if(APR_DENOISE)
     find_package(Eigen3 REQUIRED)
     MESSAGE( [Main] " EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
     include_directories(${EIGEN3_INCLUDE_DIRS})
-    set(CMAKE_C_FLAGS "${CMAKE_CFLAGS} -DAPR_DENOISE")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXXFLAGS} -DAPR_DENOISE")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_DENOISE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_DENOISE")
+
+endif()
+
+
+if(APR_USE_LIBTIFF)
+    find_package(TIFF)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_LIBTIFF")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_LIBTIFF")
 endif()
 
 # Handle OpenMP

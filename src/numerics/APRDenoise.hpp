@@ -15,6 +15,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "io/hdf5functions_blosc.h"
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 
 //Helper classes
 
@@ -144,7 +145,6 @@ public:
 
     template<typename T>
     void read_stencil(std::string file_name, Stencil<T> &stencil) {
-
 
         hid_t fileId = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
@@ -404,7 +404,7 @@ public:
 
     int level_min = 0;
 
-// Train APR
+    // Train APR
 
     template<typename S>
     void train_denoise(APR &apr, ParticleData <S> &parts, APRStencils &aprStencils) {
@@ -475,12 +475,10 @@ public:
             setUp.setup_standard(stencil_dim);
 
             //change the stencil size, the stencil is way to big for the lower levels.
-
             assemble_system_guided(apr, parts, parts_gt, setUp, aprStencils.stencils[level], N, it, level,
                                    tol_);
 
             tol_ = tol_ / 8;
-
 
         }
 
@@ -517,96 +515,6 @@ public:
         }
         timer.stop_timer();
 
-
-    }
-
-
-    template<typename T, typename S>
-    float apply_conv(PixelData<T> &img, StencilSetUp &stencilSetUp, Stencil<S> stencil) {
-
-        timer.verbose_flag = true;
-
-        PixelData<T> pad_img;
-
-        stencilSetUp.calculate_global_index(img);
-
-        timer.start_timer("pad_img");
-
-        padd_boundary2(img, pad_img, stencilSetUp.stencil_span);
-
-        timer.stop_timer();
-
-        const uint64_t off_y = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_x = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_z = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.z_num - 1);
-
-        const uint64_t x_num_p = img.x_num + 2 * off_x;
-        const uint64_t y_num_p = img.y_num + 2 * off_y;
-
-        std::vector<float> local_vec;
-
-        local_vec.resize(stencilSetUp.index.size(), 0);
-
-        const int stencil_size = stencilSetUp.index.size();
-        const int unroll_size = 16;
-        const int loop_sz = (stencil_size / unroll_size) * unroll_size;
-
-        timer.start_timer("conv");
-
-        uint64_t z = 0;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(z) firstprivate(local_vec)
-#endif
-        for (z = 0; z < img.z_num; ++z) {
-            for (uint64_t x = 0; x < img.x_num; ++x) {
-
-                const uint64_t img_off = x * img.y_num + z * (img.y_num * img.z_num);
-
-                float temp_val = 0;
-
-                const uint64_t global_off = off_y + (off_x + x) * y_num_p + (off_z + z) * x_num_p * y_num_p;
-
-                for (uint64_t y = 0; y < img.y_num; ++y) {
-
-                    //Get the local stencil of points
-                    const uint64_t global_off_l = y + global_off;
-
-                    int i = 0;
-
-                    for (; i < loop_sz; i += unroll_size) {
-                        local_vec[i] = pad_img.mesh[global_off_l + stencilSetUp.index[i]];
-                        local_vec[i + 1] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 1]];
-                        local_vec[i + 2] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 2]];
-                        local_vec[i + 3] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 3]];
-                        local_vec[i + 4] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 4]];
-                        local_vec[i + 5] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 5]];
-                        local_vec[i + 6] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 6]];
-                        local_vec[i + 7] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 7]];
-                        local_vec[i + 8] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 8]];
-                        local_vec[i + 9] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 9]];
-                        local_vec[i + 10] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 10]];
-                        local_vec[i + 11] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 11]];
-                        local_vec[i + 12] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 12]];
-                        local_vec[i + 13] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 13]];
-                        local_vec[i + 14] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 14]];
-                        local_vec[i + 15] = pad_img.mesh[global_off_l + stencilSetUp.index[i + 15]];
-                    }
-
-                    for (; i < stencil_size; i++) {
-                        local_vec[i] = pad_img.mesh[global_off_l + stencilSetUp.index[i]];
-                    }
-
-                    //store_val;
-                    img.mesh[img_off + y] = std::inner_product(local_vec.begin(), local_vec.end(),
-                                                               stencil.linear_coeffs.begin(), temp_val);
-
-                }
-            }
-        }
-
-        timer.stop_timer();
-
-        return timer.timings.back();
 
     }
 
@@ -879,6 +787,12 @@ public:
         uint64_t total_parts = apr_iterator.particles_level_end(level_) - apr_iterator.particles_level_begin(level_);
 
         if (total_parts < N) {
+            //default kernel of do nothing.
+
+            stencil.linear_coeffs.resize(stencilSetUp.index.size(), 0);
+            stencil.linear_coeffs[stencilSetUp.center_index] = 1.0f;
+            stencil.non_linear_coeffs.resize(stencilSetUp.nl_index_1.size(), 0);
+
             return;
         }
 
@@ -1133,277 +1047,6 @@ public:
     }
 
 
-    template<typename T, typename S>
-    void assemble_system(PixelData<T> &img, StencilSetUp &stencilSetUp, Stencil<S> &stencil, int N, int num_rep,
-                         float factor = 0.05, bool verbose = false) {
-
-        timer.verbose_flag = verbose;
-
-        PixelData<T> pad_img;
-
-        timer.start_timer("pad_img");
-
-        padd_boundary2(img, pad_img, stencilSetUp.stencil_span);
-
-        timer.stop_timer();
-
-        const uint64_t off_y = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_x = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_z = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.z_num - 1);
-
-        const uint64_t x_num_p = img.x_num + 2 * off_x;
-        const uint64_t y_num_p = img.y_num + 2 * off_y;
-
-        std::vector<T> local_vec;
-
-        local_vec.resize(stencilSetUp.index.size(), 0);
-
-        std::vector<float> nl_local_vec;
-        nl_local_vec.resize(stencilSetUp.nl_index_1.size(), 0);
-
-        auto n = (int) stencilSetUp.l_index_1.size() + stencilSetUp.nl_index_1.size();
-
-        std::vector<uint64_t> random_index;
-        random_index.resize(N);
-
-        auto total_p = (img.x_num * img.z_num * img.y_num) / N;
-
-        auto l_num = stencilSetUp.l_index_1.size();
-
-        //PixelData<float> A_temp;
-        //A_temp.init(n,N,1);
-
-        std::vector<double> b_temp;
-        b_temp.resize(N);
-
-        std::vector<std::vector<double>> coeff_store;
-        coeff_store.resize(num_rep);
-
-        timer.start_timer("assemble");
-
-        std::vector<double> A_temp;
-        A_temp.resize(n * N, 0);
-
-        Eigen::Map<Eigen::MatrixXd> A(A_temp.data(), n, N);
-
-        //Eigen::MatrixXd A(n,N);
-
-        Eigen::VectorXd coeff_prev(n);
-
-
-        for (int l = 0; l < num_rep; ++l) {
-
-            random_index[0] = std::rand() % total_p + 1;
-
-            for (int j = 1; j < random_index.size(); ++j) {
-                random_index[j] = random_index[j - 1] + std::rand() % total_p + 1;
-            }
-
-            uint64_t k = 0;
-
-            APRTimer timer_l(verbose);
-
-            timer_l.start_timer("A");
-
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(k) firstprivate(local_vec)
-#endif
-            for (k = 0; k < N; ++k) {
-
-                const uint64_t r_i = random_index[k];
-
-                const uint64_t z = r_i / (img.x_num * img.y_num);
-                const uint64_t x = (r_i - z * (img.x_num * img.y_num)) / img.y_num;
-                const uint64_t y = r_i - z * (img.x_num * img.y_num) - x * img.y_num;
-
-                const uint64_t global_off = off_y + (off_x + x) * y_num_p + (off_z + z) * x_num_p * y_num_p;
-
-                //Get the local stencil of points
-                const uint64_t global_off_l = y + global_off;
-
-                for (int i = 0; i < stencilSetUp.index.size(); ++i) {
-                    local_vec[i] = pad_img.mesh[global_off_l + stencilSetUp.index[i]];
-                }
-
-                b_temp[k] = local_vec[stencilSetUp.center_index];
-
-                for (int i = 0; i < stencilSetUp.l_index_1.size(); ++i) {
-                    //A_temp(i, k, 0) = local_vec[stencilSetUp.l_index_1[i]];
-                    A(i, k) = local_vec[stencilSetUp.l_index_1[i]];
-                }
-
-                //Apply the non-linear kernel
-                for (int i = 0; i < stencilSetUp.nl_index_1.size(); ++i) {
-                    //A_temp(i + l_num, k, 0) =
-                    //      local_vec[stencilSetUp.nl_index_1[i]] * local_vec[stencilSetUp.nl_index_2[i]];
-                    A(i + l_num, k) =
-                            local_vec[stencilSetUp.nl_index_1[i]] * local_vec[stencilSetUp.nl_index_2[i]];
-                }
-
-
-            }
-
-            timer_l.stop_timer();
-
-            timer_l.start_timer("solve");
-
-            std::vector<double> norm_c;
-            norm_c.resize(n, 0);
-
-            Eigen::Map<Eigen::VectorXd> norm_c_(norm_c.data(), n);
-
-
-            std::vector<double> std;
-
-            for (int i = 0; i < A.rows(); i++) {
-                Eigen::ArrayXd vec = A.row(i);
-                double std_dev = std::sqrt((vec - vec.mean()).square().sum() / (vec.size() - 1));
-                //std_dev = 1;
-                norm_c_(i) = std_dev;
-                A.row(i) = A.row(i) / std_dev;
-                std.push_back(std_dev);
-            }
-
-
-            Eigen::Map<Eigen::VectorXd> b(b_temp.data(), N);
-
-            coeff_store[l].resize(n, 0);
-
-            Eigen::Map<Eigen::VectorXd> coeff(coeff_store[l].data(), n);
-
-            Eigen::LeastSquaresConjugateGradient<Eigen::MatrixXd, Eigen::IdentityPreconditioner> solver;
-
-            //Eigen::BiCGSTAB<Eigen::MatrixXd> solver;
-
-            // Eigen::GMRES<Eigen::MatrixXd> solver;
-
-            //Need to compute desired tol
-            float val = factor;
-            Eigen::VectorXf ones_v = val * Eigen::VectorXf::Ones(N);
-
-            float norm_b = b.norm();
-            float norm_e = ones_v.norm();
-
-            float tol = norm_e / norm_b;
-
-            //tol = pow(10,-6);
-
-//            lscg.setMaxIterations(400);
-//            lscg.setTolerance(tol);
-
-            solver.setMaxIterations(800);
-            solver.setTolerance(tol);
-            solver.compute(A.transpose());
-
-            //solver.set_restart(1);
-
-            //solver.compute(A*A.transpose());
-
-            for (int m = 0; m < coeff_prev.size(); ++m) {
-                coeff_prev(m) = coeff_prev(m) * norm_c_(m);
-            }
-
-            if (l > 0) {
-                solver.setMaxIterations(40);
-
-                //coeff = lscg.solve(b);
-                coeff = solver.solveWithGuess(b, coeff_prev);
-                //coeff = solver.solveWithGuess(A*b,coeff_prev);
-                //coeff = solver.solve(A*b);
-            } else {
-                tol *= 0.0001;
-                solver.setTolerance(tol);
-                coeff = solver.solve(b);
-                //coeff = solver.solve(A*b);
-                //coeff = (A.transpose()).bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
-            }
-
-
-            for (int i1 = 0; i1 < n; ++i1) {
-                coeff(i1) = coeff(i1) / norm_c_(i1);
-            }
-
-            coeff_prev = coeff;
-
-            if (verbose) {
-
-                std::cout << "#iterations: " << solver.iterations() << std::endl;
-            }
-
-            timer_l.stop_timer();
-
-        }
-
-        timer.stop_timer();
-
-
-        //now compute the linear stencil
-
-        stencil.linear_coeffs.resize(stencilSetUp.index.size(), 0); //need to include the 0 center
-        auto offset = 0;
-
-        int include = std::floor(0.5 * num_rep);
-
-        for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
-
-            if (k1 == stencilSetUp.center_index) {
-                offset = -1;
-            } else {
-
-                double sum = 0;
-                double counter = 0;
-
-                for (int i = include; i < num_rep; ++i) {
-                    sum += coeff_store[i][k1 + offset];
-                    counter++;
-                }
-                stencil.linear_coeffs[k1] = sum / (counter * 1.0);
-
-            }
-
-        }
-
-
-        stencil.non_linear_coeffs.resize(stencilSetUp.nl_index_1.size(), 0);
-
-        for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
-
-
-            double sum = 0;
-            double counter = 0;
-
-            for (int i = include; i < num_rep; ++i) {
-                sum += coeff_store[i][k1 + l_num];
-                counter++;
-            }
-            stencil.non_linear_coeffs[k1] = sum / (counter * 1.0);
-
-        }
-
-
-    }
-
-    void test() {
-
-        timer.start_timer("test cg");
-
-        const int m = 200, n = 200;
-        Eigen::VectorXd x(n), b(m);
-        //Eigen::SparseMatrix<double> A(m,n);
-
-        Eigen::MatrixXd A(m, n);
-        // fill A and b
-        Eigen::GMRES<Eigen::MatrixXd> lscg;
-        lscg.compute(A);
-        x = lscg.solve(b);
-        std::cout << "#iterations:     " << lscg.iterations() << std::endl;
-        std::cout << "estimated error: " << lscg.error() << std::endl;
-        // update b, and solve again
-        x = lscg.solve(b);
-
-        timer.stop_timer();
-
-    }
 
 };
 
