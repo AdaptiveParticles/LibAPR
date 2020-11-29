@@ -1539,6 +1539,14 @@ bool test_apr_file(TestData& test_data){
 
     readFile.read_particles(aprRead,"parts",parts_read);
 
+    // Default read without name, takes the first particles.
+    ParticleData<uint16_t> parts_default;
+    bool no_name = readFile.read_particles(aprRead,parts_default);
+
+    if(!no_name){
+        success = false;
+    }
+
     ParticleData<float> parts2_read;
 
     readFile.read_particles(aprRead,"parts2",parts2_read);
