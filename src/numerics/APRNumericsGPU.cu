@@ -6,7 +6,8 @@
 
 template<typename inputType, typename stencilType>
 void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input, stencilType* output,
-                     stencilType* psf, stencilType* psf_flipped, int kernel_size, int niter, bool use_stencil_downsample) {
+                     stencilType* psf, stencilType* psf_flipped, int kernel_size, int niter, bool use_stencil_downsample,
+                     bool resume) {
 
     VectorData<int> ne_counter_ds;
     VectorData<int> ne_counter_333;
@@ -37,8 +38,10 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
 
     error_check( cudaDeviceSynchronize() )
 
-    /// initialize output as the input image
-    fillWithValue<<< grid_dim, block_dim >>> (output, (stencilType)1, numParts);
+    /// if not resuming from previous iterations, initialize estimate with 1s
+    if(!resume) {
+        fillWithValue<<< grid_dim, block_dim >>>(output, (stencilType) 1, numParts);
+    }
 
     error_check( cudaDeviceSynchronize() )
 
@@ -94,7 +97,8 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
 
 template<typename inputType, typename stencilType>
 void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
-                     VectorData<stencilType>& output, PixelData<stencilType>& psf, int niter, bool use_stencil_downsample, bool normalize_stencil) {
+                     VectorData<stencilType>& output, PixelData<stencilType>& psf, int niter, bool use_stencil_downsample,
+                     bool normalize_stencil, bool resume) {
 
     tree_access.init_gpu();
     access.init_gpu(tree_access);
@@ -142,7 +146,12 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
     psf_gpu.copyH2D();
     psf_flipped_gpu.copyH2D();
 
-    richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), psf_gpu.get(), psf_flipped_gpu.get(), kernel_size, niter, use_stencil_downsample);
+    if(resume) {
+        output_gpu.copyH2D();
+    }
+
+    richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), psf_gpu.get(), psf_flipped_gpu.get(),
+                    kernel_size, niter, use_stencil_downsample, resume);
     error_check( cudaDeviceSynchronize() )
 
     /// copy result back to host
@@ -150,8 +159,8 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
 }
 
 
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, float*, float*, int, int, bool);
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, float*, float*, int, int, bool);
+template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, float*, float*, int, int, bool, bool);
+template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, float*, float*, int, int, bool, bool);
 
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool);
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, PixelData<float>&, int, bool, bool);
+template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
+template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
