@@ -16,6 +16,9 @@ buildTarget(Example_apr_tree)
 
 buildTarget(Example_ray_cast)
 
-buildTarget(Example_denoise)
+if(APR_DENOISE)
+    #requires eigen
+    buildTarget(Example_denoise)
+endif()
 
 
