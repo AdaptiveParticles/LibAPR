@@ -841,25 +841,25 @@ bool test_pulling_scheme_sparse(TestData& test_data){
 
     aprConverter.get_apr(apr_org,test_data.img_original);
 
-//    APR apr_org_sparse;
-//    aprConverter.set_sparse_pulling_scheme(true);
-//
-//    aprConverter.get_apr(apr_org_sparse,test_data.img_original);
-//
-//    APR apr_lin_sparse;
-//    aprConverter.set_generate_linear(true);
-//
-//    aprConverter.get_apr(apr_lin_sparse,test_data.img_original);
-//
-//
-//    auto org_it = apr_org.random_iterator();
-//    auto sparse_it = apr_org_sparse.iterator();
-//    auto sparse_lin_it = apr_lin_sparse.iterator();
-//
-//
-//    success = compare_two_iterators(org_it,sparse_it,success);
-//    success = compare_two_iterators(sparse_lin_it,sparse_it,success);
-//    success = compare_two_iterators(org_it,sparse_lin_it,success);
+    APR apr_org_sparse;
+    aprConverter.set_sparse_pulling_scheme(true);
+
+    aprConverter.get_apr(apr_org_sparse,test_data.img_original);
+
+    APR apr_lin_sparse;
+    aprConverter.set_generate_linear(true);
+
+    aprConverter.get_apr(apr_lin_sparse,test_data.img_original);
+
+
+    auto org_it = apr_org.random_iterator();
+    auto sparse_it = apr_org_sparse.iterator();
+    auto sparse_lin_it = apr_lin_sparse.iterator();
+
+
+    success = compare_two_iterators(org_it,sparse_it,success);
+    success = compare_two_iterators(sparse_lin_it,sparse_it,success);
+    success = compare_two_iterators(org_it,sparse_lin_it,success);
 
     return success;
 }
