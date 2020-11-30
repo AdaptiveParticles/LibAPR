@@ -5,7 +5,6 @@
 #ifndef LIBAPR_APRFILTER_HPP
 #define LIBAPR_APRFILTER_HPP
 
-#include "APRReconstruction.hpp"
 #include "numerics/APRStencil.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 

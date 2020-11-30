@@ -316,11 +316,6 @@ endif(APR_TESTS)
 ###############################################################################
 
 if(APR_BENCHMARK)
-    message(STATUS "APR: Benchmarking performance")
+    message(STATUS "APR: Building performance benchmarks")
     add_subdirectory(benchmarks)
 endif(APR_BENCHMARK)
-
-###############################################################################
-# PYTHON wrappers These are now external please ask us for access
-###############################################################################
-
