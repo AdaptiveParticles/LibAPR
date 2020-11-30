@@ -1,5 +1,5 @@
-#ifndef PARTPLAY_COMPRESS
-#define PARTPLAY_COMPRESS
+#ifndef LIBAPR_EXAMPLE_COMPRESS_APR_HPP
+#define LIBAPR_EXAMPLE_COMPRESS_APR_HPP
 
 #include <functional>
 #include <string>
@@ -26,4 +26,4 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 
 char* get_command_option(char **begin, char **end, const std::string &option);
 
-#endif //PARTPLAY_PIPELINE_H
+#endif //LIBAPR_EXAMPLE_COMPRESS_APR_HPP

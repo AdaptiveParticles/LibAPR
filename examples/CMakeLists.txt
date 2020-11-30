@@ -10,6 +10,8 @@ buildTarget(Example_reconstruct_image)
 buildTarget(Example_compress_apr)
 buildTarget(Example_apr_neighbour_access)
 buildTarget(Example_compute_gradient)
+buildTarget(Example_apr_filter)
+buildTarget(Example_apr_deconvolution)
 buildTarget(Example_random_access)
 
 #buildTarget(Example_reconstruct_patch)  #The way this is working is going to be re-designed.

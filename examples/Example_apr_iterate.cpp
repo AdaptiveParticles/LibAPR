@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 
     ///////////////////////////
     ///
-    /// Serial Iteration (For use with neighbour access see Example_apr_neigh)
+    /// Serial Iteration (For use with neighbour access see Example_apr_neighbour_access)
     ///
     /// Looping over with full access to particle information and access to particle datasets.
     ///
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
 
     ////////////////////////////
     ///
-    /// OpenMP Parallel loop iteration (For use with neighbour access see Example_apr_neigh)
+    /// OpenMP Parallel loop iteration (For use with neighbour access see Example_apr_neighbour_access)
     ///
     ///////////////////////////
 
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
     ///
     /// See std::transform and the std functional header and below for examples
     ///
-    /// These are faster, but do not allow access to particle meta info (depth,type,x,y,z...ect.) (Nor neighbour operations see Example_apr_neigh)
+    /// These are faster, but do not allow access to particle meta info (depth,type,x,y,z...ect.) (Nor neighbour operations)
     ///
     ////////////////////////////////////////
 

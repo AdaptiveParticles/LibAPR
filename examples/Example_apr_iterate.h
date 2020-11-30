@@ -1,5 +1,5 @@
-#ifndef PARTPLAY_COMPUTEPARTS_H
-#define PARTPLAY_COMPUTEPARTS_H
+#ifndef LIBAPR_EXAMPLE_APR_ITERATE_H
+#define LIBAPR_EXAMPLE_APR_ITERATE_H
 
 #include <functional>
 #include <string>
@@ -20,4 +20,4 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 
 char* get_command_option(char **begin, char **end, const std::string &option);
 
-#endif //PARTPLAY_PIPELINE_H
+#endif //LIBAPR_EXAMPLE_APR_ITERATE_H

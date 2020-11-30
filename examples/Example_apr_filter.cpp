@@ -1,33 +1,28 @@
 //
-// Created by cheesema on 21.01.18.
+// Created by joel on 30.11.20.
 //
 
 const char* usage = R"(
 
- Example calculating the gradient magnitude of an APR and saving the result as a reconstructed TIFF image
+ Example applying a convolution operation (Gaussian blur) to an APR
 
  Usage:
 
  (using *.apr output of Example_get_apr)
 
- Example_compute_gradient -i input_apr_hdf5 -d directory -o output_tiff_file
+ Example_apr_filter -i input_apr_hdf5 -d directory -o output_tiff_file
 
- Note: input_file_path = directory + input_apr_hdf5
-       output_file_path = directory + output_tiff_file + ".tif"
-
-       if argument -o is not given, no file is written
+ Note: input file will be read from 'directory + input_apr_hdf5'
+       if -o is given, a reconstructed TIFF image will be written to: 'directory + output_tiff_file + ".tif"'
 
  Options:
 
- -dx value
- -dy value  voxel size in each dimension (float)
- -dz value
- -sobel     if this flag is given, gradients are computed using Sobel filters. (otherwise central finite differences are used)
+ -use_cuda      if this flag is given, the convolution is performed on the GPU (requires library to be built with CUDA enabled)
 
 )";
 
 
-#include "Example_compute_gradient.hpp"
+#include "Example_apr_filter.hpp"
 
 
 int main(int argc, char **argv) {
@@ -52,32 +47,54 @@ int main(int argc, char **argv) {
 
     timer.stop_timer();
 
-    //Calculate the gradient of the APR
-    timer.start_timer("compute APR gradient");
-
+    auto stencil = APRStencil::create_gaussian_filter<float>(/*sigma*/{1, 1, 1}, /*stencil size*/{5, 5, 5}, /*normalize*/true);
     ParticleData<float> output;
-    std::vector<float> deltas = {options.dy, options.dx, options.dz};
 
-    if(options.sobel) {
-        APRNumerics::gradient_magnitude_sobel(apr, parts, output, deltas);
-    } else {
-        APRNumerics::gradient_magnitude_cfd(apr, parts, output, deltas);
+    bool done = false;
+
+    // GPU convolution
+    if(options.use_cuda) {
+#ifdef APR_USE_CUDA
+        timer.start_timer("APR Convolution CUDA");
+        auto access = apr.gpuAPRHelper();
+        auto tree_access = apr.gpuTreeHelper();
+        VectorData<float> stencil_vd;
+        stencil_vd.resize(125); // stencil must be 5x5x5!
+        std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_vd.begin());
+        ParticleData<float> tree_data;
+        isotropic_convolve_555(access, tree_access, parts.data, output.data, stencil_vd, tree_data.data,
+                               /*reflect boundary*/true, /*downsample stencil*/true, /*normalize stencils*/true);
+
+        done = true;
+        timer.stop_timer();
+#else
+        std::cout << "Option -use_cuda was given, but LibAPR was not built with CUDA enabled. Using CPU implementation." << std::endl;
+#endif
     }
-    timer.stop_timer();
 
+    // CPU convolution (this works for stencils of any size in 1-3 dimensions)
+    if(!done) {
+        timer.start_timer("APR Convolution CPU");
+        APRFilter::convolve_pencil(apr, stencil, parts, output, /*reflect boundary*/true,
+                                   /*downsample stencil*/true, /*normalize stencils*/true);
+        timer.stop_timer();
+    }
+
+    // If output option given, reconstruct pixel image from output and write to file
     if(options.output.length() > 0) {
         // reconstruct pixel image from gradient
         timer.start_timer("reconstruct pixel image");
-        PixelData<float> gradient_magnitude_image;
-        APRReconstruction::interp_img(apr, gradient_magnitude_image, output);
+        PixelData<float> output_image;
+        APRReconstruction::interp_img(apr, output_image, output);
         timer.stop_timer();
 
         timer.start_timer("write pixel image to file");
         std::string image_file_name = options.directory + options.output + ".tif";
-        TiffUtils::saveMeshAsTiff(image_file_name, gradient_magnitude_image);
+        TiffUtils::saveMeshAsTiff(image_file_name, output_image);
         timer.stop_timer();
     }
 }
+
 
 bool command_option_exists(char **begin, char **end, const std::string &option)
 {
@@ -123,24 +140,9 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
         result.output = std::string(get_command_option(argv, argv + argc, "-o"));
     }
 
-    if(command_option_exists(argv, argv + argc, "-sobel"))
+    if(command_option_exists(argv, argv + argc, "-use_cuda"))
     {
-        result.sobel = true;
-    }
-
-    if(command_option_exists(argv, argv + argc, "-dx"))
-    {
-        result.dx =  std::stof(get_command_option(argv, argv + argc, "-dx"));
-    }
-
-    if(command_option_exists(argv, argv + argc, "-dy"))
-    {
-        result.dy =  std::stof(get_command_option(argv, argv + argc, "-dy"));
-    }
-
-    if(command_option_exists(argv, argv + argc, "-dz"))
-    {
-        result.dz =  std::stof(get_command_option(argv, argv + argc, "-dz"));
+        result.use_cuda = true;
     }
 
 

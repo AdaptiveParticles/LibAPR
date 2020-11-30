@@ -1,5 +1,5 @@
-#ifndef PARTPLAY_GETAPR_H
-#define PARTPLAY_GETAPR_H
+#ifndef LIBAPR_EXAMPLE_GET_APR_H
+#define LIBAPR_EXAMPLE_GET_APR_H
 
 #include <functional>
 #include <string>
@@ -43,4 +43,4 @@ char* get_command_option(char **begin, char **end, const std::string &option);
 cmdLineOptions read_command_line_options(int argc, char **argv);
 
 
-#endif //PARTPLAY_PIPELINE_H
+#endif //LIBAPR_EXAMPLE_GET_APR_H

@@ -2,8 +2,8 @@
 // Created by cheesema on 14/03/17.
 //
 
-#ifndef PARTPLAY_EXAMPLE_NEIGH_HPP
-#define PARTPLAY_EXAMPLE_NEIGH_HPP
+#ifndef LIBAPR_EXAMPLE_NEIGHBOUR_ACCESS_HPP
+#define LIBAPR_EXAMPLE_NEIGHBOUR_ACCESS_HPP
 
 #include <functional>
 #include <string>
@@ -24,4 +24,4 @@ bool command_option_exists(char **begin, char **end, const std::string &option);
 char* get_command_option(char **begin, char **end, const std::string &option);
 
 
-#endif //PARTPLAY_EXAMPLE_NEIGH_HPP
+#endif //LIBAPR_EXAMPLE_NEIGHBOUR_ACCESS_HPP
