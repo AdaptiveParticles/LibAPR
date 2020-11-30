@@ -38,7 +38,7 @@ Options:
 #include"data_structures/APR/particles/ParticleData.hpp"
 #include"io/APRFile.hpp"
 #include "numerics/APRReconstruction.hpp"
-
+#include <random>
 
 struct cmdLineOptions{
     std::string output = "output";
@@ -106,6 +106,23 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
 
     return result;
 }
+template<typename T>
+void add_random_to_img(PixelData<T>& img,float sd){
+
+    std::default_random_engine generator;
+    std::normal_distribution<float> distribution(0.0,sd);
+
+    size_t size = (size_t)img.y_num * img.x_num * img.z_num;
+    size_t i = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) private(i)
+#endif
+    for(i=0; i < size; i++){
+        float number = distribution(generator);
+        img.mesh[i] += number;
+    }
+
+}
 
 int main(int argc, char **argv) {
     // INPUT PARSING
@@ -137,6 +154,8 @@ int main(int argc, char **argv) {
 
         if(options.output_pc_recon) {
             //create mesh data structure for reconstruction
+            bool add_random_gitter = true;
+
             PixelData<uint16_t> recon_pc;
 
             timer.start_timer("pc interp");
@@ -144,12 +163,16 @@ int main(int argc, char **argv) {
             APRReconstruction::interp_img(apr,recon_pc, parts);
             timer.stop_timer();
 
+            if(add_random_gitter){
+                add_random_to_img(recon_pc,1.0f);
+            }
+
             float elapsed_seconds = timer.t2 - timer.t1;
             std::cout << "PC recon "
                       << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num * 2) / (elapsed_seconds * 1000000.0f)
                       << " MB per second" << std::endl;
 
-            //write output as tiff
+            // write output as tiff
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_pc.tif", recon_pc);
         }
     }
