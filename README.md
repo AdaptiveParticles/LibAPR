@@ -36,16 +36,16 @@ cmake -DAPR_USE_OPENMP=OFF ..
 
 | Option | Default value | Description |
 |:--|:--|:--|
-| APR_BUILD_SHARED_LIB | ON | Build shared library? |
-| APR_BUILD_STATIC_LIB | OFF | Build static library? |
-| APR_BUILD_EXAMPLES | OFF | Build executable examples? |
-| APR_TESTS | OFF | Build unit tests? |
-| APR_USE_LIBTIFF | ON | Enable LibTIFF? Required for tests and examples |
-| APR_PREFER_EXTERNAL_GTEST | OFF | Use installed gtest instead of included sources? |
-| APR_PREFER_EXTERNAL_BLOSC | OFF | Use installed blosc instead of included sources? |
-| APR_BENCHMARK | OFF | Build executable performance benchmarks? | 
-| APR_USE_OPENMP | ON | Enable multithreading via OpenMP? |
-| APR_USE_CUDA | OFF | Enable CUDA? (Under development - APR conversion pipeline is currently not working with CUDA enabled) |
+| APR_BUILD_SHARED_LIB | ON | Build shared library |
+| APR_BUILD_STATIC_LIB | OFF | Build static library |
+| APR_BUILD_EXAMPLES | OFF | Build executable examples |
+| APR_TESTS | OFF | Build unit tests |
+| APR_BENCHMARK | OFF | Build executable performance benchmarks |
+| APR_USE_LIBTIFF | ON | Enable LibTIFF (Required for tests and examples) |
+| APR_PREFER_EXTERNAL_GTEST | OFF | Use installed gtest instead of included sources |
+| APR_PREFER_EXTERNAL_BLOSC | OFF | Use installed blosc instead of included sources |
+| APR_USE_OPENMP | ON | Enable multithreading via OpenMP |
+| APR_USE_CUDA | OFF | Enable CUDA (Under development - APR conversion pipeline is currently not working with CUDA enabled) |
 
 ### Building on Linux
 
@@ -164,7 +164,8 @@ Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krz
 
 ## Coming soon
 
-* More examples for APR-based image processing and segmentation.
+* Improved documentation and updated library guide.
+* More examples of APR-based image processing and segmentation.
 * Deployment of the Java wrappers to Maven Central so they can be used in your project directly.
 * Support for loading the APR in [Fiji](https://fiji.sc), including [scenery](https://github.com/scenerygraphics/scenery) based 3D rendering.
 * Improved java wrapper support.
