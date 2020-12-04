@@ -185,6 +185,8 @@ void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,std:
 }
 
 
+#ifdef HAVE_LIBTIFF
+
 template<typename ParticleDataType>
 void sample_parts_from_img_blocked_gen(APR& apr, ParticleDataType& parts, const std::string& aFileName, const int z_block_size = 256, const int ghost_z = 32) {
 
@@ -244,6 +246,9 @@ void sample_parts_from_img_blocked_gen(APR& apr, ParticleDataType& parts, const 
         sample_parts_from_img_downsampled_patch(apr, parts, patchImage, patch);
     }
 }
+
+#endif // HAVE_LIBTIFF
+
 
 template<typename ImageType,typename ParticleDataType>
 void sample_parts_from_img_downsampled_patch(APR& apr, ParticleDataType& parts, PixelData<ImageType>& input_image, ImagePatch& patch) {

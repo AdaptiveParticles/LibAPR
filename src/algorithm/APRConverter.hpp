@@ -290,9 +290,11 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
         }
     }
 
+#ifdef HAVE_LIBTIFF
     if(par.output_steps) {
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_rescaled.tif", local_scale_temp);
     }
+#endif
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)

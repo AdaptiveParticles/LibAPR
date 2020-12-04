@@ -11,6 +11,8 @@
 #ifndef LIBAPR_APRCONVERTERBATCH_HPP
 #define LIBAPR_APRCONVERTERBATCH_HPP
 
+#ifdef HAVE_LIBTIFF // This class requires LibTIFF to read tiles from file
+
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/Mesh/ImagePatch.hpp"
 
@@ -230,19 +232,18 @@ bool APRConverterBatch<ImageType>::get_apr_method_patch(APR &aAPR, PixelData<T>&
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     iComputeGradient.get_gradient(image_temp, grad_temp, local_scale_temp, par);
     method_timer.stop_timer();
-#ifdef HAVE_LIBTIFF
+
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
     }
-#endif
+
     method_timer.start_timer("compute_local_intensity_scale");
     iLocalIntensityScale.get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
     method_timer.stop_timer();
-#ifdef HAVE_LIBTIFF
+
     if(par.output_steps){
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
     }
-#endif
 
 //#else
 //    method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -417,5 +418,6 @@ void APRConverterBatch<ImageType>::applyParameters(PixelData<ImageType> &grad_te
     }
 }
 
+#endif //HAVE_LIBTIFF
 
 #endif //LIBAPR_APRCONVERTERBATCH_HPP
