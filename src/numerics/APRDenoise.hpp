@@ -238,8 +238,7 @@ public:
 
         }
 
-
-        stencil.non_linear_coeffs.resize(nl_index_1.size(), 0);
+//        stencil.non_linear_coeffs.resize(nl_index_1.size(), 0);
 
         for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
 
@@ -568,6 +567,8 @@ public:
             factor = std::max(factor, std::abs(stencil.linear_coeffs[j]));
         }
 
+        stencil.linear_coeffs[stencilSetUp.center_index] = factor / (1-factor); // this weights the middle pixel by the same as the largest weight in the stencil (factor). The 1-factor is for noramlisation.
+
         auto it = apr.iterator();
 
         uint64_t z = 0;
@@ -616,13 +617,10 @@ public:
                     }
 
 
-
-                    parts[it] = pad_img.mesh[global_off_l] * factor + (1 - factor) *
-                                                                      std::inner_product(local_vec.begin(),
+                    parts[it] = (1 - factor) * std::inner_product(local_vec.begin(),
                                                                                          local_vec.end(),
                                                                                          stencil.linear_coeffs.begin(),
                                                                                          temp_val);
-
                 }
             }
         }
