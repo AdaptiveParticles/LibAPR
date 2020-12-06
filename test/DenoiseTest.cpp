@@ -1,24 +1,20 @@
 //
 // Created by bevan on 06/12/2020.
 //
-//
-// Created by bevan on 29/11/2020.
-//
 #include <gtest/gtest.h>
 
 #include "TestTools.hpp"
 
 #include "data_structures/APR/particles/LazyData.hpp"
 
-#include "io/APRFile.hpp"
-
 #include "numerics/APRDenoise.hpp"
 
 struct TestData{
 
-    std::vector<int> stencil_dims;
-    std::vector<double> stencil_data;
+    APRStencils aprStencils;
     int dim;
+    int l_max;
+    int l_min;
 
 };
 
@@ -50,33 +46,87 @@ public:
 };
 
 
-void Stencil3D::SetUp(){
+void init_stencil(TestData& testData){
 
-    testData.stencil_dims.resize(3,0);
+  testData.aprStencils.dim = testData.dim;
 
-    testData.stencil_dims[0] = 3;
-    testData.stencil_dims[1] = 2;
-    testData.stencil_dims[2] = 4;
+  testData.aprStencils.level_min = testData.l_max;
+  testData.aprStencils.level_max = testData.l_min;
 
-    testData.dim = 3;
+  testData.aprStencils.stencils.resize(testData.l_max + 1);
 
-    int num_pts = (2*testData.stencil_dims[0]+1)*(2*testData.stencil_dims[1]+1)*(2*testData.stencil_dims[2]+1);
+  for(int level = testData.l_min;level <= testData.l_max;level++){
 
-    testData.stencil_data.resize(num_pts);
+      auto &stencil = testData.aprStencils.stencils[level];
 
-    //make the pts just be the index of the array for easy checking;
-    for(int i = 0; i < testData.stencil_data.size();i++){
-        testData.stencil_data[i] = i;
-    }
+      stencil.stencil_dims.resize(3,1);
+
+      for(int d = 0; d < testData.dim; d++){
+          stencil.stencil_dims[d] = d + 1 + level;
+          int num_pts = (2*stencil.stencil_dims[0]+1)*(2*stencil.stencil_dims[1]+1)*(2*stencil.stencil_dims[2]+1);
+
+          stencil.linear_coeffs.resize(num_pts);
+
+          //make the pts just be the index of the array for easy checking;
+          for(int i = 0; i < stencil.linear_coeffs.size();i++){
+            stencil.linear_coeffs[i] = i;
+          }
+      }
+
+
+  }
+
+
 
 }
+
+void Stencil3D::SetUp(){
+
+    testData.dim = 3;
+    testData.l_max = 4;
+    testData.l_min = 2;
+
+    init_stencil(testData);
+
+
+}
+
+
+
+
+bool test_io(TestData &testData){
+
+  bool success = true;
+
+  auto &as = testData.aprStencils;
+
+  std::string stencil_file_name = "test";
+  Stencil<double> stencil_read;
+
+  as.write_stencil(stencil_file_name,as.stencils.back());
+
+  as.read_stencil(stencil_file_name,stencil_read);
+
+  auto &stencil_input = as.stencils.back();
+
+  for(int i = 0; i < stencil_input.linear_coeffs.size();i++){
+
+    if(stencil_read.linear_coeffs[i] != stencil_input.linear_coeffs[i]){
+      success = false;
+    }
+
+  }
+
+  return success;
+}
+
 
 
 
 //1D
 TEST_F(Stencil3D, EXAMPLE_DENOISE) {
 
-    ASSERT_TRUE(run_denoise_example(test_data));
+    ASSERT_TRUE(test_io(testData));
 
 }
 
