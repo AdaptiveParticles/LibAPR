@@ -145,7 +145,7 @@ public:
     }
 
     template<typename T>
-    void read_stencil(std::string file_name, Stencil<T> &stencil) {
+    static void read_stencil(std::string file_name, Stencil<T> &stencil) {
 
         hid_t fileId = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
@@ -166,23 +166,16 @@ public:
 
         //now compute the linear stencil
 
-        stencil.linear_coeffs.resize(index.size(), 0); //need to include the 0 center
+        stencil.linear_coeffs.resize(num_pts_1, 0); //need to include the 0 center
         auto offset = 0;
 
         for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
 
-            if (k1 == center_index) {
-                offset = -1;
-            } else {
-
-                stencil.linear_coeffs[k1] = coeff_full[k1 + offset];
-
-            }
+            stencil.linear_coeffs[k1] = coeff_full[k1 + offset];
 
         }
 
-
-        stencil.non_linear_coeffs.resize(nl_index_1.size(), 0);
+        stencil.non_linear_coeffs.resize(num_pts_2, 0);
 
         for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
 
@@ -193,70 +186,70 @@ public:
 
     }
 
+    static void readAttr(hid_t type, std::string name, hid_t aGroupId, void *aDest) {
+        hid_t attr_id = H5Aopen(aGroupId, name.c_str(), H5P_DEFAULT);
+        H5Aread(attr_id, type, aDest);
+        H5Aclose(attr_id);
+    }
+
+    static void writeAttr(hid_t type, std::string name, hid_t aGroupId, const void *const aSrc) {
+        hsize_t dims[] = {1};
+        hdf5_write_attribute_blosc(aGroupId, type, name.c_str(), 1, dims, aSrc);
+    }
     template<typename T>
-    void write_stencil(std::string &file_name, Stencil<T> &stencil, StencilSetUp &stencilSetUp) {
+    static void writeData(hid_t type, std::string name, T aContainer, hid_t location) {
+        hsize_t dims[] = {aContainer.size()};
+        const hsize_t rank = 1;
+        hdf5_write_data_blosc(location, type, name.c_str(), rank, dims, aContainer.data(), BLOSC_ZSTD, 1l, 0);
+    }
+
+
+    template<typename T>
+    static void write_stencil(std::string &file_name, Stencil<T> &stencil) {
 
         hid_t fileId = hdf5_create_file_blosc(file_name);
 
         //hid_t base = H5Gcreate2(fileId, "/a",  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-        double num_pts_1 = stencil.linear_coeffs.size() - 1;
-        double num_pts_2 = stencil.non_linear_coeffs.size();
+        double num_pts_linear = stencil.linear_coeffs.size();
+        double num_pts_non_linear = stencil.non_linear_coeffs.size();
 
         //get the number of points
-        writeAttr(H5T_NATIVE_DOUBLE, "num_pts_l", fileId, &num_pts_1);
-        writeAttr(H5T_NATIVE_DOUBLE, "num_pts_nl", fileId, &num_pts_2);
+        writeAttr(H5T_NATIVE_DOUBLE, "num_pts_l", fileId, &num_pts_linear);
+        writeAttr(H5T_NATIVE_DOUBLE, "num_pts_nl", fileId, &num_pts_non_linear);
 
-        double dim1 = stencilSetUp.stencil_span;
-        double dim2 = stencilSetUp.stencil_span;
-        double dim3 = stencilSetUp.stencil_span;
-
-        double center_index = stencilSetUp.center_index;
+        double dim1 = stencil.stencil_dims[0];
+        double dim2 = stencil.stencil_dims[1];
+        double dim3 = stencil.stencil_dims[2];
 
         writeAttr(H5T_NATIVE_DOUBLE, "dim_1", fileId, &dim1);
         writeAttr(H5T_NATIVE_DOUBLE, "dim_2", fileId, &dim2);
         writeAttr(H5T_NATIVE_DOUBLE, "dim_3", fileId, &dim3);
 
-        writeAttr(H5T_NATIVE_DOUBLE, "center_index", fileId, &center_index);
-
-
         //read in the full stencil
         std::vector<double> coeff_full;
-        coeff_full.resize(num_pts_1 + num_pts_2);
+        coeff_full.resize(num_pts_linear + num_pts_non_linear);
 
         auto offset = 0;
 
         for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
 
-            if (k1 == center_index) {
-                offset = -1;
-            } else {
-
-                coeff_full[k1 + offset] = stencil.linear_coeffs[k1];
-
-            }
+            coeff_full[k1 + offset] = stencil.linear_coeffs[k1];
 
         }
 
-//        stencil.non_linear_coeffs.resize(nl_index_1.size(), 0);
 
         for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
 
-            coeff_full[k1 + num_pts_1] = stencil.non_linear_coeffs[k1];
+            coeff_full[k1 + num_pts_linear] = stencil.non_linear_coeffs[k1];
 
         }
 
         writeData(H5T_NATIVE_DOUBLE, "coeff", coeff_full, fileId);
 
-
     }
 
-    template<typename T>
-    void writeData(hid_t type, std::string name, T aContainer, hid_t location) {
-        hsize_t dims[] = {aContainer.size()};
-        const hsize_t rank = 1;
-        hdf5_write_data_blosc(location, type, name.c_str(), rank, dims, aContainer.data(), BLOSC_ZSTD, 1l, 0);
-    }
+
 
     void read_kernel(std::string file_name, bool non_linear = true) {
 
@@ -334,16 +327,7 @@ public:
 
     }
 
-    void readAttr(hid_t type, std::string name, hid_t aGroupId, void *aDest) {
-        hid_t attr_id = H5Aopen(aGroupId, name.c_str(), H5P_DEFAULT);
-        H5Aread(attr_id, type, aDest);
-        H5Aclose(attr_id);
-    }
 
-    void writeAttr(hid_t type, std::string name, hid_t aGroupId, const void *const aSrc) {
-        hsize_t dims[] = {1};
-        hdf5_write_attribute_blosc(aGroupId, type, name.c_str(), 1, dims, aSrc);
-    }
 
 };
 
