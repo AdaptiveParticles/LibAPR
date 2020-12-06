@@ -144,6 +144,30 @@ public:
 
     }
 
+
+
+
+
+
+};
+
+class APRStencils {
+
+
+public:
+    std::vector<Stencil<float>> stencils;
+    int dim = 3;
+    int level_max;
+    int level_min;
+
+    void init(APR &apr) {
+
+        level_max = apr.level_max();
+        level_min = apr.level_min();
+        stencils.resize(level_max + 1);
+
+    }
+
     template<typename T>
     static void read_stencil(std::string file_name, Stencil<T> &stencil) {
 
@@ -184,23 +208,6 @@ public:
         }
 
 
-    }
-
-    static void readAttr(hid_t type, std::string name, hid_t aGroupId, void *aDest) {
-        hid_t attr_id = H5Aopen(aGroupId, name.c_str(), H5P_DEFAULT);
-        H5Aread(attr_id, type, aDest);
-        H5Aclose(attr_id);
-    }
-
-    static void writeAttr(hid_t type, std::string name, hid_t aGroupId, const void *const aSrc) {
-        hsize_t dims[] = {1};
-        hdf5_write_attribute_blosc(aGroupId, type, name.c_str(), 1, dims, aSrc);
-    }
-    template<typename T>
-    static void writeData(hid_t type, std::string name, T aContainer, hid_t location) {
-        hsize_t dims[] = {aContainer.size()};
-        const hsize_t rank = 1;
-        hdf5_write_data_blosc(location, type, name.c_str(), rank, dims, aContainer.data(), BLOSC_ZSTD, 1l, 0);
     }
 
 
@@ -249,104 +256,28 @@ public:
 
     }
 
+private:
 
 
-    void read_kernel(std::string file_name, bool non_linear = true) {
+    static void readAttr(hid_t type, std::string name, hid_t aGroupId, void *aDest) {
+        hid_t attr_id = H5Aopen(aGroupId, name.c_str(), H5P_DEFAULT);
+        H5Aread(attr_id, type, aDest);
+        H5Aclose(attr_id);
+    }
 
-        non_linear_flag = non_linear;
-
-        hid_t fileId = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-        hid_t su1_g = H5Gopen2(fileId, "/su1/", H5P_DEFAULT);
-        hid_t su2_g = H5Gopen2(fileId, "/su2/", H5P_DEFAULT);
-
-        double num_pts_1;
-        double num_pts_2;
-
-        double dim;
-
-        readAttr(H5T_NATIVE_DOUBLE, "num_pts", su1_g, &num_pts_1);
-        readAttr(H5T_NATIVE_DOUBLE, "num_pts", su2_g, &num_pts_2);
-
-        readAttr(H5T_NATIVE_DOUBLE, "dim", su1_g, &dim);
-
-        stencil_index_1.init(num_pts_1, 1, dim);
-        stencil_index_2.init(num_pts_2, 2, dim);
-
-        hdf5_load_data_blosc(su1_g, H5T_NATIVE_DOUBLE, stencil_index_1.mesh.begin(), "stencil_index");
-        hdf5_load_data_blosc(su2_g, H5T_NATIVE_DOUBLE, stencil_index_2.mesh.begin(), "stencil_index");
-
-        double max_offset = 0;
-
-        for (int i = 0; i < stencil_index_1.mesh.size(); ++i) {
-            max_offset = std::max(stencil_index_1.mesh[i], max_offset);
-        }
-
-        for (int i = 0; i < stencil_index_2.mesh.size(); ++i) {
-            max_offset = std::max(stencil_index_2.mesh[i], max_offset);
-        }
-
-        if (non_linear == false) {
-            num_pts_2 = 0;
-        }
-
-        stencil_span = max_offset;
-
-        std::vector<int> stencil_dim_v;
-        stencil_dim_v.resize(3, 0);
-        stencil_dim_v[0] = stencil_span;
-        stencil_dim_v[1] = stencil_span;
-        stencil_dim_v[2] = stencil_span;
-
-        setup_standard(stencil_dim_v);
-
-        nl_index_1.resize(num_pts_2);
-        nl_index_2.resize(num_pts_2);
-
-        uint64_t patch_sz = 2 * stencil_span + 1;
-
-        for (int j = 0; j < num_pts_2; ++j) {
-
-            nl_index_1[j] = (uint64_t) ((stencil_index_2(j, 0, 0) + stencil_span) +
-                                        (stencil_index_2(j, 0, 1) + stencil_span) * patch_sz +
-                                        (stencil_index_2(j, 0, 2) + stencil_span) * patch_sz * patch_sz);
-            nl_index_2[j] = (uint64_t) ((stencil_index_2(j, 1, 0) + stencil_span) +
-                                        (stencil_index_2(j, 1, 1) + stencil_span) * patch_sz +
-                                        (stencil_index_2(j, 1, 2) + stencil_span) * patch_sz * patch_sz);
-
-        }
-
-        l_index_1.resize(num_pts_1);
-
-        for (int j = 0; j < num_pts_1; ++j) {
-            l_index_1[j] = (uint64_t) ((stencil_index_1(j, 0, 0) + stencil_span) +
-                                       (stencil_index_1(j, 0, 1) + stencil_span) * patch_sz +
-                                       (stencil_index_1(j, 0, 2) + stencil_span) * patch_sz * patch_sz);
-        }
-
-
+    static void writeAttr(hid_t type, std::string name, hid_t aGroupId, const void *const aSrc) {
+        hsize_t dims[] = {1};
+        hdf5_write_attribute_blosc(aGroupId, type, name.c_str(), 1, dims, aSrc);
+    }
+    template<typename T>
+    static void writeData(hid_t type, std::string name, T aContainer, hid_t location) {
+        hsize_t dims[] = {aContainer.size()};
+        const hsize_t rank = 1;
+        hdf5_write_data_blosc(location, type, name.c_str(), rank, dims, aContainer.data(), BLOSC_ZSTD, 1l, 0);
     }
 
 
 
-};
-
-class APRStencils {
-
-
-public:
-    std::vector<Stencil<float>> stencils;
-    int dim = 3;
-    int level_max;
-    int level_min;
-
-    void init(APR &apr) {
-
-        level_max = apr.level_max();
-        level_min = apr.level_min();
-        stencils.resize(level_max + 1);
-
-    }
 };
 
 std::vector<int> sample_without_replacement(int k, int N, std::default_random_engine &gen) {

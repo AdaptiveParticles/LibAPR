@@ -95,7 +95,10 @@ bool denoise_example(cmdLineOptionsDenoise& options){
 
     aprDenoise.train_denoise(apr,parts,aprStencils);
 
-    aprDenoise.apply_denoise(apr,parts,aprStencils);
+    APRDenoise aprDenoise_test;
+
+
+    aprDenoise_test.apply_denoise(apr,parts,aprStencils);
 
     timer.start_timer("pc interp");
     //perform piece-wise constant interpolation
@@ -114,11 +117,16 @@ bool denoise_example(cmdLineOptionsDenoise& options){
 
     //IO is to do, just need to extend the existing code to handle the APR case, and load and read appropriately.
 
-//    StencilSetUp su;
-//    std::string file_name = "";
-//    Stencil<T> stencil;
-//
-//    su.write_stencil(file_name,stencil,su);
+
+    std::string stencil_file_name = "test";
+    Stencil<double> stencil_read;
+
+    aprStencils.write_stencil(file_name,aprStencils.stencils.back());
+
+    aprStencils.read_stencil(file_name,stencil_read);
+
+    //compare stencils
+    int stop = 1;
 
     return true;
 }
