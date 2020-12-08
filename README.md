@@ -9,6 +9,21 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 [![Build Status](https://travis-ci.org/AdaptiveParticles/LibAPR.svg?branch=master)](https://travis-ci.org/AdaptiveParticles/LibAPR)
 [![DOI](https://zenodo.org/badge/70479293.svg)](https://zenodo.org/badge/latestdoi/70479293)
 
+
+## Version 2.0 release notes
+
+The library has changed significantly since release 1.1. __There are changes to IO and iteration that are not compatible 
+with the older version__. 
+
+* New (additional) linear access data structure, explicitly storing coordinates in the sparse dimension, 
+  similar to Compressed Sparse Row.
+* Block-based decomposition of the APR generation pipeline, allowing conversion of very large images.
+* Expanded and improved functionality for image processing directly on the APR:
+  * APR filtering (spatial convolutions).
+  * [APRNumerics](./src/numerics/APRNumerics.hpp) module, including e.g. gradient computations and Richardson-Lucy deconvolution.
+  * CUDA GPU-accelerated convolutions and RL deconvolution (currently only supports dense 3x3x3 and 5x5x5 stencils)
+
+
 ## Dependencies
 
 * HDF5 1.8.20 or higher
@@ -16,11 +31,9 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 * CMake 3.6 or higher
 * LibTIFF 4.0 or higher
 
-NB: This update to 2.0 introduces changes to IO and iteration that are not compatable with old versions.
-
 ## Building
 
-The repository requires sub-modules, so the repository needs to be cloned recursively:
+The repository requires submodules, and needs to be cloned recursively:
 
 ```
 git clone --recursive https://github.com/cheesema/LibAPR
@@ -61,10 +74,6 @@ make
 ```
 
 This will create the `libapr.so` library in the `build` directory.
-
-### Docker build
-
-We provide a working Dockerfile that install the library within the image on a separate [repo](https://github.com/MSusik/libaprdocker).
 
 ### Building on OSX
 
@@ -113,25 +122,29 @@ cmake --build . --config Debug
 
 This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5. This will create the `apr.dll` library in the `build/Debug` directory. If you need a `Release` build, run `cmake --build . --config Release` from the `build` directory.
 
-## Examples and Documentation
-These examples can be turned on by adding -DAPR_BUILD_EXAMPLES=ON to the cmake command.
+### Docker build
 
-There are 12 basic examples, that show how to generate and compute with the APR:
+We provide a working Dockerfile that installs the library within the image in a separate [repository](https://github.com/MSusik/libaprdocker).
+
+## Examples and Documentation
+
+There are 12 basic examples, that show how to generate and compute with the APR. These can be built by adding 
+-DAPR_BUILD_EXAMPLES=ON to the cmake command.
 
 | Example | How to ... |
 |:--|:--|
 | [Example_get_apr](./examples/Example_get_apr.cpp) | create an APR from a TIFF and store as hdf5. |
 | [Example_get_apr_by_block](./examples/Example_get_apr_by_block.cpp) | create an APR from a (potentially large) TIFF, by decomposing it into smaller blocks, and store as hdf5.
-| [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate through a given APR. |
+| [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate over APR particles and their spatial properties. |
+| [Example_apr_tree](./examples/Example_apr_tree.cpp) | iterate over interior APR tree particles and their spatial properties. |
 | [Example_neighbour_access](./examples/Example_neighbour_access.cpp) | access particle and face neighbours. |
-| [Example_apr_tree](./examples/Example_apr_tree.cpp) |
 | [Example_compress_apr](./examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR. |
 | [Example_random_access](./examples/Example_random_access.cpp) | perform random access operations on particles. |
-| [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR. |
+| [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR. |
 | [Example_reconstruct_image](./examples/Example_reconstruct_image.cpp) | reconstruct a pixel image from an APR. |
-| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute the gradient magnitude of a given APR. |
-| [Example_apr_filter](./examples/Example_apr_filter.cpp) | convolve a given APR with a Gaussian stencil. |
-| [Example_apr_deconvolution](./examples/Example_apr_deconvolution.cpp) | perform Richardson-Lucy deconvolution on a given APR. |
+| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute the gradient magnitude of an APR. |
+| [Example_apr_filter](./examples/Example_apr_filter.cpp) | apply a filter (convolution) to an APR. |
+| [Example_apr_deconvolution](./examples/Example_apr_deconvolution.cpp) | perform Richardson-Lucy deconvolution on an APR. |
 
 All examples except `Example_get_apr` and `Example_get_apr_by_block` require an already produced APR, such as those created by `Example_get_apr*`.
 
@@ -152,15 +165,6 @@ Note: These have been updated and externalised, and will be released shortly.
 ## Java wrappers
 
 Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper)
-
-## New since release 1.1
-
-* Block-based decomposition of the APR generation pipeline, allowing conversion of very large images.
-* Expanded and improved functionality for image processing directly on the APR:
-    * APR filtering (spatial convolutions).
-    * [APRNumerics](./src/numerics/APRNumerics.hpp) module, including e.g. gradient computations and Richardson-Lucy deconvolution.
-    * CUDA GPU-accelerated convolutions and RL deconvolution (currently only supports dense 3x3x3 and 5x5x5 stencils)
-
 
 ## Coming soon
 
