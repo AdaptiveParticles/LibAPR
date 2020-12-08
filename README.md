@@ -47,18 +47,18 @@ desired option. For example, to disable OpenMP, change the cmake calls below to
 cmake -DAPR_USE_OPENMP=OFF ..
 ```
 
-| Option | Default value | Description |
+| Option | Description | Default value |
 |:--|:--|:--|
-| APR_BUILD_SHARED_LIB | ON | Build shared library |
-| APR_BUILD_STATIC_LIB | OFF | Build static library |
-| APR_BUILD_EXAMPLES | OFF | Build executable examples |
-| APR_TESTS | OFF | Build unit tests |
-| APR_BENCHMARK | OFF | Build executable performance benchmarks |
-| APR_USE_LIBTIFF | ON | Enable LibTIFF (Required for tests and examples) |
-| APR_PREFER_EXTERNAL_GTEST | OFF | Use installed gtest instead of included sources |
-| APR_PREFER_EXTERNAL_BLOSC | OFF | Use installed blosc instead of included sources |
-| APR_USE_OPENMP | ON | Enable multithreading via OpenMP |
-| APR_USE_CUDA | OFF | Enable CUDA (Under development - APR conversion pipeline is currently not working with CUDA enabled) |
+| APR_BUILD_SHARED_LIB | Build shared library | ON |
+| APR_BUILD_STATIC_LIB | Build static library | OFF |
+| APR_BUILD_EXAMPLES | Build executable examples | OFF |
+| APR_TESTS | Build unit tests | OFF |
+| APR_BENCHMARK | Build executable performance benchmarks | OFF |
+| APR_USE_LIBTIFF | Enable LibTIFF (Required for tests and examples) | ON |
+| APR_PREFER_EXTERNAL_GTEST | Use installed gtest instead of included sources | OFF |
+| APR_PREFER_EXTERNAL_BLOSC | Use installed blosc instead of included sources | OFF |
+| APR_USE_OPENMP | Enable multithreading via OpenMP | ON |
+| APR_USE_CUDA | Enable CUDA (Under development - APR conversion pipeline is currently not working with CUDA enabled) | OFF |
 
 ### Building on Linux
 
