@@ -244,9 +244,9 @@ namespace APRStencil {
 
         PixelData<T> stencil(size[0], size[1], size[2]);
 
-        float gauss_y[size[0]];
-        float gauss_x[size[1]];
-        float gauss_z[size[2]];
+        std::vector<float> gauss_y(size[0]);
+        std::vector<float> gauss_x(size[1]);
+        std::vector<float> gauss_z(size[2]);
 
         int c = 0;
         if(size[0] > 1) {
@@ -286,7 +286,7 @@ namespace APRStencil {
         }
 
         if(normalize) {
-            for(int i = 0; i < stencil.mesh.size(); ++i) {
+            for(size_t i = 0; i < stencil.mesh.size(); ++i) {
                 stencil.mesh[i] /= sum;
             }
         }
