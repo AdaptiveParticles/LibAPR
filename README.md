@@ -10,6 +10,18 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 [![DOI](https://zenodo.org/badge/70479293.svg)](https://zenodo.org/badge/latestdoi/70479293)
 
 
+## Python wrappers
+
+We now provide python wrappers in a separate repository [PyLibAPR](https://github.com/AdaptiveParticles/PyLibAPR)
+
+In addition to providing wrappers for most of the LibAPR functionality, the Python library contains a number of new features that simplify the generation and handling of the APR. For example:
+
+* Interactive APR conversion
+* Interactive APR z-slice viewer
+* Interactive APR raycast (maximum intensity projection) viewer
+* Interactive lossy compression of particle intensities
+
+
 ## Version 2.0 release notes
 
 The library has changed significantly since release 1.1. __There are changes to IO and iteration that are not compatible 
