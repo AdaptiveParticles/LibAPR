@@ -126,6 +126,8 @@ This will set the appropriate hints for Visual Studio to find both LibTIFF and H
 
 We provide a working Dockerfile that installs the library within the image in a separate [repository](https://github.com/MSusik/libaprdocker).
 
+Note: not recently tested.
+
 ## Examples and Documentation
 
 There are 12 basic examples, that show how to generate and compute with the APR. These can be built by adding 
