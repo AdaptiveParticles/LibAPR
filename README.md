@@ -10,7 +10,7 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 [![DOI](https://zenodo.org/badge/70479293.svg)](https://zenodo.org/badge/latestdoi/70479293)
 
 
-## Python wrappers
+## Python support
 
 We now provide python wrappers in a separate repository [PyLibAPR](https://github.com/AdaptiveParticles/PyLibAPR)
 
@@ -171,10 +171,6 @@ The testing framework can be turned on by adding -DAPR_TESTS=ON to the cmake com
 ctest
 ```
 on the command line in your build folder. Please let us know by creating an issue, if any of these tests are failing on your machine.
-
-## Python support
-
-Note: These have been updated and externalised, and will be released shortly.
 
 ## Java wrappers
 
