@@ -172,9 +172,6 @@ Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krz
 
 * Improved documentation and updated library guide.
 * More examples of APR-based image processing and segmentation.
-* Deployment of the Java wrappers to Maven Central so they can be used in your project directly.
-* Support for loading the APR in [Fiji](https://fiji.sc), including [scenery](https://github.com/scenerygraphics/scenery) based 3D rendering.
-* Improved java wrapper support.
 * CUDA GPU-accelerated APR generation and additional processing options.
 * Time series support.
 
