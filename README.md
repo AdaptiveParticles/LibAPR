@@ -48,7 +48,7 @@ with the older version__.
 The repository requires submodules, and needs to be cloned recursively:
 
 ```
-git clone --recursive https://github.com/cheesema/LibAPR
+git clone --recursive https://github.com/AdaptiveParticles/LibAPR.git
 ```
 
 ### CMake build options
