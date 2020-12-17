@@ -10,6 +10,7 @@
 
 #include "data_structures/APR/access/RandomAccess.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
+#include "data_structures/Mesh/ImagePatch.hpp"
 #include <vector>
 
 #define EMPTY 0
@@ -59,6 +60,10 @@ class PullingScheme {
 public:
     template<typename T>
     void fill(float k, const PixelData<T> &input);
+
+    template<typename T>
+    void fill_patch(float level, const PixelData<T> &input, ImagePatch& patch);
+
     void pulling_scheme_main();
     void initialize_particle_cell_tree(const GenInfo &aprInfo);
     std::vector<PixelData<uint8_t>>& getParticleCellTree() { return particle_cell_tree; }
@@ -161,6 +166,86 @@ inline void PullingScheme::fill(const float k, const PixelData<T> &input) {
         }
     }
 }
+
+
+/**
+ * Updates the particle cell tree from (downsampled) image tiles corresponding to parts of the full image.
+ */
+template<typename T>
+inline void PullingScheme::fill_patch(const float level, const PixelData<T> &input, ImagePatch& patch) {
+    auto &mesh = particle_cell_tree[level].mesh;
+
+    const int level_factor = powr(2,l_max + 1 - level);
+
+    const size_t z_ghost_l = patch.z_ghost_l / level_factor;
+    const size_t z_ghost_r = patch.z_ghost_r / level_factor;
+
+    const size_t x_ghost_l = patch.x_ghost_l / level_factor;
+    const size_t x_ghost_r = patch.x_ghost_r / level_factor;
+
+    const size_t y_ghost_l = patch.y_ghost_l / level_factor;
+    const size_t y_ghost_r = patch.y_ghost_r / level_factor;
+
+    const size_t offset_x = (patch.x_offset + patch.x_ghost_l) / level_factor - x_ghost_l;
+    const size_t offset_y = (patch.y_offset + patch.y_ghost_l) / level_factor - y_ghost_l;
+    const size_t offset_z = (patch.z_offset + patch.z_ghost_l) / level_factor - z_ghost_l;
+
+    const size_t x_num_pc = particle_cell_tree[level].x_num;
+    const size_t y_num_pc = particle_cell_tree[level].y_num;
+
+    if (level == l_max){
+        // l_max loop, has to include
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+        for (size_t z = z_ghost_l; z < input.z_num - z_ghost_r; ++z) {
+            for (size_t x = x_ghost_l; x < input.x_num - x_ghost_r; ++x) {
+                const uint64_t offset_patch = x * input.y_num + z * input.y_num * input.x_num;
+                const uint64_t offset_pc =  (z+offset_z) * x_num_pc * y_num_pc + y_num_pc * (x+offset_x);
+                for (size_t y = y_ghost_l; y < input.y_num - y_ghost_r; ++y) {
+                    if (input.mesh[offset_patch + y] >= level) {
+                        mesh[offset_pc + offset_y + y] = SEED_TYPE;
+                    }
+                }
+            }
+        }
+    }
+    else if (level == l_min) {
+        // l_min loop, has to include
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+        for (size_t z = z_ghost_l; z < input.z_num - z_ghost_r; ++z) {
+            for (size_t x = x_ghost_l; x < input.x_num - x_ghost_r; ++x) {
+                const uint64_t offset_patch = x * input.y_num + z * input.y_num * input.x_num;
+                const uint64_t offset_pc =  (z+offset_z) * x_num_pc * y_num_pc + y_num_pc * (x+offset_x);
+                for (size_t y = y_ghost_l; y < input.y_num - y_ghost_r; ++y) {
+                    if (input.mesh[offset_patch + y] <= level) {
+                        mesh[offset_pc + offset_y + y] = SEED_TYPE;
+                    }
+                }
+            }
+        }
+    }
+    else {
+        // other levels's
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+        for (size_t z = z_ghost_l; z < input.z_num - z_ghost_r; ++z) {
+            for (size_t x = x_ghost_l; x < input.x_num - x_ghost_r; ++x) {
+                const uint64_t offset_patch = x * input.y_num + z * input.y_num * input.x_num;
+                const uint64_t offset_pc =  (z+offset_z) * x_num_pc * y_num_pc + y_num_pc * (x+offset_x);
+                for (size_t y = y_ghost_l; y < input.y_num - y_ghost_r; ++y) {
+                    if (input.mesh[offset_patch + y] == level) {
+                        mesh[offset_pc + offset_y + y] = SEED_TYPE;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 inline void PullingScheme::set_ascendant_neighbours(int level) {
     const size_t x_num = particle_cell_tree[level].x_num;

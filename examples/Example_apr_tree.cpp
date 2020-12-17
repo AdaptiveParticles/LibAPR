@@ -15,12 +15,11 @@ Example using the APR Tree
 
 Usage:
 
-(using *_apr.h5 output of Example_get_apr)
+(using *.apr output of Example_get_apr)
 
-Example_random_accesss -i input_apr_hdf5 -d input_directory
+Example_apr_tree -i input_apr_hdf5 -d input_directory
 
-Note: There is no output, this file is best utilized by looking at the source code for example (test/Examples/Example_random_access.cpp) of how to code different
-random access strategies on the APR.
+Note: There is no output, this file is best utilized by looking at the source code for an example of how to code different access strategies on the APR tree (interior nodes).
 
 )";
 
@@ -38,16 +37,12 @@ random access strategies on the APR.
 int main(int argc, char **argv) {
 
     // INPUT PARSING
-
     cmdLineOptions options = read_command_line_options(argc, argv);
 
     // Filename
     std::string file_name = options.directory + options.input;
 
-    // Read the apr file into the part cell structure
-    APRTimer timer;
-
-    timer.verbose_flag = true;
+    APRTimer timer(true);
 
     // APR datastructure
     APR apr;
@@ -62,41 +57,61 @@ int main(int argc, char **argv) {
 
     aprFile.close();
 
-    std::string name = options.input;
-    //remove the file extension
-    name.erase(name.end() - 3, name.end());
-
+    // Fill the interior tree nodes by successively averaging the values of child nodes
     ParticleData<float> partsTree;
     APRTreeNumerics::fill_tree_mean(apr,parts,partsTree);
 
-
-    auto apr_tree_iterator = apr.random_tree_iterator();
-
-    timer.start_timer("APR interior tree loop");
+    // Tree iterator using the linear access structure
+    auto tree_iterator_linear = apr.tree_iterator();
 
     ParticleData<uint16_t> partsTreelevel(apr.total_number_tree_particles());
 
+    timer.start_timer("APR interior tree loop, linear iterator");
+
+    for(int level = tree_iterator_linear.level_min(); level <= tree_iterator_linear.level_max(); ++level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(tree_iterator_linear)
+#endif
+        for (int z = 0; z < tree_iterator_linear.z_num(level); z++) {
+            for (int x = 0; x < tree_iterator_linear.x_num(level); ++x) {
+                for(tree_iterator_linear.begin(level, z, x); tree_iterator_linear < tree_iterator_linear.end();
+                    ++tree_iterator_linear) {
+
+                    // do something, e.g.
+                    if(level < tree_iterator_linear.level_max()) {
+                        partsTreelevel[tree_iterator_linear] = 2 * partsTree[tree_iterator_linear];
+                    } else {
+                        partsTreelevel[tree_iterator_linear] = partsTree[tree_iterator_linear];
+                    }
+                }
+            }
+        }
+    }
+
+    timer.stop_timer();
+
+
+    auto tree_iterator_random = apr.random_tree_iterator();
+
+    timer.start_timer("APR interior tree loop, random iterator");
+
     //iteration over the interior tree is identical to that over the standard APR, simply using the APRTreeIterator.
 
-    for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
+    for (int level = tree_iterator_random.level_min(); level <= tree_iterator_random.level_max(); ++level) {
 #ifdef HAVE_OPENMP
-        #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_tree_iterator)
+        #pragma omp parallel for schedule(dynamic) firstprivate(tree_iterator_random)
 #endif
-        for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
-                for (apr_tree_iterator.begin(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
-                     apr_tree_iterator++) {
+        for (int z = 0; z < tree_iterator_random.z_num(level); z++) {
+            for (int x = 0; x < tree_iterator_random.x_num(level); ++x) {
+                for (tree_iterator_random.begin(level, z, x); tree_iterator_random < tree_iterator_random.end();
+                     tree_iterator_random++) {
 
-                    if(level < apr_tree_iterator.level_max()) {
-                        partsTreelevel[apr_tree_iterator] = (uint16_t)2*partsTree[apr_tree_iterator];
+                    // do something, e.g.
+                    if(level < tree_iterator_random.level_max()) {
+                        partsTreelevel[tree_iterator_random] = 2 * partsTree[tree_iterator_random];
                     } else {
-                        partsTreelevel[apr_tree_iterator] = partsTree[apr_tree_iterator];
+                        partsTreelevel[tree_iterator_random] = partsTree[tree_iterator_random];
                     }
-
-
                 }
             }
         }
@@ -110,25 +125,23 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
-    for (unsigned int level = apr_tree_iterator.level_min(); level <= apr_tree_iterator.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
+    for (int level = tree_iterator_random.level_min(); level <= tree_iterator_random.level_max(); ++level) {
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_tree_iterator,neigh_tree_iterator)
+#pragma omp parallel for schedule(dynamic) firstprivate(tree_iterator_random,neigh_tree_iterator)
 #endif
-        for (z = 0; z < apr_tree_iterator.z_num(level); z++) {
-            for (x = 0; x < apr_tree_iterator.x_num(level); ++x) {
-                for (apr_tree_iterator.begin(level, z, x); apr_tree_iterator < apr_tree_iterator.end();
-                     apr_tree_iterator++) {
+        for (int z = 0; z < tree_iterator_random.z_num(level); z++) {
+            for (int x = 0; x < tree_iterator_random.x_num(level); ++x) {
+                for (tree_iterator_random.begin(level, z, x); tree_iterator_random < tree_iterator_random.end();
+                     tree_iterator_random++) {
 
                     //loop over all the neighbours and set the neighbour iterator to it
                     for (int direction = 0; direction < 6; ++direction) {
-                        apr_tree_iterator.find_neighbours_same_level(direction);
+                        tree_iterator_random.find_neighbours_same_level(direction);
                         // Neighbour Particle Cell Face definitions [+y,-y,+x,-x,+z,-z] =  [0,1,2,3,4,5]
-                        for (int index = 0; index < apr_tree_iterator.number_neighbours_in_direction(direction); ++index) {
+                        for (int index = 0; index < tree_iterator_random.number_neighbours_in_direction(direction); ++index) {
 
-                            if (neigh_tree_iterator.set_neighbour_iterator(apr_tree_iterator, direction, index)) {
+                            if (neigh_tree_iterator.set_neighbour_iterator(tree_iterator_random, direction, index)) {
                                 //neighbour_iterator works just like apr, and apr_parallel_iterator (you could also call neighbours)
 
                             }

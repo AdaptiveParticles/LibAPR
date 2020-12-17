@@ -7,7 +7,7 @@ Examples of iteration and access to particle neighbours on the face of the Parti
 
 Usage:
 
-(using *_apr.h5 output of Example_get_apr)
+(using *.apr output of Example_get_apr)
 
 Example_apr_neighbour_access -i input_image_tiff -d input_directory
 
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR serial iterator neighbours loop");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
 
     timer.start_timer("APR parallel iterator neighbour loop");
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
 
     //need to initialize the neighbour iterator with the APR you are iterating over.
 
-    for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+    for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
                      apr_iterator < apr_iterator.end();
                      apr_iterator.set_iterator_to_particle_next_particle()) {
 
-                    const unsigned int direction = 3;
+                    const int direction = 3;
                     //now we only update the neighbours, and directly access them through a neighbour iterator
                     apr_iterator.find_neighbours_in_direction(direction); // 3 = -x face
 

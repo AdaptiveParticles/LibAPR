@@ -7,9 +7,6 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include "misc/APRTimer.hpp"
-
-//#include "../src/Numerics/GenerateStencils.hpp"
-
 #include "io/TiffUtils.hpp"
 
 
@@ -79,7 +76,9 @@ public:
 
 
         int i=0;
+#ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(i)
+#endif
         for (i = 0; i < input.z_num; ++i) {
             for (int j = 0; j < input.x_num; ++j) {
                 for (int k = 0; k < input.y_num; ++k) {

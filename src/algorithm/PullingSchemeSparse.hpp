@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include "data_structures/Mesh/PixelData.hpp"
+#include "../data_structures/Mesh/ImagePatch.hpp"
 #include "../data_structures/APR/APR.hpp"
 #include "../data_structures/APR/access/APRAccessStructures.hpp"
 
@@ -47,41 +48,6 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
     }
 
 
-struct imagePatch {
-
-//    uint64_t x_begin;
-//    uint64_t x_end;
-    uint64_t x_offset;
-
-//    uint64_t y_begin;
-//    uint64_t y_end;
-    uint64_t y_offset;
-
-//    uint64_t z_begin;
-//    uint64_t z_end;
-    uint64_t z_offset;
-
-//    uint64_t z_begin_ghost;
-//    uint64_t z_end_ghost;
-//
-//    uint64_t x_begin_ghost;
-//    uint64_t x_end_ghost;
-//
-//    uint64_t y_begin_ghost;
-//    uint64_t y_end_ghost;
-//
-//    uint64_t z_begin_global;
-//    uint64_t z_end_global;
-//
-//    uint64_t x_begin_global;
-//    uint64_t x_end_global;
-//
-//    uint64_t y_begin_global;
-//    uint64_t y_end_global;
-
-};
-
-
 class PullingSchemeSparse {
 
     double powr(uint64_t num,uint64_t pow2){
@@ -94,7 +60,8 @@ public:
     SparseGaps<SparseParticleCellMap> particle_cell_tree;
 
     template<typename T>
-    void fill(float level, const PixelData<T> &input,imagePatch& patch);
+    void fill_patch(float level, const PixelData<T> &input, ImagePatch& patch);
+
     template<typename T>
     void fill(float level, const PixelData<T> &input);
 
@@ -192,53 +159,53 @@ inline void PullingSchemeSparse::pulling_scheme_main() {
 
 template<typename T>
 inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &input){
-    imagePatch patch;
-    patch.x_offset = 0;
-    patch.y_offset = 0;
-    patch.z_offset = 0;
+    ImagePatch patch;
+    initPatchGlobal(patch, 0, input.z_num, 0, input.x_num, 0, input.y_num);
 
-    fill(level, input,patch);
-
+    fill_patch(level, input, patch);
 }
 
 
 template<typename T>
-inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &input,imagePatch& patch) {
+inline void PullingSchemeSparse::fill_patch(const float level, const PixelData<T> &input, ImagePatch& patch) {
     //  Bevan Cheeseman 2016
     //
     //  Updates the hash table from the down sampled images
 
-    //auto &mesh = particle_cell_tree[k].mesh;
-
     const size_t x_num = particle_cell_tree.x_num[level];
-   // const size_t y_num = y_num_l[level];
 
-    const size_t offset_x = patch.x_offset/((int)powr(2,(int)l_max + 1 - level));
-    const size_t offset_y = patch.y_offset/((int)powr(2,(int)l_max + 1 - level));
-    const size_t offset_z = patch.z_offset/((int)powr(2,(int)l_max + 1 - level));
+    const int level_factor = powr(2,l_max + 1 - level);
 
-    //
-    // Need offset and original x,y,z nums
-    //
+    const size_t z_ghost_l = patch.z_ghost_l / level_factor;
+    const size_t z_ghost_r = patch.z_ghost_r / level_factor;
+
+    const size_t x_ghost_l = patch.x_ghost_l / level_factor;
+    const size_t x_ghost_r = patch.x_ghost_r / level_factor;
+
+    const size_t y_ghost_l = patch.y_ghost_l / level_factor;
+    const size_t y_ghost_r = patch.y_ghost_r / level_factor;
+
+    const size_t offset_x = (patch.x_offset + patch.x_ghost_l) / level_factor - x_ghost_l;
+    const size_t offset_y = (patch.y_offset + patch.y_ghost_l) / level_factor - y_ghost_l;
+    const size_t offset_z = (patch.z_offset + patch.z_ghost_l) / level_factor - z_ghost_l;
 
     if (level == l_max){
         // k_max loop, has to include
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
-        for (size_t z = 0; z < input.z_num; ++z) {
-            for (size_t x = 0; x < input.x_num; ++x) {
+        for (size_t z = z_ghost_l; z < input.z_num - z_ghost_r; ++z) {
+            for (size_t x = x_ghost_l; x < input.x_num - x_ghost_r; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
                 const size_t offset_pc =  x_num * (z+offset_z) + (x+offset_x);
                 auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
-                for (size_t y = 0; y < input.y_num; ++y) {
+                for (size_t y = y_ghost_l; y < input.y_num - y_ghost_r; ++y) {
 
                     if (input.mesh[offset_part_map + y ] >= level) {
                         mesh[y + offset_y] = SEED_TYPE;
                     }
                 }
             }
-
         }
 
 
@@ -248,12 +215,12 @@ inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &inp
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
-        for (size_t z = 0; z < input.z_num; ++z) {
-            for (size_t x = 0; x < input.x_num; ++x) {
+        for (size_t z = z_ghost_l; z < input.z_num - z_ghost_r; ++z) {
+            for (size_t x = x_ghost_l; x < input.x_num - x_ghost_r; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
                 const size_t offset_pc =  x_num * (z+offset_z) + (x+offset_x);
                 auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
-                for (size_t y = 0; y < input.y_num; ++y) {
+                for (size_t y = y_ghost_l; y < input.y_num - y_ghost_r; ++y) {
 
                     if (input.mesh[offset_part_map + y] <= level) mesh[y + offset_y] = SEED_TYPE;
                 }
@@ -266,19 +233,17 @@ inline void PullingSchemeSparse::fill(const float level, const PixelData<T> &inp
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
-        for (size_t z = 0; z < input.z_num; ++z) {
-            for (size_t x = 0; x < input.x_num; ++x) {
+        for (size_t z = z_ghost_l; z < input.z_num - z_ghost_r; ++z) {
+            for (size_t x = x_ghost_l; x < input.x_num - x_ghost_r; ++x) {
                 const size_t offset_part_map = x * input.y_num + z * input.y_num * input.x_num;
                 const size_t offset_pc =  x_num * (z+offset_z) + (x+offset_x);
                 auto& mesh = particle_cell_tree.data[level][offset_pc][0].mesh;
-                for (size_t y = 0; y < input.y_num; ++y) {
+                for (size_t y = y_ghost_l; y < input.y_num - y_ghost_r; ++y) {
 
                     if (input.mesh[offset_part_map + y] == level) mesh[y + offset_y] = SEED_TYPE;
                 }
             }
-
         }
-
     }
 }
 

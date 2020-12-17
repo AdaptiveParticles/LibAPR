@@ -9,29 +9,68 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 [![Build Status](https://travis-ci.org/AdaptiveParticles/LibAPR.svg?branch=master)](https://travis-ci.org/AdaptiveParticles/LibAPR)
 [![DOI](https://zenodo.org/badge/70479293.svg)](https://zenodo.org/badge/latestdoi/70479293)
 
+
+## Python support
+
+We now provide python wrappers in a separate repository [PyLibAPR](https://github.com/AdaptiveParticles/PyLibAPR)
+
+In addition to providing wrappers for most of the LibAPR functionality, the Python library contains a number of new features that simplify the generation and handling of the APR. For example:
+
+* Interactive APR conversion
+* Interactive APR z-slice viewer
+* Interactive APR raycast (maximum intensity projection) viewer
+* Interactive lossy compression of particle intensities
+
+
+## Version 2.0 release notes
+
+The library has changed significantly since release 1.1. __There are changes to IO and iteration that are not compatible 
+with the older version__. 
+
+* New (additional) linear access data structure, explicitly storing coordinates in the sparse dimension, 
+  similar to Compressed Sparse Row.
+* Block-based decomposition of the APR generation pipeline, allowing conversion of very large images.
+* Expanded and improved functionality for image processing directly on the APR:
+  * APR filtering (spatial convolutions).
+  * [APRNumerics](./src/numerics/APRNumerics.hpp) module, including e.g. gradient computations and Richardson-Lucy deconvolution.
+  * CUDA GPU-accelerated convolutions and RL deconvolution (currently only supports dense 3x3x3 and 5x5x5 stencils)
+
+
 ## Dependencies
 
 * HDF5 1.8.20 or higher
-* OpenMP > 3.0 (optional, but suggested)
+* OpenMP > 3.0 (optional, but recommended)
 * CMake 3.6 or higher
 * LibTIFF 4.0 or higher
 
-NB: This update to 2.0 introduces changes to IO and iteration that are not compatable with old versions.
-
 ## Building
 
-The repository requires sub-modules, so the repository needs to be cloned recursively:
+The repository requires submodules, and needs to be cloned recursively:
 
 ```
-git clone --recursive https://github.com/cheesema/LibAPR
+git clone --recursive https://github.com/AdaptiveParticles/LibAPR.git
 ```
 
-If you need to update your clone at any point later, run
+### CMake build options
 
+Several CMake options can be given to control the build. Use the `-D` argument to set each
+desired option. For example, to disable OpenMP, change the cmake calls below to
 ```
-git pull
-git submodule update
+cmake -DAPR_USE_OPENMP=OFF ..
 ```
+
+| Option | Description | Default value |
+|:--|:--|:--|
+| APR_BUILD_SHARED_LIB | Build shared library | ON |
+| APR_BUILD_STATIC_LIB | Build static library | OFF |
+| APR_BUILD_EXAMPLES | Build executable examples | OFF |
+| APR_TESTS | Build unit tests | OFF |
+| APR_BENCHMARK | Build executable performance benchmarks | OFF |
+| APR_USE_LIBTIFF | Enable LibTIFF (Required for tests and examples) | ON |
+| APR_PREFER_EXTERNAL_GTEST | Use installed gtest instead of included sources | OFF |
+| APR_PREFER_EXTERNAL_BLOSC | Use installed blosc instead of included sources | OFF |
+| APR_USE_OPENMP | Enable multithreading via OpenMP | ON |
+| APR_USE_CUDA | Enable CUDA (Under development - APR conversion pipeline is currently not working with CUDA enabled) | OFF |
 
 ### Building on Linux
 
@@ -46,11 +85,7 @@ cmake ..
 make
 ```
 
-This will create the `libapr.so` library in the `build` directory, as well as all of the examples.
-
-### Docker build
-
-We provide a working Dockerfile that install the library within the image on a separate [repo](https://github.com/MSusik/libaprdocker).
+This will create the `libapr.so` library in the `build` directory.
 
 ### Building on OSX
 
@@ -67,7 +102,8 @@ cmake ..
 make
 ```
 
-This will create the `libapr.dylib` library in the `build` directory, as well as all of the examples.
+This will create the `libapr.dylib` library in the `build` directory.
+
 
 In case you want to use the homebrew-installed clang (OpenMP support), modify the call to `cmake` above to
 
@@ -96,38 +132,45 @@ cmake -G "Visual Studio 15 2017 Win64" -DTIFF_INCLUDE_DIR="C:/Program Files/tiff
 cmake --build . --config Debug
 ```
 
-This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5. This will create the `apr.dll` library in the `build/Debug` directory, as well as all of the examples. If you need a `Release` build, run `cmake --build . --config Release` from the `build` directory.
+This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5. This will create the `apr.dll` library in the `build/Debug` directory. If you need a `Release` build, run `cmake --build . --config Release` from the `build` directory.
+
+### Docker build
+
+We provide a working Dockerfile that installs the library within the image in a separate [repository](https://github.com/MSusik/libaprdocker).
+
+Note: not recently tested.
 
 ## Examples and Documentation
-These examples can be turned on by adding -DAPR_BUILD_EXAMPLES=ON to the cmake command.
 
-There are nine basic examples, that show how to generate and compute with the APR:
+There are 12 basic examples, that show how to generate and compute with the APR. These can be built by adding 
+-DAPR_BUILD_EXAMPLES=ON to the cmake command.
 
 | Example | How to ... |
 |:--|:--|
 | [Example_get_apr](./examples/Example_get_apr.cpp) | create an APR from a TIFF and store as hdf5. |
-| [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate through a given APR. |
+| [Example_get_apr_by_block](./examples/Example_get_apr_by_block.cpp) | create an APR from a (potentially large) TIFF, by decomposing it into smaller blocks, and store as hdf5.
+| [Example_apr_iterate](./examples/Example_apr_iterate.cpp) | iterate over APR particles and their spatial properties. |
+| [Example_apr_tree](./examples/Example_apr_tree.cpp) | iterate over interior APR tree particles and their spatial properties. |
 | [Example_neighbour_access](./examples/Example_neighbour_access.cpp) | access particle and face neighbours. |
 | [Example_compress_apr](./examples/Example_compress_apr.cpp) |  additionally compress the intensities stored in an APR. |
 | [Example_random_access](./examples/Example_random_access.cpp) | perform random access operations on particles. |
-| [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR data structures read from an APR. |
+| [Example_ray_cast](./examples/Example_ray_cast.cpp) | perform a maximum intensity projection ray cast directly on the APR. |
 | [Example_reconstruct_image](./examples/Example_reconstruct_image.cpp) | reconstruct a pixel image from an APR. |
+| [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute the gradient magnitude of an APR. |
+| [Example_apr_filter](./examples/Example_apr_filter.cpp) | apply a filter (convolution) to an APR. |
+| [Example_apr_deconvolution](./examples/Example_apr_deconvolution.cpp) | perform Richardson-Lucy deconvolution on an APR. |
 
-All examples except Example_get_apr require an already produced APR, such as those created by Example_get_apr.
+All examples except `Example_get_apr` and `Example_get_apr_by_block` require an already produced APR, such as those created by `Example_get_apr*`.
 
 For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
 
 ## LibAPR Tests
 
-The testing framework can be turned on by adding -DAPR_TESTS=ON to the cmake command. All tests can then be run by executing on the command line your build folder.
+The testing framework can be turned on by adding -DAPR_TESTS=ON to the cmake command. All tests can then be run by executing
 ```
 ctest
 ```
-Please let us know by creating an issue, if any of these tests are failing on your machine.
-
-## Python support
-
-Note: These have been updated and externalised, and will be released shortly.
+on the command line in your build folder. Please let us know by creating an issue, if any of these tests are failing on your machine.
 
 ## Java wrappers
 
@@ -135,17 +178,14 @@ Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krz
 
 ## Coming soon
 
-* more examples for APR-based filtering and segmentation
-* deployment of the Java wrappers to Maven Central so they can be used in your project directly
-* support for loading the APR in [Fiji](https://fiji.sc), including [scenery-based](https://github.com/scenerygraphics/scenery) 3D rendering
-* improved java wrapper support
-* CUDA GPU-accelerated APR generation and processing
-* Block based decomposition for extremely large images.
+* Improved documentation and updated library guide.
+* More examples of APR-based image processing and segmentation.
+* CUDA GPU-accelerated APR generation and additional processing options.
 * Time series support.
 
 ## Contact us
 
-If anything is not working as you think it should, or would like it to, please get in touch with us!! Further, if you have a project, or algorithm, you would like to try using the APR for also please get in contact we would be glad to help!
+If anything is not working as you think it should, or would like it to, please get in touch with us!! Further, dont hesitate to contact us if you have a project or algorithm you would like to try using the APR for. We would be glad to help!
 
 [![Join the chat at https://gitter.im/LibAPR](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/LibAPR/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 

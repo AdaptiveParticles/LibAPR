@@ -1,5 +1,5 @@
-#ifndef PARTPLAY_RAYCAST_H
-#define PARTPLAY_RAYCAST_H
+#ifndef LIBAPR_EXAMPLE_RAY_CAST_H
+#define LIBAPR_EXAMPLE_RAY_CAST_H
 
 #include "numerics/APRRaycaster.hpp"
 #include "data_structures/APR/APR.hpp"

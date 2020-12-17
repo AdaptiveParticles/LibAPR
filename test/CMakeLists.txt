@@ -16,12 +16,3 @@ if(APR_USE_CUDA)
    buildTarget(testAPRCuda APRTestCuda.cpp)
 endif()
 
-## Performance Benchmark Tests
-
-#buildTarget(BenchmarkTest BenchmarkTest.cpp)
-
-# Naive python test
-# Working directory is changed to build since python module is availabe there
-#if(APR_BUILD_PYTHON_WRAPPERS)
-#    add_test(NAME pythondWrapperTest WORKING_DIRECTORY ${PROJECT_BINARY_DIR} COMMAND python ${CMAKE_CURRENT_LIST_DIR}/pythonTest.py)
-#endif()

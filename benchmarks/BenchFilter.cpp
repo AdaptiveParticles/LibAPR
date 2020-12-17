@@ -37,15 +37,19 @@ int main(int argc, char **argv) {
 
         benchAPRHelper.generate_dataset(i,apr,parts);
 
+        ParticleData<float> floatparts;
+        floatparts.copy(parts);
+
         //put benchmark funtions here..
 
         //bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+        bench_apr_convolve(apr,floatparts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3, false);
+        bench_apr_convolve(apr,floatparts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5, false);
+        //bench_apr_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,9, true);
 
         //bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-        bench_apr_convolve_pencil(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+        bench_apr_convolve_pencil(apr,floatparts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3, false);
+        bench_apr_convolve_pencil(apr,floatparts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5, false);
 
         if((i==0) && !options.no_pixel){
             /*
@@ -53,8 +57,8 @@ int main(int argc, char **argv) {
             */
 
             //bench_pixel_convolve(apr,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,1);
-            bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
-            bench_pixel_convolve(apr,parts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
+            bench_pixel_convolve(apr,floatparts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,3);
+            bench_pixel_convolve(apr,floatparts,benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData,5);
 
         }
     }

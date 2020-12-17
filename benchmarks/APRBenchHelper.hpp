@@ -26,6 +26,7 @@ struct cmdLineBenchOptions{
     int number_reps = 1;
     int dimension = 3;
     bool no_pixel = false;
+    bool bench_lr = false;
 
     std::string analysis_file_name = "analysis";
     std::string output_dir = "";
@@ -84,6 +85,11 @@ cmdLineBenchOptions read_bench_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-no_pixel"))
     {
         result.no_pixel = true;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-bench_lr"))
+    {
+        result.bench_lr = true;
     }
 
     return result;
@@ -259,9 +265,9 @@ public:
 
         auto it = apr_input.iterator();
 
-        float check_y = log2(1.0f * it.org_dims(0));
-        float check_x = log2(1.0f * it.org_dims(1));
-        float check_z = log2(1.0f * it.org_dims(2));
+        float check_y = log2f(1.0f * it.org_dims(0));
+        float check_x = log2f(1.0f * it.org_dims(1));
+        float check_z = log2f(1.0f * it.org_dims(2));
 
         //this function only works for datasets that are powers of 2.
         bool pow_2y = (check_y - std::floor(check_y)) == 0;
@@ -314,14 +320,14 @@ public:
         timer.start_timer("first loop");
 
         //first do the y extension.
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
             int new_level = level_offset + level;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it,lin_it_tiled)
+#pragma omp parallel for schedule(dynamic) default(shared) private(z,x) firstprivate(lin_it,lin_it_tiled)
 #endif
             for (z = 0; z < lin_it.z_num(level); z++) {
                 for (x = 0; x < lin_it.x_num(level); ++x) {
@@ -358,14 +364,14 @@ public:
         timer.start_timer("second loop");
 
         //first do the y extension.
-        for (unsigned int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
+        for (int level = lin_it.level_min(); level <= lin_it.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
             int new_level = level_offset + level;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(dynamic) private(z,x) firstprivate(lin_it,lin_it_tiled)
+#pragma omp parallel for schedule(dynamic) default(shared) private(z,x) firstprivate(lin_it,lin_it_tiled)
 #endif
             for (z = 0; z < lin_it.z_num(level); z++) {
                 for (x = 0; x < lin_it.x_num(level); ++x) {

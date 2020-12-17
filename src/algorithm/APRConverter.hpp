@@ -36,6 +36,9 @@ class APRConverter {
     template<typename T>
     friend class PyAPRConverter;
 
+    template<typename T>
+    friend class APRConverterBatch;
+
 protected:
     PullingScheme iPullingScheme;
     LocalParticleCellSet iLocalParticleSet;
@@ -287,6 +290,12 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
         }
     }
 
+#ifdef HAVE_LIBTIFF
+    if(par.output_steps) {
+        TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_rescaled.tif", local_scale_temp);
+    }
+#endif
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
@@ -296,8 +305,6 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
             grad_temp.mesh[i] = 0;
         }
     }
-
-
 }
 
 
@@ -342,40 +349,28 @@ void APRConverter<ImageType>::solveForAPR(APR& aAPR){
 template<typename ImageType>
 void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 
+    method_timer.start_timer("compute_apr_datastructure");
     if(!generate_linear) {
-
         if(!sparse_pulling_scheme){
-            method_timer.start_timer("compute_apr_datastructure");
             aAPR.apr_access.initialize_structure_from_particle_cell_tree(aAPR.parameters,
                                                                          iPullingScheme.getParticleCellTree());
-            method_timer.stop_timer();
         } else{
-            method_timer.start_timer("compute_apr_datastructure");
             aAPR.apr_access.initialize_structure_from_particle_cell_tree_sparse(aAPR.parameters,
                                                                                 iPullingSchemeSparse.particle_cell_tree);
-            method_timer.stop_timer();
-
         }
-
         aAPR.apr_initialized_random = true;
 
     } else {
-        method_timer.start_timer("compute_apr_datastructure");
-
         if(!sparse_pulling_scheme) {
-
             aAPR.linearAccess.initialize_linear_structure(aAPR.parameters,
                                                           iPullingScheme.getParticleCellTree());
         } else {
-
             aAPR.linearAccess.initialize_linear_structure_sparse(aAPR.parameters,
                                                                  iPullingSchemeSparse.particle_cell_tree);
         }
         aAPR.apr_initialized = true;
-
-        method_timer.stop_timer();
     }
-
+    method_timer.stop_timer();
 }
 
 /**
@@ -414,6 +409,7 @@ template<typename ImageType>
 inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
 
     applyParameters(aAPR,par);
+    aAPR.parameters = par;
 
     solveForAPR(aAPR);
 

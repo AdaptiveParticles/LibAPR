@@ -74,12 +74,12 @@ public:
     struct GlmObjectsContainer;
     GlmObjectsContainer *glmObjects;
 
-    void initObjects(uint64_t imageWidth, uint64_t imageHeight, float radius, float theta, float x0, float y0, float z0,
+    void initObjects(int imageWidth, int imageHeight, float radius, float theta, float x0, float y0, float z0,
                      float x0f, float y0f, float z0f,float phi_ = 0);
 
     void killObjects();
 
-    void getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num);
+    void getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, int x_num, int y_num);
 
 private:
 
@@ -100,7 +100,7 @@ struct APRRaycaster::GlmObjectsContainer {
     glm::mat4 mvp;
 };
 
-void APRRaycaster::initObjects(uint64_t imageWidth, uint64_t imageHeight, float radius, float theta, float x0, float y0,
+void APRRaycaster::initObjects(int imageWidth, int imageHeight, float radius, float theta, float x0, float y0,
                                float z0, float x0f, float y0f, float z0f, float phi_) {
     Camera cam = Camera(glm::vec3(x0 + radius*sin(phi), y0 + radius * sin(theta)*cos(phi_s), z0 + radius * cos(theta)*cos(phi_s)),
                         glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
@@ -118,7 +118,7 @@ void APRRaycaster::killObjects() {
 }
 
 void
-APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, size_t x_num, size_t y_num) {
+APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, int x_num, int y_num) {
     glm::vec2 pos = glmObjects->raytracedObject.worldToScreen(glmObjects->mvp, glm::vec3(x_actual, y_actual, z_actual),
                                                               x_num, y_num);
 
@@ -186,8 +186,8 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         return;
     }
 
-    uint64_t imageWidth = apr.org_dims(1);
-    uint64_t imageHeight = apr.org_dims(0);
+    int imageWidth = apr.org_dims(1);
+    int imageHeight = apr.org_dims(0);
 
     if(scale_down != 1){
         imageWidth = scale_down*imageWidth;
@@ -224,11 +224,11 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
     float phi = this->phi;
 
-    uint64_t num_views = 1;
+    int num_views = 1;
 
     cast_views.initWithResize(imageHeight, imageWidth, num_views);
 
-    uint64_t view_count = 0;
+    int view_count = 0;
     float init_val = 0;
 
 
@@ -286,7 +286,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         jitter_y.init(apr.total_number_particles());
         jitter_z.init(apr.total_number_particles());
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -337,19 +337,19 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
 
         //note the use of the dynamic OpenMP schedule.
-        for (unsigned int level = std::min((int) max_level, (int) apr.level_max());
+        for (int level = std::min(max_level, apr.level_max());
              level >= apr_iterator.level_min(); --level) {
 
             const float step_size = pow(2, max_level - level);
 
             int x_begin_l = (int) floor(x_begin / step_size);
-            int x_end_l = std::min((int) ceil(x_end / step_size), (int) apr_iterator.x_num(level));
+            int x_end_l = std::min((int) ceil(x_end / step_size), apr_iterator.x_num(level));
 
             int z_begin_l = (int) floor(z_begin / step_size);
-            int z_end_l = std::min((int) ceil(z_end / step_size), (int) apr_iterator.z_num(level));
+            int z_end_l = std::min((int) ceil(z_end / step_size), apr_iterator.z_num(level));
 
             int y_begin_l = (int) floor(y_begin / step_size);
-            int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr_iterator.y_num(level));
+            int y_end_l = std::min((int) ceil(y_end / step_size), apr_iterator.y_num(level));
 
             int z = 0;
             int x = 0;
@@ -391,8 +391,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
                             //dim1 = dim1*scale_down;
                             //dim2 = dim2*scale_down;
 
-                            if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
-                                (dim2 < (int64_t) depth_slice[level].x_num)) {
+                            if ((dim1 > 0) & (dim2 > 0) &
+                                (dim1 < depth_slice[level].y_num) &
+                                (dim2 < depth_slice[level].x_num)) {
                                 //get the particle value
                                 const S temp_int = particle_data[apr_iterator];
 
@@ -421,18 +422,18 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
             auto tree_it = apr.tree_iterator();
 
 
-            unsigned int level = max_level;
+            int level = max_level;
 
             const float step_size = pow(2, max_level - level);
 
             int x_begin_l = (int) floor(x_begin / step_size);
-            int x_end_l = std::min((int) ceil(x_end / step_size), (int) apr_iterator.x_num(level));
+            int x_end_l = std::min((int) ceil(x_end / step_size), apr_iterator.x_num(level));
 
             int z_begin_l = (int) floor(z_begin / step_size);
-            int z_end_l = std::min((int) ceil(z_end / step_size), (int) apr_iterator.z_num(level));
+            int z_end_l = std::min((int) ceil(z_end / step_size), apr_iterator.z_num(level));
 
             int y_begin_l = (int) floor(y_begin / step_size);
-            int y_end_l = std::min((int) ceil(y_end / step_size), (int) apr_iterator.y_num(level));
+            int y_end_l = std::min((int) ceil(y_end / step_size), apr_iterator.y_num(level));
 
             int z = 0;
             int x = 0;
@@ -467,8 +468,9 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
                            // dim1 = dim1*scale_down;
                             //dim2 = dim2*scale_down;
 
-                            if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
-                                (dim2 < (int64_t) depth_slice[level].x_num)) {
+                            if ((dim1 > 0) & (dim2 > 0) &
+                                (dim1 < depth_slice[level].y_num) &
+                                (dim2 < depth_slice[level].x_num)) {
                                 //get the particle value
                                 const S temp_int = treeData[tree_it];
 
@@ -501,29 +503,27 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         int level;
         int level_min = apr.level_min();
 
-        unsigned int x_, i, k;
+        int x_, i, k;
 
         for (level = (level_min); level < max_level; level++) {
 
-            const unsigned int step_size = pow(2, max_level - level);
+            const int step_size = pow(2, max_level - level);
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(x_, i, k) schedule(guided) if (level > 8)
 #endif
             for (x_ = 0; x_ < depth_slice[level].x_num; x_++) {
                 //both z and x are explicitly accessed in the structure
 
-                for (unsigned int y_ = 0; y_ < (unsigned int) depth_slice[level].y_num; y_++) {
+                for (int y_ = 0; y_ < depth_slice[level].y_num; y_++) {
 
                     const float curr_int = depth_slice[level].at(y_,x_,0);
 
-                    const unsigned int dim1 = y_ * step_size;
-                    const unsigned int dim2 = x_ * step_size;
+                    const int dim1 = y_ * step_size;
+                    const int dim2 = x_ * step_size;
 
                     //add to all the required rays
-                    const unsigned int offset_max_dim1 = std::min((int) depth_slice[max_level].y_num,
-                                                                  (int) (dim1 + step_size));
-                    const unsigned int offset_max_dim2 = std::min((int) depth_slice[max_level].x_num,
-                                                                  (int) (dim2 + step_size));
+                    const int offset_max_dim1 = std::min(depth_slice[max_level].y_num, (dim1 + step_size));
+                    const int offset_max_dim2 = std::min(depth_slice[max_level].x_num, (dim2 + step_size));
 
                     if (curr_int > 0) {
 
@@ -576,8 +576,8 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     //
 
 
-    uint64_t imageWidth = apr.org_dims(1);
-    uint64_t imageHeight = apr.org_dims(0);
+    int imageWidth = apr.org_dims(1);
+    int imageHeight = apr.org_dims(0);
 
     ////////////////////////////////
     //  Set up the projection stuff
@@ -605,11 +605,11 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     float theta_f = this->theta_final;
     float theta_delta = this->theta_delta;
 
-    uint64_t num_views = floor((theta_f - theta_0) / theta_delta);
+    int num_views = floor((theta_f - theta_0) / theta_delta);
 
     cast_views.initWithResize(imageHeight, imageWidth, num_views);
 
-    uint64_t view_count = 0;
+    int view_count = 0;
     float init_val = 0;
 
     APRTimer timer;
@@ -632,7 +632,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     depth_slice[apr.level_max()].initWithValue(imageHeight, imageWidth, 1, init_val);
 
 
-    for (size_t i = apr.level_min(); i < apr.level_max(); i++) {
+    for (int i = apr.level_min(); i < apr.level_max(); i++) {
         float d = pow(2, apr.level_max() - i);
         depth_slice[i].initWithValue(ceil(depth_slice[apr.level_max()].y_num / d),
                                      ceil(depth_slice[apr.level_max()].x_num / d), 1, init_val);
@@ -658,7 +658,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
         jitter_y.init(apr.total_number_particles());
         jitter_z.init(apr.total_number_particles());
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -687,7 +687,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
         ///
         //////////////////////////////
 
-        for (size_t i = apr.level_min(); i <= apr.level_max(); i++) {
+        for (int i = apr.level_min(); i <= apr.level_max(); i++) {
             std::fill(depth_slice[i].mesh.begin(), depth_slice[i].mesh.end(), init_val);
         }
 
@@ -708,7 +708,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
         float y_actual, x_actual, z_actual;
 
-        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
+        for (int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
             int z = 0;
             int x = 0;
 
@@ -741,8 +741,9 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
                         getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
                                depth_slice[level].y_num);
 
-                        if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) depth_slice[level].y_num) &
-                            (dim2 < (int64_t) depth_slice[level].x_num)) {
+                        if ((dim1 > 0) & (dim2 > 0) &
+                            (dim1 < depth_slice[level].y_num) &
+                            (dim2 < depth_slice[level].x_num)) {
                             //get the particle value
                             S temp_int = particle_data[apr_iterator];
 
@@ -764,15 +765,15 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
         ///
         ////////////////////////////////////////////////
 
-        uint64_t level;
+        int level;
 
-        uint64_t level_min = apr.level_min();
+        int level_min = apr.level_min();
 
-        unsigned int y_, x_, i, k;
+        int y_, x_, i, k;
 
-        for (level = (level_min); level < apr.level_max(); level++) {
+        for (level = level_min; level < apr.level_max(); level++) {
 
-            const unsigned int step_size = pow(2, apr.level_max() - level);
+            const int step_size = pow(2, apr.level_max() - level);
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(x_, i, k) schedule(guided) if (level > 8)
 #endif
@@ -783,14 +784,12 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
                     const float curr_int = depth_slice[level].mesh[y_ + (x_) * depth_slice[level].y_num];
 
-                    const unsigned int dim1 = y_ * step_size;
-                    const unsigned int dim2 = x_ * step_size;
+                    const int dim1 = y_ * step_size;
+                    const int dim2 = x_ * step_size;
 
                     //add to all the required rays
-                    const unsigned int offset_max_dim1 = std::min((int) depth_slice[apr.level_max()].y_num,
-                                                                  (int) (dim1 + step_size));
-                    const unsigned int offset_max_dim2 = std::min((int) depth_slice[apr.level_max()].x_num,
-                                                                  (int) (dim2 + step_size));
+                    const int offset_max_dim1 = std::min(depth_slice[apr.level_max()].y_num, (dim1 + step_size));
+                    const int offset_max_dim2 = std::min(depth_slice[apr.level_max()].x_num, (dim2 + step_size));
 
                     if (curr_int > 0) {
 
@@ -839,8 +838,8 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
     //
     //
 
-    uint64_t imageWidth = image.x_num;
-    uint64_t imageHeight = image.y_num;
+    int imageWidth = image.x_num;
+    int imageHeight = image.y_num;
 
     float height = this->height;
 
@@ -873,7 +872,7 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
 
     timer.verbose_flag = true;
 
-    int64_t view_count = 0;
+    int view_count = 0;
 
     timer.start_timer("ray cast mesh prospective");
 
@@ -883,12 +882,12 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
         PixelData<S> proj_img;
         proj_img.initWithValue(imageHeight, imageWidth, 1, 0);
 
-        unsigned int z_, x_, j_;
+        int z_, x_, j_;
 
         //loop over the resolutions of the structure
-        const unsigned int x_num_ = image.x_num;
-        const unsigned int z_num_ = image.z_num;
-        const unsigned int y_num_ = image.y_num;
+        const int x_num_ = image.x_num;
+        const int z_num_ = image.z_num;
+        const int y_num_ = image.y_num;
 
 #ifdef HAVE_OPENMP
         //#pragma omp parallel for default(shared) private(z_,x_,j_)
@@ -905,8 +904,9 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
                     getPos(dim1, dim2, (float) x_ * this->scale_x, (float) j_ * this->scale_y,
                            (float) z_ * this->scale_z, imageWidth, imageHeight);
 
-                    if ((dim1 > 0) & (dim2 > 0) & (dim1 < (int64_t) proj_img.y_num) &
-                        (dim2 < (int64_t) proj_img.x_num)) {
+                    if ((dim1 > 0) & (dim2 > 0) &
+                        (dim1 < proj_img.y_num) &
+                        (dim2 < proj_img.x_num)) {
 
                         proj_img.mesh[dim1 + (dim2) * proj_img.y_num] = std::max(temp_int, proj_img.mesh[dim1 + (dim2) *
                                                                                                                 proj_img.y_num]);

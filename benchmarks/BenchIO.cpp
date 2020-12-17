@@ -100,7 +100,7 @@ inline void bench_apr_io(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
     APRTimer timer_steps(false);
 
     APRFile aprFile;
-    std::string file_name = "bench_pipeline.apr";
+    const std::string file_name = "bench_pipeline.apr";
 
     timer.start_timer("write");
 
@@ -130,7 +130,7 @@ inline void bench_apr_io(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
 
     timer.start_timer("read");
 
-    aprFile.open("file_name","READ");
+    aprFile.open(file_name,"READ");
 
     aprFile.set_read_write_tree(false);
 
