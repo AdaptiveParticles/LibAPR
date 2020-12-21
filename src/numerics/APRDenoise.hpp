@@ -172,6 +172,8 @@ public:
 
         hid_t fileId = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
+
+
         hid_t base = H5Gopen2(fileId, "/", H5P_DEFAULT);
 
         double num_pts_1;
@@ -209,6 +211,71 @@ public:
         H5Fclose(fileId);
 
     }
+
+
+  void read_stencil(std::string file_name) {
+
+    if(this->level_max==0){
+      std::cerr << "APR Stencils must be initialised by an APR before reading or writing" << std::endl;
+    }
+
+    hid_t fileId = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    hid_t base = H5Gopen2(fileId, "/", H5P_DEFAULT);
+
+    int number_levels;
+    //stored relative to maximum level to allow the read and write functions to be used with different sized APRs. (inherent assumption of only the image size changing not resolution).
+    readAttr(H5T_NATIVE_INT, "number_levels", base, &number_levels);
+
+    stencils.resize(this->level_max + 1);
+
+    for (int d_level = 0; d_level < number_levels; ++d_level) {
+
+      int level = d_level + this-> level_min;
+
+      auto &stencil = stencils[level];
+
+      std::string level_name = "_level_" + std::to_string(d_level);
+
+      int num_pts_1;
+      int num_pts_2;
+
+      //get the number of points
+      readAttr(H5T_NATIVE_INT, "num_pts_l" + level_name, base, &num_pts_1);
+      readAttr(H5T_NATIVE_INT, "num_pts_nl" + level_name, base, &num_pts_2);
+
+      //read in the full stencil
+      std::vector<double> coeff_full;
+      coeff_full.resize(num_pts_1 + num_pts_2);
+
+      std::string coeff_n = "coeff" + level_name;
+
+      hdf5_load_data_blosc(base, H5T_NATIVE_DOUBLE, coeff_full.data(), coeff_n.c_str());
+
+      //now compute the linear stencil
+
+      stencil.linear_coeffs.resize(num_pts_1, 0); //need to include the 0 center
+      auto offset = 0;
+
+      for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
+
+        stencil.linear_coeffs[k1] = coeff_full[k1 + offset];
+
+      }
+
+      stencil.non_linear_coeffs.resize(num_pts_2, 0);
+
+      for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
+
+        stencil.non_linear_coeffs[k1] = coeff_full[k1 + num_pts_1];
+
+      }
+
+    }
+
+    H5Fclose(fileId);
+
+  }
+
 
   void write_stencil(std::string &file_name) {
 

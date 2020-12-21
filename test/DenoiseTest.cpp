@@ -97,22 +97,23 @@ bool test_io(TestData &testData){
 
   bool success = true;
 
-  auto &as = testData.aprStencils;
+  auto &inputStencils = testData.aprStencils;
 
-  std::string stencil_file_name = "test";
-  Stencil<double> stencil_read;
+  std::string stencil_file_name = "test_all.stencils";
 
-  std::string t2 = "test_all.stencils";
+  inputStencils.write_stencil(stencil_file_name);
 
-  as.write_stencil(t2);
+  APRStencils readStencils;
+  readStencils.level_min = inputStencils.level_min;
+  readStencils.level_max = inputStencils.level_max;
+  readStencils.dim = inputStencils.dim;
 
-  APRStencils::write_stencil(stencil_file_name, as.stencils.back());
-
-  APRStencils::read_stencil(stencil_file_name, stencil_read);
+  readStencils.read_stencil(stencil_file_name);
 
   for(int level = testData.l_min; level <= testData.l_max; level++) {
 
-    auto &stencil_input = as.stencils[level];
+    auto &stencil_input = inputStencils.stencils[level];
+    auto &stencil_read = readStencils.stencils[level];
 
     for (int i = 0; i < stencil_input.linear_coeffs.size(); i++) {
 
