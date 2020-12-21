@@ -50,8 +50,8 @@ void init_stencil(TestData& testData){
 
   testData.aprStencils.dim = testData.dim;
 
-  testData.aprStencils.level_min = testData.l_max;
-  testData.aprStencils.level_max = testData.l_min;
+  testData.aprStencils.level_min = testData.l_min;
+  testData.aprStencils.level_max = testData.l_max;
 
   testData.aprStencils.stencils.resize(testData.l_max + 1);
 
@@ -93,7 +93,6 @@ void Stencil3D::SetUp(){
 
 
 
-
 bool test_io(TestData &testData){
 
   bool success = true;
@@ -103,18 +102,25 @@ bool test_io(TestData &testData){
   std::string stencil_file_name = "test";
   Stencil<double> stencil_read;
 
-  as.write_stencil(stencil_file_name,as.stencils.back());
+  std::string t2 = "test_all.stencils";
 
-  as.read_stencil(stencil_file_name,stencil_read);
+  as.write_stencil(t2);
 
-  auto &stencil_input = as.stencils.back();
+  APRStencils::write_stencil(stencil_file_name, as.stencils.back());
 
-  for(int i = 0; i < stencil_input.linear_coeffs.size();i++){
+  APRStencils::read_stencil(stencil_file_name, stencil_read);
 
-    if(stencil_read.linear_coeffs[i] != stencil_input.linear_coeffs[i]){
-      success = false;
+  for(int level = testData.l_min; level <= testData.l_max; level++) {
+
+    auto &stencil_input = as.stencils[level];
+
+    for (int i = 0; i < stencil_input.linear_coeffs.size(); i++) {
+
+      if (stencil_read.linear_coeffs[i] != stencil_input.linear_coeffs[i]) {
+        success = false;
+      }
+
     }
-
   }
 
   return success;

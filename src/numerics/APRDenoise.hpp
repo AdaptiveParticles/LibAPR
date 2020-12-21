@@ -130,7 +130,6 @@ public:
     template<typename T>
     void calculate_global_index(PixelData<T> &img) {
 
-        uint64_t z_num = img.z_num + 2 * stencil_span;
         uint64_t x_num = img.x_num + 2 * stencil_span;
         uint64_t y_num = img.y_num + 2 * stencil_span;
 
@@ -207,8 +206,72 @@ public:
 
         }
 
+        H5Fclose(fileId);
 
     }
+
+  void write_stencil(std::string &file_name) {
+
+    hid_t fileId = hdf5_create_file_blosc(file_name);
+
+    //hid_t base = H5Gcreate2(fileId, "/a",  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    if(this->level_max==0){
+      std::cerr << "APR Stencils must be initialised by an APR before reading or writing" << std::endl;
+    }
+
+    int number_levels = this->level_max - this-> level_min + 1;
+    //stored relative to maximum level to allow the read and write functions to be used with different sized APRs. (inherent assumption of only the image size changing not resolution).
+    writeAttr(H5T_NATIVE_INT, "number_levels", fileId, &number_levels);
+
+    for (int d_level = 0; d_level < number_levels; ++d_level) {
+
+      int level = d_level + this-> level_min;
+
+      auto &stencil = stencils[level];
+
+      std::string level_name = "_level_" + std::to_string(d_level);
+
+      int num_pts_linear = stencil.linear_coeffs.size();
+      int num_pts_non_linear = stencil.non_linear_coeffs.size();
+
+      //get the number of points
+      writeAttr(H5T_NATIVE_INT, "num_pts_l" + level_name, fileId, &num_pts_linear);
+      writeAttr(H5T_NATIVE_INT, "num_pts_nl" + level_name, fileId, &num_pts_non_linear);
+
+      int dim1 = stencil.stencil_dims[0];
+      int dim2 = stencil.stencil_dims[1];
+      int dim3 = stencil.stencil_dims[2];
+
+      writeAttr(H5T_NATIVE_INT, "dim_1" + level_name, fileId, &dim1);
+      writeAttr(H5T_NATIVE_INT, "dim_2" + level_name, fileId, &dim2);
+      writeAttr(H5T_NATIVE_INT, "dim_3" + level_name, fileId, &dim3);
+
+      //read in the full stencil
+      std::vector<double> coeff_full;
+      coeff_full.resize(num_pts_linear + num_pts_non_linear);
+
+      auto offset = 0;
+
+      for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
+
+        coeff_full[k1 + offset] = stencil.linear_coeffs[k1];
+
+      }
+
+      for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
+
+        coeff_full[k1 + num_pts_linear] = stencil.non_linear_coeffs[k1];
+
+      }
+
+      writeData(H5T_NATIVE_DOUBLE, "coeff" + level_name, coeff_full, fileId);
+
+    }
+
+    H5Fclose(fileId);
+
+  }
 
 
     template<typename T>
@@ -253,6 +316,8 @@ public:
         }
 
         writeData(H5T_NATIVE_DOUBLE, "coeff", coeff_full, fileId);
+
+        H5Fclose(fileId);
 
     }
 
@@ -344,8 +409,6 @@ public:
         timer.start_timer("train");
 
         for (int level = std::max((int) apr.level_min(), level_min); level <= (apr.level_max()); ++level) {
-
-            auto apr_iterator = apr.iterator();
 
             StencilSetUp setUp;
 
@@ -493,7 +556,7 @@ public:
         for (z = 0; z < img.z_num; ++z) {
             for (uint64_t x = 0; x < img.x_num; ++x) {
 
-                const uint64_t img_off = x * img.y_num + z * (img.y_num * img.z_num);
+//                const uint64_t img_off = x * img.y_num + z * (img.y_num * img.z_num);
 
                 float temp_val = 0;
 
