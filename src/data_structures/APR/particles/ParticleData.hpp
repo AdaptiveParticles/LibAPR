@@ -45,6 +45,14 @@ public:
         compressor = parts2Copy.compressor;
     }
 
+    auto end(){
+      return data.end();
+    }
+
+    auto begin(){
+      return data.begin();
+    }
+
     void init(uint64_t aTotalNumberOfParticles) { data.resize(aTotalNumberOfParticles); }
     /*
      * Init dataset with enough particles up to level

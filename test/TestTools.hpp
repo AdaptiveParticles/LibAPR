@@ -9,6 +9,15 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include <random>
 
+std::string get_source_directory_apr(){
+  // returns path to the directory where utils.cpp is stored
+
+  std::string tests_directory = std::string(__FILE__);
+  tests_directory = tests_directory.substr(0, tests_directory.find_last_of("\\/") + 1);
+
+  return tests_directory;
+}
+
 /**
  * Compares mesh with provided data
  * @param mesh

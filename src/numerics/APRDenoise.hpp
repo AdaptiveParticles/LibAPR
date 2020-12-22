@@ -90,7 +90,6 @@ public:
     void setup_standard(std::vector<int> &stencil_dims_in) {
 
         non_linear_flag = false;
-        dim = 3;
 
         stencil_dims[0] = stencil_dims_in[0];
         stencil_dims[1] = stencil_dims_in[1];
@@ -98,7 +97,6 @@ public:
 
         std::vector<int> temp;
         temp.resize(3);
-
 
         uint64_t counter = 0;
 
@@ -155,84 +153,35 @@ class APRStencils {
 
 public:
     std::vector<Stencil<float>> stencils;
-    int dim = 3;
-    int level_max;
-    int level_min;
+    int dim;
+    int number_levels;
 
-    void init(APR &apr) {
-
-        level_max = apr.level_max();
-        level_min = apr.level_min();
-        stencils.resize(level_max + 1);
-
-    }
-
-    template<typename T>
-    static void read_stencil(std::string file_name, Stencil<T> &stencil) {
-
-        hid_t fileId = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-
-
-        hid_t base = H5Gopen2(fileId, "/", H5P_DEFAULT);
-
-        double num_pts_1;
-        double num_pts_2;
-
-        //get the number of points
-        readAttr(H5T_NATIVE_DOUBLE, "num_pts_l", base, &num_pts_1);
-        readAttr(H5T_NATIVE_DOUBLE, "num_pts_nl", base, &num_pts_2);
-
-        //read in the full stencil
-        std::vector<double> coeff_full;
-        coeff_full.resize(num_pts_1 + num_pts_2);
-
-        hdf5_load_data_blosc(base, H5T_NATIVE_DOUBLE, coeff_full.data(), "coeff");
-
-        //now compute the linear stencil
-
-        stencil.linear_coeffs.resize(num_pts_1, 0); //need to include the 0 center
-        auto offset = 0;
-
-        for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
-
-            stencil.linear_coeffs[k1] = coeff_full[k1 + offset];
-
-        }
-
-        stencil.non_linear_coeffs.resize(num_pts_2, 0);
-
-        for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
-
-            stencil.non_linear_coeffs[k1] = coeff_full[k1 + num_pts_1];
-
-        }
-
-        H5Fclose(fileId);
-
+    void init(int _number_levels,int _dim)  {
+      number_levels = _number_levels;
+      dim = _dim;
+      stencils.resize(number_levels + 1);
     }
 
 
-  void read_stencil(std::string file_name) {
-
-    if(this->level_max==0){
-      std::cerr << "APR Stencils must be initialised by an APR before reading or writing" << std::endl;
-    }
+  void read_stencil(const std::string& file_name) {
 
     hid_t fileId = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     hid_t base = H5Gopen2(fileId, "/", H5P_DEFAULT);
 
     int number_levels;
+    int dim;
     //stored relative to maximum level to allow the read and write functions to be used with different sized APRs. (inherent assumption of only the image size changing not resolution).
     readAttr(H5T_NATIVE_INT, "number_levels", base, &number_levels);
+    readAttr(H5T_NATIVE_INT, "dim", base, &dim);
 
-    stencils.resize(this->level_max + 1);
+    this->dim = dim;
+    this->number_levels = number_levels;
 
-    for (int d_level = 0; d_level < number_levels; ++d_level) {
+    stencils.resize(number_levels + 1);
 
-      int level = d_level + this-> level_min;
+    for (int d_level = 0; d_level <= number_levels; ++d_level) {
 
-      auto &stencil = stencils[level];
+      auto &stencil = stencils[d_level];
 
       std::string level_name = "_level_" + std::to_string(d_level);
 
@@ -283,19 +232,19 @@ public:
 
     //hid_t base = H5Gcreate2(fileId, "/a",  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-    if(this->level_max==0){
-      std::cerr << "APR Stencils must be initialised by an APR before reading or writing" << std::endl;
+    if(this->number_levels==0){
+      std::cerr << "Attempting to write non-intialized APR Stencils" << std::endl;
     }
 
-    int number_levels = this->level_max - this-> level_min + 1;
+    int _number_levels = this->number_levels;
     //stored relative to maximum level to allow the read and write functions to be used with different sized APRs. (inherent assumption of only the image size changing not resolution).
-    writeAttr(H5T_NATIVE_INT, "number_levels", fileId, &number_levels);
+    writeAttr(H5T_NATIVE_INT, "number_levels", fileId, &_number_levels);
 
-    for (int d_level = 0; d_level < number_levels; ++d_level) {
+    writeAttr(H5T_NATIVE_INT, "dim", fileId, &(this->dim));
 
-      int level = d_level + this-> level_min;
+    for (int d_level = 0; d_level <= number_levels; ++d_level) {
 
-      auto &stencil = stencils[level];
+      auto &stencil = stencils[d_level];
 
       std::string level_name = "_level_" + std::to_string(d_level);
 
@@ -443,6 +392,8 @@ public:
     int max_level = 4;
     int others_level = 1;
 
+    int number_levels = 3;
+
     int iteration_max = 1000;
     int iteration_others = 600;
 
@@ -467,7 +418,9 @@ public:
 
         bool verbose = false;
 
-        aprStencils.init(apr);
+        auto it = apr.iterator();
+
+        aprStencils.init(it.number_dimensions(),this->number_levels);
 
         float tol_ = .05;
 
@@ -537,38 +490,35 @@ public:
 
 // Apply model APR
 
-    template<typename R>
-    void apply_denoise(APR &apr, ParticleData <R> &parts, APRStencils &aprStencils) {
-
-        int last_full = 0;
+    template<typename R,typename S>
+    void apply_denoise(APR &apr, ParticleData <R> &parts_in, ParticleData <S> &parts_out, APRStencils &aprStencils) {
 
         APRTimer timer(true);
+
+        int stencil_level = aprStencils.number_levels;
 
         timer.start_timer("apply");
 
         for (int level = apr.level_max(); level >= std::max((int) apr.level_min(), level_min); --level) {
 
-            if (aprStencils.stencils[level].linear_coeffs.size() > 0) {
-
-                last_full = level;
-
-            }
-
             StencilSetUp setUp;
-            setUp.setup_standard(aprStencils.stencils[last_full].stencil_dims);
+            setUp.setup_standard(aprStencils.stencils[stencil_level].stencil_dims);
 
-            apply_conv_guided(apr, parts, setUp, aprStencils.stencils[last_full], level);
+            apply_conv_guided(apr, parts_in, parts_out, setUp, aprStencils.stencils[stencil_level], level);
+
+            if(stencil_level > 0){
+                stencil_level--;
+            }
 
         }
         timer.stop_timer();
 
-
     }
 
 
-    template<typename T, typename S>
+    template<typename T, typename R,typename S>
     float
-    apply_conv_guided(APR &apr, ParticleData <T> &parts, StencilSetUp &stencilSetUp, Stencil<S> &stencil, int level) {
+    apply_conv_guided(APR &apr, ParticleData <T> &parts_in,ParticleData <R> &parts_out, StencilSetUp &stencilSetUp, Stencil<S> &stencil, int level) {
 
         timer.verbose_flag = true;
 
@@ -577,7 +527,7 @@ public:
 
         int delta = level - apr.level_max();
 
-        APRReconstruction::interp_img_us_smooth(apr, img, parts, false, delta);
+        APRReconstruction::interp_img_us_smooth(apr, img, parts_in, false, delta);
 
         stencilSetUp.calculate_global_index(img);
 
@@ -590,7 +540,7 @@ public:
         timer.stop_timer();
 
         const uint64_t off_y = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_x = (uint64_t) stencilSetUp.stencil_span;
+        const uint64_t off_x = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.x_num - 1);
         const uint64_t off_z = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.z_num - 1);
 
         const uint64_t x_num_p = img.x_num + 2 * off_x;
@@ -606,13 +556,13 @@ public:
 
         timer.start_timer("conv guided");
 
-        float factor = 0;
-
-        for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
-            factor = std::max(factor, std::abs(stencil.linear_coeffs[j]));
-        }
-
-        stencil.linear_coeffs[stencilSetUp.center_index] = factor / (1-factor); // this weights the middle pixel by the same as the largest weight in the stencil (factor). The 1-factor is for noramlisation.
+//        float factor = 0; //#TODO: move this code to the solver, logic for changing the kernels should not be here. (The below has a less then one assumption).
+//
+//        for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
+//            factor = std::max(factor, std::abs(stencil.linear_coeffs[j]));
+//        }
+//
+//        stencil.linear_coeffs[stencilSetUp.center_index] = factor / (1-factor); // this weights the middle pixel by the same as the largest weight in the stencil (factor). The 1-factor is for noramlisation.
 
         auto it = apr.iterator();
 
@@ -622,8 +572,6 @@ public:
 #endif
         for (z = 0; z < img.z_num; ++z) {
             for (uint64_t x = 0; x < img.x_num; ++x) {
-
-//                const uint64_t img_off = x * img.y_num + z * (img.y_num * img.z_num);
 
                 float temp_val = 0;
 
@@ -662,10 +610,16 @@ public:
                     }
 
 
-                    parts[it] = (1 - factor) * std::inner_product(local_vec.begin(),
-                                                                                         local_vec.end(),
-                                                                                         stencil.linear_coeffs.begin(),
-                                                                                         temp_val);
+//                    parts[it] = (1 - factor) * std::inner_product(local_vec.begin(),
+//                                                                                         local_vec.end(),
+//                                                                                         stencil.linear_coeffs.begin(),
+//                                                                                         temp_val);
+
+                    parts_out[it] = std::inner_product(local_vec.begin(),
+                                                 local_vec.end(),
+                                                 stencil.linear_coeffs.begin(),
+                                                 temp_val);
+
                 }
             }
         }
