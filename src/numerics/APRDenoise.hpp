@@ -392,7 +392,7 @@ public:
     int max_level = 4;
     int others_level = 1;
 
-    int number_levels = 3;
+    int number_levels = 4;
 
     int iteration_max = 1000;
     int iteration_others = 600;
@@ -402,6 +402,10 @@ public:
 
     int level_min = 0;
 
+    bool estimate_center_flag = true;
+
+    int train_factor = 3; // minimum number of points above the stencil size required for the stencil to train.
+
     // Train APR
 
     template<typename S>
@@ -410,17 +414,52 @@ public:
         train_denoise(apr, parts, parts, aprStencils);
     }
 
+
     template<typename S>
     void train_denoise(APR &apr, ParticleData <S> &parts, ParticleData <S> &parts_gt, APRStencils &aprStencils) {
         //
         //  Trains a level dependent de-noising model
         //
 
-        bool verbose = false;
+        bool verbose = true;
 
         auto it = apr.iterator();
 
-        aprStencils.init(it.number_dimensions(),this->number_levels);
+
+        int viable_levels = 0;
+
+        for(int level = it.level_max(); level <= it.level_min(); level--){
+            uint64_t total_parts = it.particles_level_end(level) - it.particles_level_begin(level);
+
+            //check if enough particles to train a kernel; (K*size of kernel?)
+
+            int stencil_sz;
+            if (level == apr.level_max()) {
+              stencil_sz = max_level;
+
+            } else {
+              stencil_sz = others_level;
+
+            }
+
+            int pts = std::pow(2*stencil_sz+1,it.number_dimensions())*train_factor;
+
+            if(total_parts >= pts){
+                viable_levels++;
+
+            }
+
+        }
+
+        if(viable_levels < this->number_levels) {
+          std::cout << "Not enough particles at levels to train kernel of desired number of levels" << std::endl;
+          std::cout << "Setting number of kernel levels to: " << viable_levels << std::endl;
+          this->number_levels = viable_levels;
+        }
+
+        aprStencils.init(this->number_levels,it.number_dimensions());
+
+        int stencil_level = aprStencils.number_levels;
 
         float tol_ = .05;
 
@@ -428,7 +467,7 @@ public:
 
         timer.start_timer("train");
 
-        for (int level = std::max((int) apr.level_min(), level_min); level <= (apr.level_max()); ++level) {
+        for (int level = apr.level_max(); level >= std::max((int) apr.level_min(), apr.level_max() - aprStencils.number_levels); --level) {
 
             StencilSetUp setUp;
 
@@ -475,10 +514,15 @@ public:
             setUp.setup_standard(stencil_dim);
 
             //change the stencil size, the stencil is way to big for the lower levels.
-            assemble_system_guided(apr, parts, parts_gt, setUp, aprStencils.stencils[level], N, it, level,
+            assemble_system_guided(apr, parts, parts_gt, setUp, aprStencils.stencils[stencil_level], N, it, level,
                                    tol_,verbose);
 
-            tol_ = tol_ / 8;
+            tol_ = tol_ / 8; // check this is this necessary, and I don't think the decay makes much sense beyond the first two layers. (This was based on a noise reduction per level).
+
+            if(stencil_level > 0){
+              stencil_level--;
+            }
+
 
         }
 
@@ -500,6 +544,7 @@ public:
         timer.start_timer("apply");
 
         for (int level = apr.level_max(); level >= std::max((int) apr.level_min(), level_min); --level) {
+
 
             StencilSetUp setUp;
             setUp.setup_standard(aprStencils.stencils[stencil_level].stencil_dims);
@@ -556,13 +601,6 @@ public:
 
         timer.start_timer("conv guided");
 
-//        float factor = 0; //#TODO: move this code to the solver, logic for changing the kernels should not be here. (The below has a less then one assumption).
-//
-//        for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
-//            factor = std::max(factor, std::abs(stencil.linear_coeffs[j]));
-//        }
-//
-//        stencil.linear_coeffs[stencilSetUp.center_index] = factor / (1-factor); // this weights the middle pixel by the same as the largest weight in the stencil (factor). The 1-factor is for noramlisation.
 
         auto it = apr.iterator();
 
@@ -628,7 +666,6 @@ public:
 
         float time = timer.timings.back();
         return time;
-
 
     }
 
@@ -736,22 +773,8 @@ public:
         stencilSetUp.calculate_global_index(img);
 
         if (total_parts < N) {
-
-            if(total_parts < 10){
-
-                //do nothing, not enough points to train.
-                stencil.linear_coeffs.resize(stencilSetUp.index.size(), 0);
-                stencil.linear_coeffs[stencilSetUp.center_index] = 1.0f;
-                stencil.non_linear_coeffs.resize(stencilSetUp.nl_index_1.size(), 0);
-
-                return;
-            } else {
-                //try this default
-                N = total_parts / 2;
-            }
-
+            N =  stencilSetUp.l_index_1.size()*this->train_factor;
         }
-
 
         PixelData<T> pad_img;
 
@@ -1028,6 +1051,26 @@ public:
             stencil.non_linear_coeffs[k1] = sum / (counter * 1.0);
 
         }
+
+        if(this->estimate_center_flag) {
+          // set the center pixel to the largest weight in the kernel, and then re-normalise the kernel
+
+          float factor = 0;
+          float sum = 0;
+
+          for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
+            factor = std::max(factor, std::abs(stencil.linear_coeffs[j]));
+            sum += stencil.linear_coeffs[j];
+          }
+
+          stencil.linear_coeffs[stencilSetUp.center_index] = factor;
+
+          for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
+            stencil.linear_coeffs[j] = stencil.linear_coeffs[j]*(sum)/(sum+factor);
+          }
+
+        }
+
 
 
     }

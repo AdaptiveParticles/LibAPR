@@ -282,7 +282,7 @@ bool test_apply_center(TestData &testData){
 
   for (int level = it.level_max(); level >= it.level_min(); --level) {
 
-    auto& stencil = testData.aprStencils.stencils[number_stencils];
+
 
     uint64_t counter = 0;
 
@@ -311,7 +311,22 @@ bool test_apply_center(TestData &testData){
   return success;
 }
 
+bool test_train(TestData& testData){
 
+  bool success = true;
+
+  //load in an APR
+  APRDenoise aprDenoise;
+
+  aprDenoise.iteration_others = 1; //default = 1 (Changed)
+
+  aprDenoise.N_ = 100;
+  aprDenoise.N_max = 100;
+
+  aprDenoise.train_denoise(testData.apr,testData.parts,testData.aprStencils);
+
+  return success;
+}
 
 
 //3D
@@ -354,6 +369,12 @@ TEST_F(Stencil2D, Test_APPLY_CENTER) {
 
 }
 
+TEST_F(Stencil2D, Test_TRAIN) {
+
+  ASSERT_TRUE(test_train(testData));
+
+}
+
 
 //1D
 TEST_F(Stencil1D, Test_IO) {
@@ -371,6 +392,12 @@ TEST_F(Stencil1D, Test_APPLY) {
 TEST_F(Stencil1D, Test_APPLY_CENTER) {
 
   ASSERT_TRUE(test_apply_center(testData));
+
+}
+
+TEST_F(Stencil1D, Test_TRAIN) {
+
+  ASSERT_TRUE(test_train(testData));
 
 }
 
