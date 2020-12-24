@@ -37,8 +37,13 @@ class StencilSetUp {
 
 public:
 
+    StencilSetUp(APR& apr) {
+      auto it = apr.iterator();
+      dim = it.number_dimensions();
+    }
+
     size_t dim;
-    std::vector<uint64_t> index;
+    std::vector<int64_t> index;
     std::vector<std::vector<int>> stencil_index_base;
 
     PixelData<double> stencil_index_1;
@@ -159,7 +164,7 @@ public:
     void init(int _number_levels,int _dim)  {
       number_levels = _number_levels;
       dim = _dim;
-      stencils.resize(number_levels + 1);
+      stencils.resize(number_levels+1);
     }
 
 
@@ -428,7 +433,7 @@ public:
 
         int viable_levels = 0;
 
-        for(int level = it.level_max(); level <= it.level_min(); level--){
+        for(int level = it.level_max(); level >= it.level_min(); level--){
             uint64_t total_parts = it.particles_level_end(level) - it.particles_level_begin(level);
 
             //check if enough particles to train a kernel; (K*size of kernel?)
@@ -467,9 +472,9 @@ public:
 
         timer.start_timer("train");
 
-        for (int level = apr.level_max(); level >= std::max((int) apr.level_min(), apr.level_max() - aprStencils.number_levels); --level) {
+        for (int level = apr.level_max(); level >= apr.level_min(); --level) {
 
-            StencilSetUp setUp;
+            StencilSetUp setUp(apr);
 
             int stencil_sz;
 
@@ -519,10 +524,11 @@ public:
 
             tol_ = tol_ / 8; // check this is this necessary, and I don't think the decay makes much sense beyond the first two layers. (This was based on a noise reduction per level).
 
-            if(stencil_level > 0){
+            if(stencil_level > 1){
               stencil_level--;
+            } else {
+              break;
             }
-
 
         }
 
@@ -546,12 +552,12 @@ public:
         for (int level = apr.level_max(); level >= std::max((int) apr.level_min(), level_min); --level) {
 
 
-            StencilSetUp setUp;
+            StencilSetUp setUp(apr);
             setUp.setup_standard(aprStencils.stencils[stencil_level].stencil_dims);
 
             apply_conv_guided(apr, parts_in, parts_out, setUp, aprStencils.stencils[stencil_level], level);
 
-            if(stencil_level > 0){
+            if(stencil_level > 1){
                 stencil_level--;
             }
 
@@ -569,6 +575,10 @@ public:
 
         PixelData<T> img; //change to be level dependent
         // apr.interp_img(img,parts);
+
+        if(parts_out.size() != parts_in.size()) {
+          parts_out.init(apr);
+        }
 
         int delta = level - apr.level_max();
 
@@ -647,11 +657,6 @@ public:
                         local_vec[i] = pad_img.mesh[global_off_l + stencilSetUp.index[i]];
                     }
 
-
-//                    parts[it] = (1 - factor) * std::inner_product(local_vec.begin(),
-//                                                                                         local_vec.end(),
-//                                                                                         stencil.linear_coeffs.begin(),
-//                                                                                         temp_val);
 
                     parts_out[it] = std::inner_product(local_vec.begin(),
                                                  local_vec.end(),
@@ -815,6 +820,8 @@ public:
         std::vector<std::vector<double>> coeff_store;
         coeff_store.resize(num_rep);
 
+
+
         timer.start_timer("assemble");
 
 
@@ -830,7 +837,6 @@ public:
         //Eigen::MatrixXd A(n,N);
 
         Eigen::VectorXd coeff_prev(n);
-
 
         std::vector<uint16_t> x_vec;
         std::vector<uint16_t> y_vec;
@@ -1052,6 +1058,8 @@ public:
 
         }
 
+
+
         if(this->estimate_center_flag) {
           // set the center pixel to the largest weight in the kernel, and then re-normalise the kernel
 
@@ -1069,6 +1077,24 @@ public:
             stencil.linear_coeffs[j] = stencil.linear_coeffs[j]*(sum)/(sum+factor);
           }
 
+        }
+
+
+        //NAN check, this can occur if you have noise free data, and the system becomes ill-posed. (likely other reasons as well, hence the warning).
+
+        bool valid_check = true;
+
+        for (int l1 = 0; l1 < stencil.linear_coeffs.size(); ++l1) {
+          if(std::isnan(stencil.linear_coeffs[l1])){
+            valid_check = false;
+          }
+        }
+
+        if(!valid_check){
+            std::wcerr << "Inference hasn't converged to a solution, setting the kernel to identity. This could be due to std(signal) = 0" << std::endl;
+
+            std::fill(stencil.linear_coeffs.begin(),stencil.linear_coeffs.end(),0);
+            stencil.linear_coeffs[stencilSetUp.center_index] = 1;
         }
 
 

@@ -318,12 +318,36 @@ bool test_train(TestData& testData){
   //load in an APR
   APRDenoise aprDenoise;
 
-  aprDenoise.iteration_others = 1; //default = 1 (Changed)
+//  aprDenoise.iteration_others = 1; //default = 1 (Changed)
 
-  aprDenoise.N_ = 100;
-  aprDenoise.N_max = 100;
+//  aprDenoise.N_ = 100;
+//  aprDenoise.N_max = 100;
+
+  aprDenoise.iteration_max = 100;
+  aprDenoise.iteration_others = 5;
+
+  ParticleData<uint16_t> particlesOutput;
 
   aprDenoise.train_denoise(testData.apr,testData.parts,testData.aprStencils);
+
+//  for (int i = 0; i < testData.aprStencils.stencils.size(); ++i) {
+//      auto &stencil = testData.aprStencils.stencils[i];
+//
+//    for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
+//        stencil.linear_coeffs[j] = 1.0f/(stencil.linear_coeffs.size());
+//    }
+//
+//  }
+
+
+  aprDenoise.apply_denoise(testData.apr,testData.parts,particlesOutput,testData.aprStencils);
+
+  PixelData<uint16_t> img;
+  APRReconstruction::interp_img(testData.apr,img, particlesOutput);
+  TiffUtils::saveMeshAsTiff("train_recon.tif", img);
+
+  APRReconstruction::interp_img(testData.apr,img, testData.parts);
+  TiffUtils::saveMeshAsTiff("train_org.tif", img);
 
   return success;
 }
@@ -345,6 +369,12 @@ TEST_F(Stencil3D, Test_APPLY) {
 TEST_F(Stencil3D, Test_APPLY_CENTER) {
 
   ASSERT_TRUE(test_apply_center(testData));
+
+}
+
+TEST_F(Stencil3D, Test_TRAIN) {
+
+  ASSERT_TRUE(test_train(testData));
 
 }
 
