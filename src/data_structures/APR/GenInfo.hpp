@@ -15,8 +15,8 @@ class GenInfo {
     }
 
 public:
-    int l_min;
-    int l_max;
+    int l_min = 0;
+    int l_max = 0;
     int org_dims[3]={0,0,0};
 
     uint8_t number_dimensions = 3;
@@ -25,7 +25,7 @@ public:
     std::vector<int> y_num;
     std::vector<int> z_num;
 
-    uint64_t total_number_particles;
+    uint64_t total_number_particles = 0;
 
     std::vector<int> level_size; // precomputation of the size of each level, used by the iterators.
 
