@@ -829,7 +829,7 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
 
     timer.start_timer("up_sample_const");
 
-    unsigned int j, i, k;
+    int j, i, k;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds*x_num_ds > 100)

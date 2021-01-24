@@ -250,7 +250,7 @@ public:
         temp_imgs[apr.level_max()].swap(img);
 
 
-        for (unsigned int level = apr_iterator.level_min(); level <= (apr_iterator.level_max()+delta); ++level) {
+        for (uint16_t level = apr_iterator.level_min(); level <= (apr_iterator.level_max()+delta); ++level) {
             int z = 0;
             int x = 0;
 

@@ -68,21 +68,11 @@ public:
         int stencil_z_half = (stencil.z_num-1)/2;
 
 
-//        for (int l = stencil_z_b; l <= stencil_z_e; ++l) {
-//            for (int q = stencil_x_b; q <= stencil_x_e; ++q) {
-//                for (int w = stencil_y_b; w <= stencil_y_e; ++w) {
-//
-//                    neigh_sum += stencil.at(l+stencil_y_half,q+stencil_x_half,w+stencil_z_half)*input(l, q, w);
-//                }
-//            }
-//        }
-
-
-        int i=0;
+        size_t i=0;
 #pragma omp parallel for default(shared) private(i)
         for (i = 0; i < input.z_num; ++i) {
-            for (int j = 0; j < input.x_num; ++j) {
-                for (int k = 0; k < input.y_num; ++k) {
+            for (size_t j = 0; j < input.x_num; ++j) {
+                for (size_t k = 0; k < input.y_num; ++k) {
                     double neigh_sum = 0;
                     double counter = 0;
 

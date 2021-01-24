@@ -53,7 +53,7 @@ public:
 
     std::vector<int> stencil_dims = {0, 0, 0};
 
-    int center_index;
+    size_t center_index;
 
     std::vector<uint64_t> l_index_1;
 
@@ -79,9 +79,9 @@ public:
 
         l_index_1.resize(stencil_index_base.size() - 1, 0);
 
-        int counter = 0;
+        size_t counter = 0;
 
-        for (int i = 0; i < l_index_1.size(); ++i) {
+        for (size_t i = 0; i < l_index_1.size(); ++i) {
             if (i != center_index) {
                 l_index_1[counter] = i;
                 counter++;
@@ -138,7 +138,7 @@ public:
 
         index.resize(stencil_index_base.size());
 
-        for (int i = 0; i < stencil_index_base.size(); ++i) {
+        for (size_t i = 0; i < stencil_index_base.size(); ++i) {
             index[i] = stencil_index_base[i][0] + stencil_index_base[i][1] * y_num +
                        stencil_index_base[i][2] * y_num * x_num;
         }
@@ -210,7 +210,7 @@ public:
       stencil.linear_coeffs.resize(num_pts_1, 0); //need to include the 0 center
       auto offset = 0;
 
-      for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
+      for (size_t k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
 
         stencil.linear_coeffs[k1] = coeff_full[k1 + offset];
 
@@ -218,7 +218,7 @@ public:
 
       stencil.non_linear_coeffs.resize(num_pts_2, 0);
 
-      for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
+      for (size_t k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
 
         stencil.non_linear_coeffs[k1] = coeff_full[k1 + num_pts_1];
 
@@ -274,13 +274,13 @@ public:
 
       auto offset = 0;
 
-      for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
+      for (size_t k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
 
         coeff_full[k1 + offset] = stencil.linear_coeffs[k1];
 
       }
 
-      for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
+      for (size_t k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
 
         coeff_full[k1 + num_pts_linear] = stencil.non_linear_coeffs[k1];
 
@@ -386,7 +386,7 @@ std::vector<int> sample_without_replacement(int k, int N, std::default_random_en
     std::shuffle(result.begin(), result.end(), gen);
 
     return result;
-};
+}
 
 class APRDenoise {
 
@@ -449,7 +449,7 @@ public:
 
             }
 
-            int pts = std::pow(2*stencil_sz+1,it.number_dimensions())*train_factor;
+            uint64_t pts = std::pow(2*stencil_sz+1,it.number_dimensions())*train_factor;
 
             if(total_parts >= pts){
                 viable_levels++;
@@ -760,7 +760,7 @@ public:
     template<typename T, typename S>
     void
     assemble_system_guided(APR &apr, ParticleData <T> &parts, ParticleData <T> &parts_g, StencilSetUp &stencilSetUp,
-                           Stencil<S> &stencil, int N, int num_rep, int level, float factor = 0.05,
+                           Stencil<S> &stencil, uint64_t N, int num_rep, int level, float factor = 0.05,
                            bool verbose = false) {
 
         timer.verbose_flag = verbose;
@@ -779,7 +779,7 @@ public:
         APRReconstruction::interp_img_us_smooth(apr, img, parts, false, delta);
         stencilSetUp.calculate_global_index(img);
 
-        if (total_parts < N) {
+        if (total_parts < (uint64_t) N) {
             N =  stencilSetUp.l_index_1.size()*this->train_factor;
         }
 
@@ -805,7 +805,7 @@ public:
         std::vector<float> nl_local_vec;
         nl_local_vec.resize(stencilSetUp.nl_index_1.size(), 0);
 
-        auto n = (int) stencilSetUp.l_index_1.size() + stencilSetUp.nl_index_1.size();
+        size_t n =  stencilSetUp.l_index_1.size() + stencilSetUp.nl_index_1.size();
 
         std::vector<uint64_t> random_index;
 
@@ -879,7 +879,7 @@ public:
 
             random_index[0] = std::rand() % total_p + 1;
 
-            for (int j = 1; j < random_index.size(); ++j) {
+            for (size_t j = 1; j < random_index.size(); ++j) {
 
                 random_index[j] = random_index[j - 1] + std::rand() % total_p + 1;
             }
@@ -906,20 +906,20 @@ public:
                 //Get the local stencil of points
                 const uint64_t global_off_l = y + global_off;
 
-                for (int i = 0; i < stencilSetUp.index.size(); ++i) {
+                for (size_t i = 0; i < stencilSetUp.index.size(); ++i) {
                     local_vec[i] = pad_img.mesh[global_off_l + stencilSetUp.index[i]];
                 }
 
                 //b_temp[k] = local_vec[stencilSetUp.center_index];
                 b_temp[k] = parts_g[global_index[r_i]];
 
-                for (int i = 0; i < stencilSetUp.l_index_1.size(); ++i) {
+                for (size_t i = 0; i < stencilSetUp.l_index_1.size(); ++i) {
                     //A_temp(i, k, 0) = local_vec[stencilSetUp.l_index_1[i]];
                     A(i, k) = local_vec[stencilSetUp.l_index_1[i]];
                 }
 
                 //Apply the non-linear kernel
-                for (int i = 0; i < stencilSetUp.nl_index_1.size(); ++i) {
+                for (size_t i = 0; i < stencilSetUp.nl_index_1.size(); ++i) {
                     //A_temp(i + l_num, k, 0) =
                     //      local_vec[stencilSetUp.nl_index_1[i]] * local_vec[stencilSetUp.nl_index_2[i]];
                     A(i + l_num, k) =
@@ -957,7 +957,7 @@ public:
 
             if (l == 0) {
                 float eps = .01;
-                for (int i = 0; i < n; ++i) {
+                for (size_t i = 0; i < n; ++i) {
                     coeff_store[l][i] = std::rand() * 2 * eps - eps;
                 }
 
@@ -996,7 +996,7 @@ public:
             }
 
 
-            for (int i1 = 0; i1 < n; ++i1) {
+            for (size_t i1 = 0; i1 < n; ++i1) {
                 coeff(i1) = coeff(i1) / norm_c_(i1);
             }
 
@@ -1024,7 +1024,7 @@ public:
 
         int include = std::floor(0.5 * num_rep);
 
-        for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
+        for (size_t k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
 
             if (k1 == stencilSetUp.center_index) {
                 offset = -1;
@@ -1046,8 +1046,7 @@ public:
 
         stencil.non_linear_coeffs.resize(stencilSetUp.nl_index_1.size(), 0);
 
-        for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
-
+        for (size_t k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
 
             double sum = 0;
             double counter = 0;
@@ -1068,14 +1067,14 @@ public:
           float factor = 0;
           float sum = 0;
 
-          for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
+          for (size_t j = 0; j < stencil.linear_coeffs.size(); ++j) {
             factor = std::max(factor, std::abs(stencil.linear_coeffs[j]));
             sum += stencil.linear_coeffs[j];
           }
 
           stencil.linear_coeffs[stencilSetUp.center_index] = factor;
 
-          for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
+          for (size_t j = 0; j < stencil.linear_coeffs.size(); ++j) {
             stencil.linear_coeffs[j] = stencil.linear_coeffs[j]*(sum)/(sum+factor);
           }
 
@@ -1088,7 +1087,7 @@ public:
 
         float c_sum = 0;
 
-        for (int l1 = 0; l1 < stencil.linear_coeffs.size(); ++l1) {
+        for (size_t l1 = 0; l1 < stencil.linear_coeffs.size(); ++l1) {
           if(std::isnan(stencil.linear_coeffs[l1])){
             valid_check = false;
           }

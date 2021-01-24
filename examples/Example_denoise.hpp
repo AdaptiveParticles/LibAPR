@@ -88,23 +88,10 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     //load in an APR
     APRDenoise aprDenoise;
 
-//    aprDenoise.iteration_others = 1; //default = 1 (Changed)
-
-//    aprDenoise.N_ = 2000;
-//    aprDenoise.N_max = 2000;
-//    aprDenoise.max_level = 2;
-//    aprDenoise.others_level = 4;
-    aprDenoise.estimate_center_flag = true;
-    aprDenoise.tolerance = 0.05;
-//    aprDenoise.iteration_max = 5000;
-//    aprDenoise.iteration_others = 1000;
-
     aprDenoise.train_denoise(apr,parts,aprStencils);
 
-    APRDenoise aprDenoise_test;
-
     ParticleData<float> parts_denoised;
-    aprDenoise_test.apply_denoise(apr,parts,parts_denoised,aprStencils);
+    aprDenoise.apply_denoise(apr,parts,parts_denoised,aprStencils);
 
     timer.start_timer("pc interp");
     //perform piece-wise constant interpolation
@@ -120,7 +107,6 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     aprFile.write_apr(apr);
     aprFile.write_particles("particles",parts_denoised);
     aprFile.close();
-
 
     return true;
 }
