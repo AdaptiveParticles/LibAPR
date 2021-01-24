@@ -1086,14 +1086,23 @@ public:
 
         bool valid_check = true;
 
+        float c_sum = 0;
+
         for (int l1 = 0; l1 < stencil.linear_coeffs.size(); ++l1) {
           if(std::isnan(stencil.linear_coeffs[l1])){
             valid_check = false;
           }
+            c_sum += stencil.linear_coeffs[l1];
+        }
+
+        // Does it sum close to 1? very liberal to detect agian non-convergence.
+        float error_threshold = 0.2;
+        if(std::abs(c_sum - 1.0f) > error_threshold){
+            valid_check = false;
         }
 
         if(!valid_check){
-            std::wcerr << "Inference hasn't converged to a solution, setting the kernel to identity. This could be due to std(signal) = 0" << std::endl;
+            std::wcerr << "Inference hasn't converged to a solution, setting the kernel to identity. This could be due to std(signal) = 0, or the signal is noise free." << std::endl;
 
             std::fill(stencil.linear_coeffs.begin(),stencil.linear_coeffs.end(),0);
             stencil.linear_coeffs[stencilSetUp.center_index] = 1;

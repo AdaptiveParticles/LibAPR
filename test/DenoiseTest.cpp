@@ -316,11 +316,6 @@ bool test_train(TestData& testData){
   //load in an APR
   APRDenoise aprDenoise;
 
-//  aprDenoise.iteration_others = 1; //default = 1 (Changed)
-
-//  aprDenoise.N_ = 100;
-//  aprDenoise.N_max = 100;
-
   aprDenoise.iteration_max = 200;
   aprDenoise.iteration_others = 100;
   aprDenoise.others_level = 1;
@@ -340,17 +335,33 @@ bool test_train(TestData& testData){
 
   double total = 0;
 
+  float threshold = 0.2; //arbitrary testing threshold, is the value somewhere close?
+
   for (int i = 0; i < testData.parts.size(); ++i) {
 
-    float diff = (testData.parts[i] - particlesOutput[i]);
+    float diff = std::abs((testData.parts[i] - particlesOutput[i]));
 
-    total += pow(diff,2);
+    if(std::isnan(particlesOutput[i])){
+        std::cout << "Nan stencil value" << std::endl;
+        success = false;
+    }
+
+    uint16_t val = particlesOutput[i];
+
+    if(val==0){
+        // this should not be produced for these test data.
+        std::cout << "Zero result value" << std::endl;
+        success = false;
+    }
+
+    if((diff / (1.0f*testData.parts[i])) > threshold){
+        std::cout << "Result not converged" << std::endl;
+        success = false;
+    }
+
 
   }
 
-  float RMSE = std::sqrt(total)/(1.0f*testData.parts.size());
-
-  std::cout << "RMSE: " << RMSE << std::endl;
 
   return success;
 }
