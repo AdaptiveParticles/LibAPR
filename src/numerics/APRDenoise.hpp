@@ -411,6 +411,8 @@ public:
 
     int train_factor = 3; // minimum number of points above the stencil size required for the stencil to train.
 
+    float tolerance = 0.05;
+
     // Train APR
 
     template<typename S>
@@ -466,7 +468,7 @@ public:
 
         int stencil_level = aprStencils.number_levels;
 
-        float tol_ = .05;
+        float tol_ = this->tolerance;
 
         APRTimer timer(true);
 

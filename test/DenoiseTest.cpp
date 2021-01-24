@@ -282,8 +282,6 @@ bool test_apply_center(TestData &testData){
 
   for (int level = it.level_max(); level >= it.level_min(); --level) {
 
-
-
     uint64_t counter = 0;
 
     for (auto z = 0; z < it.z_num(level); z++) {
@@ -323,22 +321,13 @@ bool test_train(TestData& testData){
 //  aprDenoise.N_ = 100;
 //  aprDenoise.N_max = 100;
 
-  aprDenoise.iteration_max = 100;
-  aprDenoise.iteration_others = 5;
+  aprDenoise.iteration_max = 200;
+  aprDenoise.iteration_others = 100;
+  aprDenoise.others_level = 1;
 
-  ParticleData<uint16_t> particlesOutput;
+  ParticleData<float> particlesOutput;
 
   aprDenoise.train_denoise(testData.apr,testData.parts,testData.aprStencils);
-
-//  for (int i = 0; i < testData.aprStencils.stencils.size(); ++i) {
-//      auto &stencil = testData.aprStencils.stencils[i];
-//
-//    for (int j = 0; j < stencil.linear_coeffs.size(); ++j) {
-//        stencil.linear_coeffs[j] = 1.0f/(stencil.linear_coeffs.size());
-//    }
-//
-//  }
-
 
   aprDenoise.apply_denoise(testData.apr,testData.parts,particlesOutput,testData.aprStencils);
 
@@ -348,6 +337,20 @@ bool test_train(TestData& testData){
 
   APRReconstruction::interp_img(testData.apr,img, testData.parts);
   TiffUtils::saveMeshAsTiff("train_org.tif", img);
+
+  double total = 0;
+
+  for (int i = 0; i < testData.parts.size(); ++i) {
+
+    float diff = (testData.parts[i] - particlesOutput[i]);
+
+    total += pow(diff,2);
+
+  }
+
+  float RMSE = std::sqrt(total)/(1.0f*testData.parts.size());
+
+  std::cout << "RMSE: " << RMSE << std::endl;
 
   return success;
 }

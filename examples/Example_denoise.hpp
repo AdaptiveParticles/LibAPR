@@ -63,7 +63,7 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     aprFile.open(file_name,"READ");
     aprFile.read_apr(apr);
 
-    ParticleData<uint16_t>parts;
+    ParticleData<float>parts;
     aprFile.read_particles(apr,parts); //default read, will take the first particles added to the file
 
     aprFile.close();
@@ -88,45 +88,39 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     //load in an APR
     APRDenoise aprDenoise;
 
-    aprDenoise.iteration_others = 1; //default = 1 (Changed)
+//    aprDenoise.iteration_others = 1; //default = 1 (Changed)
 
-    aprDenoise.N_ = 100;
-    aprDenoise.N_max = 100;
+//    aprDenoise.N_ = 2000;
+//    aprDenoise.N_max = 2000;
+//    aprDenoise.max_level = 2;
+//    aprDenoise.others_level = 4;
+    aprDenoise.estimate_center_flag = true;
+    aprDenoise.tolerance = 0.05;
+//    aprDenoise.iteration_max = 5000;
+//    aprDenoise.iteration_others = 1000;
 
     aprDenoise.train_denoise(apr,parts,aprStencils);
 
     APRDenoise aprDenoise_test;
 
-
-    aprDenoise_test.apply_denoise(apr,parts,aprStencils);
+    ParticleData<float> parts_denoised;
+    aprDenoise_test.apply_denoise(apr,parts,parts_denoised,aprStencils);
 
     timer.start_timer("pc interp");
     //perform piece-wise constant interpolation
-    APRReconstruction::interp_img(apr,recon_pc, parts);
+    APRReconstruction::interp_img(apr,recon_pc, parts_denoised);
     timer.stop_timer();
 
     image_file_name = options.directory +  apr.name + "_denoised.tif";
-    TiffUtils::saveMeshAsTiffUint16(image_file_name, recon_pc,false);
+    TiffUtils::saveMeshAsTiff(image_file_name, recon_pc,false);
 
     file_name = options.directory + options.output;
 
     aprFile.open(file_name,"WRITE");
     aprFile.write_apr(apr);
-    aprFile.write_particles("particles",parts);
+    aprFile.write_particles("particles",parts_denoised);
     aprFile.close();
 
-    //IO is to do, just need to extend the existing code to handle the APR case, and load and read appropriately.
-
-
-    std::string stencil_file_name = "test";
-    Stencil<double> stencil_read;
-
-    aprStencils.write_stencil(file_name,aprStencils.stencils.back());
-
-    aprStencils.read_stencil(file_name,stencil_read);
-
-    //compare stencils
-    int stop = 1;
 
     return true;
 }
