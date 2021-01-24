@@ -1085,18 +1085,30 @@ public:
 
         bool valid_check = true;
 
-        float c_sum = 0;
+        double coeff_sum = 0;
 
         for (size_t l1 = 0; l1 < stencil.linear_coeffs.size(); ++l1) {
           if(std::isnan(stencil.linear_coeffs[l1])){
             valid_check = false;
           }
-            c_sum += stencil.linear_coeffs[l1];
+            coeff_sum += stencil.linear_coeffs[l1];
         }
 
+
+
         // Does it sum close to 1? very liberal to detect agian non-convergence.
-        float error_threshold = 0.2;
-        if(std::abs(c_sum - 1.0f) > error_threshold){
+        float error_threshold = 0.1;
+        double val = coeff_sum - 1.0;
+
+        if(std::abs(val) > error_threshold){
+            valid_check = false;
+        }
+
+        std::cout << "kernel sum: " << coeff_sum << std::endl;
+
+        bool diverged_val = std::isnan(coeff_sum);
+
+        if(diverged_val){
             valid_check = false;
         }
 

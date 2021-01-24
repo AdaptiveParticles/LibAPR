@@ -140,7 +140,6 @@ void CreateGTSmall1DTest::SetUp(){
 
 void CreateSmallSphereTest::SetUp(){
 
-
     std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere.apr";
     test_data.apr_filename = file_name;
 

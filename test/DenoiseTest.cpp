@@ -64,7 +64,7 @@ void init_stencil(TestData& testData){
       stencil.linear_coeffs.resize(num_pts);
 
       //make the pts just be the index of the array for easy checking;
-      for(int i = 0; i < stencil.linear_coeffs.size();i++) {
+      for(size_t i = 0; i < stencil.linear_coeffs.size();i++) {
         stencil.linear_coeffs[i] = i;
       }
 
@@ -178,7 +178,7 @@ bool test_io(TestData &testData){
     auto &stencil_input = inputStencils.stencils[level];
     auto &stencil_read = readStencils.stencils[level];
 
-    for (int i = 0; i < stencil_input.linear_coeffs.size(); i++) {
+    for (size_t i = 0; i < stencil_input.linear_coeffs.size(); i++) {
 
       if (stencil_read.linear_coeffs[i] != stencil_input.linear_coeffs[i]) {
         success = false;
@@ -222,7 +222,7 @@ bool test_apply(TestData &testData){
 
     auto& stencil = testData.aprStencils.stencils[number_stencils];
 
-    for (int i = 0; i < stencil.linear_coeffs.size(); ++i) {
+    for (size_t i = 0; i < stencil.linear_coeffs.size(); ++i) {
       stencil_total += stencil.linear_coeffs[i];
     }
 
@@ -267,7 +267,7 @@ bool test_apply_center(TestData &testData){
   ParticleData<float> particlesOutput;
   particlesOutput.init(testData.apr);
 
-  for (int j = 0; j < indexParticles.size(); ++j) {
+  for (size_t j = 0; j < indexParticles.size(); ++j) {
     indexParticles[j] = j;
   }
 
@@ -322,14 +322,33 @@ bool test_train(TestData& testData){
 
   ParticleData<float> particlesOutput;
 
+
   aprDenoise.train_denoise(testData.apr,testData.parts,testData.aprStencils);
 
   aprDenoise.apply_denoise(testData.apr,testData.parts,particlesOutput,testData.aprStencils);
 
+  float s_threshold = 0.1;
+
+  //output and check stencils
+    for (size_t i = 0; i < testData.aprStencils.stencils.size(); ++i) {
+
+        auto stencil = testData.aprStencils.stencils[i];
+        float sum = 0;
+        for (size_t j = 0; j < stencil.linear_coeffs.size(); ++j) {
+            sum+= stencil.linear_coeffs[j];
+        }
+        if(stencil.linear_coeffs.size() > 0) {
+            if (std::abs(sum - 1.0f) > s_threshold) {
+                success = false;
+            }
+        }
+
+    }
+
 
   float threshold = 0.2; //arbitrary testing threshold, is the value somewhere close?
 
-  for (int i = 0; i < testData.parts.size(); ++i) {
+  for (size_t i = 0; i < testData.parts.size(); ++i) {
 
     float diff = std::abs((testData.parts[i] - particlesOutput[i]));
 
