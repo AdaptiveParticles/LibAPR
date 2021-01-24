@@ -326,14 +326,6 @@ bool test_train(TestData& testData){
 
   aprDenoise.apply_denoise(testData.apr,testData.parts,particlesOutput,testData.aprStencils);
 
-  PixelData<uint16_t> img;
-  APRReconstruction::interp_img(testData.apr,img, particlesOutput);
-  TiffUtils::saveMeshAsTiff("train_recon.tif", img);
-
-  APRReconstruction::interp_img(testData.apr,img, testData.parts);
-  TiffUtils::saveMeshAsTiff("train_org.tif", img);
-
-  double total = 0;
 
   float threshold = 0.2; //arbitrary testing threshold, is the value somewhere close?
 
