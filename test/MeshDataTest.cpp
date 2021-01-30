@@ -347,7 +347,7 @@ namespace {
 
     // Run with different number of blocks (easy/not easy dividable
     // and exceeding number of elements in mesh)
-    INSTANTIATE_TEST_SUITE_P(CopyData, MeshDataParameterTest, ::testing::Values<int>(6, 7, 10000));
+    INSTANTIATE_TEST_CASE_P(CopyData, MeshDataParameterTest, ::testing::Values<int>(6, 7, 10000),);
 
     TEST_F(MeshDataTest, InitializeTest) {
         {   // Size and initial value known
