@@ -597,8 +597,8 @@ public:
         timer.stop_timer();
 
         const uint64_t off_y = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_x = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.x_num - 1);
-        const uint64_t off_z = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.z_num - 1);
+        const uint64_t off_x = (uint64_t) std::min((int) stencilSetUp.stencil_span, img.x_num - 1);
+        const uint64_t off_z = (uint64_t) std::min((int) stencilSetUp.stencil_span, img.z_num - 1);
 
         const uint64_t x_num_p = img.x_num + 2 * off_x;
         const uint64_t y_num_p = img.y_num + 2 * off_y;
@@ -793,7 +793,7 @@ public:
 
         const uint64_t off_y = (uint64_t) stencilSetUp.stencil_span;
         const uint64_t off_x = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_z = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.z_num - 1);
+        const uint64_t off_z = (uint64_t) std::min((int) stencilSetUp.stencil_span, img.z_num - 1);
 
         const uint64_t x_num_p = img.x_num + 2 * off_x;
         const uint64_t y_num_p = img.y_num + 2 * off_y;

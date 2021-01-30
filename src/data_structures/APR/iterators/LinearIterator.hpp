@@ -52,8 +52,13 @@ public:
         return current_index;
     }
 
-    uint16_t y() const  {
+    inline uint16_t y() const  {
         return linearAccess->y_vec[current_index];
+    }
+
+    // used by python wrappers
+    inline uint16_t get_y(uint64_t index) const {
+        return linearAccess->y_vec[index];
     }
 
     //Moves the iterator forward

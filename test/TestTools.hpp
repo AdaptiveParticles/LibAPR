@@ -27,9 +27,9 @@ std::string get_source_directory_apr(){
 template<typename T>
 inline bool compare(PixelData<T> &mesh, const float *data, const float epsilon) {
     size_t dataIdx = 0;
-    for (size_t z = 0; z < mesh.z_num; ++z) {
-        for (size_t y = 0; y < mesh.y_num; ++y) {
-            for (size_t x = 0; x < mesh.x_num; ++x) {
+    for (int z = 0; z < mesh.z_num; ++z) {
+        for (int y = 0; y < mesh.y_num; ++y) {
+            for (int x = 0; x < mesh.x_num; ++x) {
                 bool v = std::abs(mesh(y, x, z) - data[dataIdx]) < epsilon;
                 if (v == false) {
                     std::cerr << "Mesh and expected data differ. First place at (Y, X, Z) = " << y << ", " << x
@@ -46,9 +46,9 @@ inline bool compare(PixelData<T> &mesh, const float *data, const float epsilon) 
 template<typename T>
 inline bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
     size_t dataIdx = 0;
-    for (size_t z = 0; z < mesh.z_num; ++z) {
-        for (size_t y = 0; y < mesh.y_num; ++y) {
-            for (size_t x = 0; x < mesh.x_num; ++x) {
+    for (int z = 0; z < mesh.z_num; ++z) {
+        for (int y = 0; y < mesh.y_num; ++y) {
+            for (int x = 0; x < mesh.x_num; ++x) {
                 mesh(y, x, z) = data[dataIdx];
                 ++dataIdx;
             }
@@ -95,9 +95,9 @@ inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);
-    #ifdef HAVE_OPENMP
-    #pragma omp parallel for default(shared)
-    #endif
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
     for (size_t i = 0; i < m.mesh.size(); ++i) {
         m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier;
     }
@@ -132,7 +132,9 @@ TestBenchStats compare_gt(PixelData<S>& org_img,PixelData<T>& rec_img,PixelData<
     double MSE = 0;
     double L1 = 0;
 
+#ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(j,i,k) reduction(+: MSE) reduction(+: counter) reduction(+: mean) reduction(max: inf_norm)
+#endif
     for(j = b; j < (z_num_o-b);j++){
         for(i = b; i < (x_num_o-b);i++){
 
@@ -167,7 +169,9 @@ TestBenchStats compare_gt(PixelData<S>& org_img,PixelData<T>& rec_img,PixelData<
     double var = 0;
     counter = 0;
 
+#ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(j,i,k) reduction(+: var) reduction(+: counter) reduction(+: MSE_var)
+#endif
     for(j = b; j < (z_num_o-b);j++){
         for(i = b; i < (x_num_o-b);i++){
 

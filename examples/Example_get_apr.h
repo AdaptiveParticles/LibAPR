@@ -1,5 +1,5 @@
-#ifndef PARTPLAY_GETAPR_H
-#define PARTPLAY_GETAPR_H
+#ifndef LIBAPR_EXAMPLE_GET_APR_H
+#define LIBAPR_EXAMPLE_GET_APR_H
 
 #include <functional>
 #include <string>
@@ -27,10 +27,11 @@ struct cmdLineOptions{
     bool store_tree = false;
     float quantization_factor = 0.5;
 
-    float Ip_th = -1;
-    float SNR_min = -1;
+    bool auto_parameters = false;
+
+    float Ip_th = 0;
     float lambda = -1;
-    float min_signal = -1;
+    float sigma_th = 0;
     float rel_error = 0.1;
     float grad_th = 1;
 };
@@ -42,4 +43,4 @@ char* get_command_option(char **begin, char **end, const std::string &option);
 cmdLineOptions read_command_line_options(int argc, char **argv);
 
 
-#endif //PARTPLAY_PIPELINE_H
+#endif //LIBAPR_EXAMPLE_GET_APR_H

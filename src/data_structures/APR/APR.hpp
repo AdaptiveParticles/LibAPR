@@ -19,6 +19,8 @@ class APR {
     friend class APRFile;
     template<typename T>
     friend class APRConverter;
+    template<typename T>
+    friend class APRConverterBatch;
     friend class APRBenchHelper;
 
 protected:
@@ -95,12 +97,14 @@ public:
 
     int level_max() const { return aprInfo.l_max; }
     int level_min() const { return aprInfo.l_min; }
+    int level_size(int level) const { return aprInfo.level_size[level]; }
     inline int x_num(const int level) const { return aprInfo.x_num[level]; }
     inline int y_num(const int level) const { return aprInfo.y_num[level]; }
     inline int z_num(const int level) const { return aprInfo.z_num[level]; }
     inline uint64_t total_number_particles() const { return aprInfo.total_number_particles; }
     uint64_t org_dims(int dim) const { return aprInfo.org_dims[dim]; }
 
+    // TODO: should check that treeInfo is initialized
     inline uint64_t total_number_tree_particles() const { return treeInfo.total_number_particles; } // #TODO remove one of these
     inline uint64_t total_number_parent_cells() const { return treeInfo.total_number_particles; }
 
@@ -237,7 +241,7 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,APRIterator& it){
 
     lin_a.y_vec.resize(it.total_number_particles());
 
-    for (unsigned int level = 0; level <= it.level_max(); ++level) {
+    for (int level = 0; level <= it.level_max(); ++level) {
         int z = 0;
         int x = 0;
 
@@ -373,10 +377,10 @@ void APR::initialize_apr_tree() {
 
     //note the use of the dynamic OpenMP schedule.
 
-    for (unsigned int level = (apr_iterator.level_max()); level >= apr_iterator.level_min(); --level) {
+    for (int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
         int z = 0;
         int x = 0;
-        if (level < (apr_iterator.level_max())) {
+        if (level < apr_iterator.level_max()) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif

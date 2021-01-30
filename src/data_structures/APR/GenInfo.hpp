@@ -27,7 +27,7 @@ public:
 
     uint64_t total_number_particles;
 
-    std::vector<unsigned int> level_size; // precomputation of the size of each level, used by the iterators.
+    std::vector<int> level_size; // precomputation of the size of each level, used by the iterators.
 
     //initialize the information given the original dimensions
     void init(uint64_t y_org,uint64_t x_org,uint64_t z_org){
@@ -40,12 +40,10 @@ public:
 
         int max_dim = std::max(std::max(org_dims[1], org_dims[0]), org_dims[2]);
 
-        int levelMax = std::max((int)1,(int) ceil(std::log2(max_dim)));
+        int levelMax = std::max(1, (int) ceil(std::log2(max_dim)));
 
-        int levelMin = 1;
-
-
-        l_min = levelMin;
+        // APR l_min is 1, tree l_min is 0, enabling the parent level to always exist
+        l_min = 1;
         l_max = levelMax;
 
         y_num.resize(levelMax+1);
@@ -54,19 +52,16 @@ public:
 
         level_size.resize(levelMax + 1);
         for (int k = 0; k <= levelMax; ++k) {
-           level_size[k] = (uint64_t) powr(2,levelMax - k);
+           level_size[k] = powr(2,levelMax - k);
         }
 
 
         for (int l = l_min; l <= l_max; ++l) {
             double cellSize = powr(2, l_max - l);
-            y_num[l] = (uint64_t) ceil(y_org / cellSize);
-            x_num[l] = (uint64_t) ceil(x_org / cellSize);
-            z_num[l] = (uint64_t) ceil(z_org / cellSize);
+            y_num[l] = ceil(y_org / cellSize);
+            x_num[l] = ceil(x_org / cellSize);
+            z_num[l] = ceil(z_org / cellSize);
         }
-
-
-
     }
 
     //initialize the information given the original dimensions
@@ -79,19 +74,12 @@ public:
         number_dimensions = (y_org > 1) + (x_org > 1) + (z_org > 1);
 
         int max_dim = std::max(std::max(y_org, x_org), z_org);
-        //int min_dim = std::min(std::min(aAPR.apr_access.org_dims[1], aAPR.apr_access.org_dims[0]), aAPR.apr_access.org_dims[2]);
-
-//        int min_dim = max_dim;
-//        min_dim = y_org > 1 ? std::min(min_dim, (int) y_org) : min_dim;
-//        min_dim = x_org > 1 ? std::min(min_dim, (int) x_org) : min_dim;
-//        min_dim = z_org > 1 ? std::min(min_dim, (int) z_org) : min_dim;
 
         int levelMax = ceil(std::log2(max_dim));
-        // set to 1, so that the tree can be to 0, enabling the upper tree to always exist.
-        //int levelMin = std::max( (int)(levelMax - floor(std::log2(min_dim))), 1);
 
+        // APR l_min is 1, tree l_min is 0, enabling the parent level to always exist
         l_min = 0;
-        l_max = std::max((int) 1.0*levelMax-1,0);
+        l_max = std::max(levelMax-1,0);
 
         y_num.resize(l_max+1);
         x_num.resize(l_max+1);
@@ -99,19 +87,16 @@ public:
 
         level_size.resize(levelMax + 1);
         for (int k = 0; k <= levelMax; ++k) {
-            level_size[k] = (uint64_t) powr(2,levelMax - k);
+            level_size[k] = (int) powr(2,levelMax - k);
         }
 
         for (int l = l_min; l <= l_max; ++l) {
             double cellSize = powr(2, l_max - l + 1);
-            y_num[l] = (uint64_t) ceil(y_org / cellSize);
-            x_num[l] = (uint64_t) ceil(x_org / cellSize);
-            z_num[l] = (uint64_t) ceil(z_org / cellSize);
+            y_num[l] = ceil(y_org / cellSize);
+            x_num[l] = ceil(x_org / cellSize);
+            z_num[l] = ceil(z_org / cellSize);
         }
-
     }
-
-
 };
 
 

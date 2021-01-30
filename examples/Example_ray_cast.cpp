@@ -10,7 +10,7 @@ Creates a maximum projection ray cast from an APR and outputs to a tiff image.
 
 Usage:
 
-(using *_apr.h5 output of Example_get_apr)
+(using *.apr output of Example_get_apr)
 
 Example_ray_cast -i inputfile [-d directory]
 
@@ -34,6 +34,7 @@ e.g. Example_ray_cast -i nuc_apr.h5 -d /Test/Input_examples/ -aniso 2.0 -jitter 
 #include"data_structures/APR/particles/ParticleData.hpp"
 #include"io/APRFile.hpp"
 
+//TODO: The APR raycast currently only outputs a single view - fix!
 
 int main(int argc, char **argv) {
 
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
     apr_raycaster.name = apr.name;
 
     PixelData<uint16_t> views;
-    PixelData<uint16_t> views1;
+//    PixelData<uint16_t> views1;
     /////////////
     ///
     ///  Compute APR (maximum projection) raycast
@@ -95,13 +96,11 @@ int main(int argc, char **argv) {
     //apr_raycaster.perform_raycast(apr,apr.particles_intensities,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     ReconPatch rp;
-    rp.level_delta = -2;
-
+    rp.level_delta = -1;
     apr_raycaster.scale_down = pow(2,rp.level_delta);
 
-    apr_raycaster.perform_raycast_patch(apr,parts,treeData,views1,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+//    apr_raycaster.perform_raycast_patch(apr,parts,treeData,views1,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
-    rp.level_delta = -2;
 
     apr_raycaster.perform_raycast_patch(apr,parts,treeData,views,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 

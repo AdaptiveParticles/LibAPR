@@ -134,14 +134,16 @@ void ComputeGradient::mask_gradient(PixelData<T>& grad_ds, const APRParameters& 
 
     std::string file_name = par.input_dir + par.mask_file;
 #ifdef HAVE_LIBTIFF
+
     //TiffUtils::getMesh(file_name, temp_mask);
 
     temp_mask = TiffUtils::getMesh<uint16_t>(file_name);
 
-#endif
-    downsample(temp_ds, temp_mask,
+
+    downsample(temp_mask, temp_ds,
                [](const T &x, const T &y) -> T { return std::max(x, y); },
-               [](const T &x) -> T { return x; });
+               [](const T &x) -> T { return x; },
+               true);
 
     #ifdef HAVE_OPENMP
 	#pragma omp parallel for default(shared)
@@ -151,6 +153,7 @@ void ComputeGradient::mask_gradient(PixelData<T>& grad_ds, const APRParameters& 
             grad_ds.mesh[i] = 0;
         }
     }
+#endif //HAVE_LIBTIFF
 }
 
 template<typename T,typename S>
