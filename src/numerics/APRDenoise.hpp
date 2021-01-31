@@ -392,7 +392,7 @@ class APRDenoise {
 
 public:
 
-    APRTimer timer;
+    bool verbose = true;
 
     int max_level = 4;
     int others_level = 1;
@@ -428,11 +428,7 @@ public:
         //  Trains a level dependent de-noising model
         //
 
-        bool verbose = true;
-
         auto it = apr.iterator();
-
-
         int viable_levels = 0;
 
         for(int level = it.level_max(); level >= it.level_min(); level--){
@@ -453,7 +449,6 @@ public:
 
             if(total_parts >= pts){
                 viable_levels++;
-
             }
 
         }
@@ -470,7 +465,7 @@ public:
 
         float tol_ = this->tolerance;
 
-        APRTimer timer(true);
+        APRTimer timer(this->verbose);
 
         timer.start_timer("train");
 
@@ -545,7 +540,7 @@ public:
     template<typename R,typename S>
     void apply_denoise(APR &apr, ParticleData <R> &parts_in, ParticleData <S> &parts_out, APRStencils &aprStencils) {
 
-        APRTimer timer(true);
+        APRTimer timer(this->verbose);
 
         int stencil_level = aprStencils.number_levels;
 
@@ -573,10 +568,9 @@ public:
     float
     apply_conv_guided(APR &apr, ParticleData <T> &parts_in,ParticleData <R> &parts_out, StencilSetUp &stencilSetUp, Stencil<S> &stencil, int level) {
 
-        timer.verbose_flag = true;
+        APRTimer timer(this->verbose);
 
         PixelData<T> img; //change to be level dependent
-        // apr.interp_img(img,parts);
 
         if(parts_out.size() != parts_in.size()) {
           parts_out.init(apr);
@@ -616,12 +610,12 @@ public:
 
         auto it = apr.iterator();
 
-        uint64_t z = 0;
+        int z = 0;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z) firstprivate(local_vec, it)
 #endif
         for (z = 0; z < img.z_num; ++z) {
-            for (uint64_t x = 0; x < img.x_num; ++x) {
+            for (int x = 0; x < img.x_num; ++x) {
 
                 float temp_val = 0;
 
@@ -680,7 +674,7 @@ public:
     template<typename T, typename S>
     float apply_nl_conv(PixelData<T> &img, StencilSetUp &stencilSetUp, Stencil<S> &stencil) {
 
-        timer.verbose_flag = true;
+        APRTimer timer(this->verbose);
 
         PixelData<T> pad_img;
 
@@ -707,12 +701,12 @@ public:
 
         timer.start_timer("conv");
 
-        uint64_t z = 0;
+        int z = 0;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static) private(z) firstprivate(local_vec, nl_local_vec)
 #endif
         for (z = 0; z < img.z_num; ++z) {
-            for (uint64_t x = 0; x < img.x_num; ++x) {
+            for (int x = 0; x < img.x_num; ++x) {
 
                 const uint64_t img_off = x * img.y_num + z * (img.y_num * img.z_num);
 
@@ -763,8 +757,7 @@ public:
                            Stencil<S> &stencil, uint64_t N, int num_rep, int level, float factor = 0.05,
                            bool verbose = false) {
 
-        timer.verbose_flag = verbose;
-        timer.verbose_flag = true;
+        APRTimer timer(this->verbose);
 
         PixelData<T> img; //change to be level dependent
         // apr.interp_img(img,parts);
