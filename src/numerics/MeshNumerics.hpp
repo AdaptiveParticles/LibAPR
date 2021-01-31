@@ -66,23 +66,22 @@ public:
 
         int i=0;
 #ifdef HAVE_OPENMP
-
 #pragma omp parallel for default(shared) private(i)
 #endif
         for (i = 0; i < input.z_num; ++i) {
-            for (size_t j = 0; j < input.x_num; ++j) {
-                for (size_t k = 0; k < input.y_num; ++k) {
+            for (int j = 0; j < input.x_num; ++j) {
+                for (int k = 0; k < input.y_num; ++k) {
                     double neigh_sum = 0;
                     double counter = 0;
 
-                    int stencil_z_b = std::max((int)(-stencil_z_half+i),(int)0);
-                    int stencil_z_e = std::min((int)(stencil_z_half+i),(int)(input.z_num-1));
+                    int stencil_z_b = std::max((-stencil_z_half+i),0);
+                    int stencil_z_e = std::min((stencil_z_half+i),(input.z_num-1));
 
-                    int stencil_x_b = std::max((int)(-stencil_x_half+j),0);
-                    int stencil_x_e = std::min((int)(stencil_x_half+j),(int)(input.x_num-1));
+                    int stencil_x_b = std::max((-stencil_x_half+j),0);
+                    int stencil_x_e = std::min((stencil_x_half+j),(input.x_num-1));
 
-                    int stencil_y_b = std::max((int)(-stencil_y_half+k),(int)0);
-                    int stencil_y_e = std::min((int)(stencil_y_half+k),(int)(input.y_num-1));
+                    int stencil_y_b = std::max((-stencil_y_half+k),0);
+                    int stencil_y_e = std::min((stencil_y_half+k),(input.y_num-1));
 
 
                     for (int l = stencil_z_b; l <= stencil_z_e; ++l) {
