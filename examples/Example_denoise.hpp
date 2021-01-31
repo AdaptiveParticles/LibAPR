@@ -87,6 +87,7 @@ bool denoise_example(cmdLineOptionsDenoise& options){
 
     // learn stencil weights
     APRDenoise aprDenoise;
+    aprDenoise.verbose = false;
     aprDenoise.train_denoise(apr,parts,aprStencils);
     timer.stop_timer();
 
