@@ -24,7 +24,6 @@ template<typename stencilType>
 class Stencil {
 public:
     std::vector<stencilType> linear_coeffs;
-    std::vector<stencilType> non_linear_coeffs;
 
     std::vector<int> stencil_dims = {0, 0, 0};
 
@@ -32,8 +31,6 @@ public:
 
 
 class StencilSetUp {
-
-    bool non_linear_flag = true;
 
 public:
 
@@ -60,20 +57,6 @@ public:
     std::vector<uint64_t> nl_index_1;
     std::vector<uint64_t> nl_index_2;
 
-    void setup_pairs_demo(int number_pairs) {
-
-        nl_index_1.resize(number_pairs, 0);
-        nl_index_2.resize(number_pairs, 0);
-
-        int number_linear_pts = index.size();
-
-        for (int i = 0; i < number_pairs; ++i) {
-            //nl_index_1[i] = (uint64_t)(rand() % number_linear_pts);
-            nl_index_1[i] = i;
-            nl_index_2[i] = (uint64_t) (rand() % number_linear_pts);
-        }
-
-    }
 
     void stencil_l_index() {
 
@@ -94,7 +77,6 @@ public:
 
     void setup_standard(std::vector<int> &stencil_dims_in) {
 
-        non_linear_flag = false;
 
         stencil_dims[0] = stencil_dims_in[0];
         stencil_dims[1] = stencil_dims_in[1];
@@ -146,15 +128,9 @@ public:
 
     }
 
-
-
-
-
-
 };
 
 class APRStencils {
-
 
 public:
     std::vector<Stencil<float>> stencils;
@@ -195,7 +171,6 @@ public:
 
       //get the number of points
       readAttr(H5T_NATIVE_INT, "num_pts_l" + level_name, base, &num_pts_1);
-      readAttr(H5T_NATIVE_INT, "num_pts_nl" + level_name, base, &num_pts_2);
 
       //read in the full stencil
       std::vector<double> coeff_full;
@@ -216,13 +191,6 @@ public:
 
       }
 
-      stencil.non_linear_coeffs.resize(num_pts_2, 0);
-
-      for (size_t k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
-
-        stencil.non_linear_coeffs[k1] = coeff_full[k1 + num_pts_1];
-
-      }
 
     }
 
@@ -254,11 +222,9 @@ public:
       std::string level_name = "_level_" + std::to_string(d_level);
 
       int num_pts_linear = stencil.linear_coeffs.size();
-      int num_pts_non_linear = stencil.non_linear_coeffs.size();
 
       //get the number of points
       writeAttr(H5T_NATIVE_INT, "num_pts_l" + level_name, fileId, &num_pts_linear);
-      writeAttr(H5T_NATIVE_INT, "num_pts_nl" + level_name, fileId, &num_pts_non_linear);
 
       int dim1 = stencil.stencil_dims[0];
       int dim2 = stencil.stencil_dims[1];
@@ -270,7 +236,7 @@ public:
 
       //read in the full stencil
       std::vector<double> coeff_full;
-      coeff_full.resize(num_pts_linear + num_pts_non_linear);
+      coeff_full.resize(num_pts_linear);
 
       auto offset = 0;
 
@@ -280,11 +246,6 @@ public:
 
       }
 
-      for (size_t k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
-
-        coeff_full[k1 + num_pts_linear] = stencil.non_linear_coeffs[k1];
-
-      }
 
       writeData(H5T_NATIVE_DOUBLE, "coeff" + level_name, coeff_full, fileId);
 
@@ -294,53 +255,6 @@ public:
 
   }
 
-
-    template<typename T>
-    static void write_stencil(std::string &file_name, Stencil<T> &stencil) {
-
-        hid_t fileId = hdf5_create_file_blosc(file_name);
-
-        //hid_t base = H5Gcreate2(fileId, "/a",  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-        double num_pts_linear = stencil.linear_coeffs.size();
-        double num_pts_non_linear = stencil.non_linear_coeffs.size();
-
-        //get the number of points
-        writeAttr(H5T_NATIVE_DOUBLE, "num_pts_l", fileId, &num_pts_linear);
-        writeAttr(H5T_NATIVE_DOUBLE, "num_pts_nl", fileId, &num_pts_non_linear);
-
-        double dim1 = stencil.stencil_dims[0];
-        double dim2 = stencil.stencil_dims[1];
-        double dim3 = stencil.stencil_dims[2];
-
-        writeAttr(H5T_NATIVE_DOUBLE, "dim_1", fileId, &dim1);
-        writeAttr(H5T_NATIVE_DOUBLE, "dim_2", fileId, &dim2);
-        writeAttr(H5T_NATIVE_DOUBLE, "dim_3", fileId, &dim3);
-
-        //read in the full stencil
-        std::vector<double> coeff_full;
-        coeff_full.resize(num_pts_linear + num_pts_non_linear);
-
-        auto offset = 0;
-
-        for (int k1 = 0; k1 < stencil.linear_coeffs.size(); ++k1) {
-
-            coeff_full[k1 + offset] = stencil.linear_coeffs[k1];
-
-        }
-
-
-        for (int k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
-
-            coeff_full[k1 + num_pts_linear] = stencil.non_linear_coeffs[k1];
-
-        }
-
-        writeData(H5T_NATIVE_DOUBLE, "coeff", coeff_full, fileId);
-
-        H5Fclose(fileId);
-
-    }
 
 private:
 
@@ -671,85 +585,6 @@ public:
     }
 
 
-    template<typename T, typename S>
-    float apply_nl_conv(PixelData<T> &img, StencilSetUp &stencilSetUp, Stencil<S> &stencil) {
-
-        APRTimer timer(this->verbose);
-
-        PixelData<T> pad_img;
-
-        timer.start_timer("pad_img");
-
-        padd_boundary2(img, pad_img, stencilSetUp.stencil_span);
-
-        timer.stop_timer();
-
-        const uint64_t off_y = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_x = (uint64_t) stencilSetUp.stencil_span;
-        const uint64_t off_z = (uint64_t) std::min((size_t) stencilSetUp.stencil_span, img.z_num - 1);
-
-        const uint64_t x_num_p = img.x_num + 2 * off_x;
-        const uint64_t y_num_p = img.y_num + 2 * off_y;
-
-        std::vector<float> local_vec;
-
-        local_vec.resize(stencilSetUp.index.size(), 0);
-
-        std::vector<float> nl_local_vec;
-        nl_local_vec.resize(stencilSetUp.nl_index_1.size(), 0);
-
-
-        timer.start_timer("conv");
-
-        int z = 0;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static) private(z) firstprivate(local_vec, nl_local_vec)
-#endif
-        for (z = 0; z < img.z_num; ++z) {
-            for (int x = 0; x < img.x_num; ++x) {
-
-                const uint64_t img_off = x * img.y_num + z * (img.y_num * img.z_num);
-
-                double temp_val = 0;
-
-                const uint64_t global_off = off_y + (off_x + x) * y_num_p + (off_z + z) * x_num_p * y_num_p;
-
-                for (uint64_t y = 0; y < img.y_num; ++y) {
-
-                    //Get the local stencil of points
-                    const uint64_t global_off_l = y + global_off;
-
-                    for (int i = 0; i < stencilSetUp.index.size(); ++i) {
-                        local_vec[i] = pad_img.mesh[global_off_l + stencilSetUp.index[i]];
-                    }
-
-                    //Apply the linear kernel
-                    temp_val = 0;
-
-                    temp_val = std::inner_product(local_vec.begin(), local_vec.end(), stencil.linear_coeffs.begin(),
-                                                  temp_val);
-
-                    //Apply the non-linear kernel
-                    for (int i = 0; i < stencilSetUp.nl_index_1.size(); ++i) {
-                        nl_local_vec[i] = local_vec[stencilSetUp.nl_index_1[i]] * local_vec[stencilSetUp.nl_index_2[i]];
-                    }
-
-                    temp_val = std::inner_product(nl_local_vec.begin(), nl_local_vec.end(),
-                                                  stencil.non_linear_coeffs.begin(), temp_val);
-
-                    //store_val;
-                    img.mesh[img_off + y] = temp_val;
-
-                }
-            }
-        }
-
-        timer.stop_timer();
-
-        return timer.timings.back();
-
-
-    }
 
     template<typename T, typename S>
     void
@@ -1037,21 +872,6 @@ public:
         }
 
 
-        stencil.non_linear_coeffs.resize(stencilSetUp.nl_index_1.size(), 0);
-
-        for (size_t k1 = 0; k1 < stencil.non_linear_coeffs.size(); ++k1) {
-
-            double sum = 0;
-            double counter = 0;
-
-            for (int i = include; i < num_rep; ++i) {
-                sum += coeff_store[i][k1 + l_num];
-                counter++;
-            }
-            stencil.non_linear_coeffs[k1] = sum / (counter * 1.0);
-
-        }
-
 
 
         if(this->estimate_center_flag) {
@@ -1117,469 +937,6 @@ public:
     }
 
 
-
 };
-
-//template<typename ImageType>
-//class CameraNoiseRemover {
-//
-//    PixelData<ImageType> mask_img;
-//
-//    PixelData<float> mask_correction;
-//
-//    PixelData<float> sum_img;
-//
-//public:
-//
-//    template<typename S>
-//    void compute_correction_subsampling(PixelData<S>& input_img){
-//
-//        int N_s = 1;
-//
-//        std::default_random_engine gen;
-//
-//        PixelData<double> mask_temp;
-//        mask_temp.initWithValue(input_img.y_num,input_img.x_num,1,0);
-//
-//        int it = 400;
-//
-//        for (int k = 0; k < it; ++k) {
-//
-//            std::vector<int> random_samples = sample_without_replacement(N_s, input_img.z_num - 1, gen);
-//
-//            PixelData<S> sub_sample;
-//            sub_sample.init(input_img.y_num, input_img.x_num, N_s);
-//
-//            int sl_sz = input_img.x_num * input_img.z_num;
-//
-//            for (int i = 0; i < N_s; ++i) {
-//                int offset_big = sl_sz * random_samples[i];
-//                int offset_small = i * sl_sz;
-//                std::copy(input_img.mesh.begin() + offset_big, input_img.mesh.begin() + offset_big + sl_sz,
-//                          sub_sample.mesh.begin() + offset_small);
-//
-//            }
-//
-//            compute_sum(sub_sample);
-//            compute_mask(sub_sample);
-//            for (int j = 0; j < mask_correction.mesh.size(); ++j) {
-//                mask_temp.mesh[j] += mask_correction.mesh[j];
-//            }
-//
-//        }
-//
-//        for (int j = 0; j < mask_correction.mesh.size(); ++j) {
-//            mask_correction.mesh[j] = (mask_temp.mesh[j]/(1.0*it));
-//        }
-//
-//
-//    }
-//
-//    template<typename S>
-//    void compute_correction_apr_slice(PixelData<S>& input_img){
-//
-//        int N_s = 1;
-//
-//        std::default_random_engine gen;
-//
-//        PixelData<double> mask_temp;
-//        mask_temp.initWithValue(input_img.y_num,input_img.x_num,1,0);
-//
-//        int it = 10;
-//
-//        APRConverter<S> aprConverter;
-//        aprConverter.par.grad_th = 50;
-//
-//        for (int k = 0; k < it; ++k) {
-//
-//            std::vector<int> random_samples = sample_without_replacement(N_s, input_img.z_num - 1, gen);
-//
-//            PixelData<S> sub_sample;
-//            sub_sample.init(input_img.y_num, input_img.x_num, N_s);
-//
-//            int sl_sz = input_img.x_num * input_img.z_num;
-//
-//            for (int i = 0; i < N_s; ++i) {
-//                int offset_big = sl_sz * random_samples[i];
-//                int offset_small = i * sl_sz;
-//                std::copy(input_img.mesh.begin() + offset_big, input_img.mesh.begin() + offset_big + sl_sz,
-//                          sub_sample.mesh.begin() + offset_small);
-//
-//            }
-//
-//            APR apr;
-//            aprConverter.get_apr_method_time(apr,sub_sample,false);
-//
-//            compute_correction_apr(apr,sub_sample);
-//
-//            for (int j = 0; j < mask_correction.mesh.size(); ++j) {
-//                mask_temp.mesh[j] += mask_correction.mesh[j];
-//            }
-//
-//        }
-//
-//        for (int j = 0; j < mask_correction.mesh.size(); ++j) {
-//            mask_correction.mesh[j] = (mask_temp.mesh[j]/(1.0*it));
-//        }
-//
-//
-//    }
-//
-//    template<typename T,typename S>
-//    void compute_correction_apr(APR& apr,PixelData<S>& input_img,ParticleData<T>& parts){
-//        //
-//        //  Estimates a multiplicative camera noise distribution (x,y), assuming f(x,y,z) = gt(1+nu(x,y)) + eps(x,y,z)
-//        //
-//        //  Does this by smoothing f using (x,y) plane then comparing the sum of the original and smoothed over all slices.
-//        //
-//
-//
-//        //first compute the sum from the input image
-//        compute_sum(input_img);
-//
-//        APRStencils aprStencils;
-//
-//        LearnDenoise learnDenoise;
-//
-//        aprStencils.dim = 2;
-//
-//        ParticleData<T> temp_parts;
-//        temp_parts.data.resize(apr.total_number_particles(),0);
-//
-//        std::copy(parts.data.begin(),parts.data.end(),temp_parts.data.begin());
-//
-//        //temp_parts.copy_parts(apr,apr.particles_intensities);
-//
-//        learnDenoise.max_level = 4;
-//        learnDenoise.others_level = 2;
-//
-//
-//        learnDenoise.train_denoise(apr,temp_parts,aprStencils);
-//
-//        learnDenoise.apply_denoise(apr,temp_parts,aprStencils);
-//
-//        PixelData<float> s_img;
-//        s_img.initWithValue(input_img.y_num,input_img.x_num,1,0);
-//
-//        //looping over APR and summing up the image to z.
-//
-//        auto apr_iterator = apr.iterator();
-//
-//        for (unsigned int level = apr_iterator.level_min(); level <= (apr_iterator.level_max()); ++level) {
-//            int z = 0;
-//            int x = 0;
-//
-//            const bool l_max = (level== apr_iterator.level_max());
-//
-//            const float step_size = pow(2, apr.level_max() - level);
-//
-//            for (z = 0; z < apr_iterator.z_num(level); z++) {
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(x) firstprivate(apr_iterator)
-//#endif
-//                for (int x = 0; x < apr_iterator.x_num(level); ++x) {
-//
-//                    for(apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end(); apr_iterator++){
-//
-//                        if(l_max){
-//                            s_img.at(apr_iterator.y(),x,0) += temp_parts[apr_iterator];
-//                        } else {
-//                            int dim1 = apr_iterator.y() * step_size;
-//                            int dim2 = x * step_size;
-//                            int dim3 = z * step_size;
-//
-//                            float temp_int;
-//                            //add to all the required rays
-//
-//                            temp_int = temp_parts[apr_iterator];
-//
-//                            const int offset_max_dim1 = std::min((int) input_img.y_num, (int) (dim1 + step_size));
-//                            const int offset_max_dim2 = std::min((int) input_img.x_num, (int) (dim2 + step_size));
-//                            const int offset_max_dim3 = std::min((int) input_img.z_num, (int) (dim3 + step_size));
-//
-//
-//                            for (int64_t k = dim2; k < offset_max_dim2; ++k) {
-//                                for (int64_t i = dim1; i < offset_max_dim1; ++i) {
-//                                    s_img.at(i,k,0) += temp_int*(offset_max_dim3 - dim3);
-//                                }
-//                            }
-//
-//                        }
-//
-//                    }
-//                }
-//            }
-//        }
-//
-//
-//
-//
-//        std::string image_file_name = "/Volumes/BevanT5/Denoise/check.tif";
-//        TiffUtils::saveMeshAsTiff(image_file_name, s_img,false);
-//
-//        StencilSetUp setUp;
-//
-//        std::vector<int> stencil_dims;
-//        stencil_dims.resize(3,0);
-//
-//        int dim = 4;
-//
-//        stencil_dims[0] = dim;
-//        stencil_dims[1] = dim;
-//
-//        setUp.setup_standard(stencil_dims);
-//
-//        setUp.calculate_global_index(s_img);
-//
-//        setUp.stencil_l_index();
-//
-//        Stencil<float> stencil;
-//
-//        learnDenoise.assemble_system(s_img,setUp,stencil,1000,600,.05,false);
-//
-//        //learnDenoise.apply_conv(s_img,setUp,stencil);
-//
-//
-//        mask_correction.initWithValue(input_img.y_num,input_img.x_num,1,0);
-//
-//        int i = 0;
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(i)
-//#endif
-//        for (i = 0; i < sum_img.mesh.size(); ++i) {
-//            mask_correction.mesh[i] = (sum_img.mesh[i] - s_img.mesh[i])/s_img.mesh[i];
-//        }
-//
-////
-////        PixelData<T> interp;
-////        apr.interp_img(interp,apr.particles_intensities);
-////
-////        compute_mask(interp);
-//
-//
-//    }
-//
-//    template<typename S>
-//    void apply_correction(APR& apr,ParticleData<S>& parts){
-//
-//        std::vector<PixelData<float>> ds_correction;
-//
-//        PixelData<float> temp;
-//        temp.init(mask_correction);
-//        temp.copyFromMesh(mask_correction);
-//
-//        downsamplePyrmaid(temp, ds_correction, apr.level_max(), apr.level_min());
-//
-//        auto it = apr.iterator();
-//
-//        for (int l = it.level_min(); l <= it.level_max(); ++l) {
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) firstprivate(it)
-//#endif
-//            for (int z = 0; z < it.z_num(l); ++z) {
-//                for (int x = 0; x < it.x_num(l); ++x) {
-//                    for (it.begin(l,z,x); it < it.end(); it++) {
-//                        parts[it] = parts[it]/(1.0 + ds_correction[l].at(it.y(),x,0));
-//                    }
-//                }
-//
-//            }
-//
-//        }
-//
-//    }
-//
-//    double evaluate_correction(){
-//
-//        double score = 0;
-//        uint64_t counter = 0;
-//
-//        for (int i = 0; i < mask_img.mesh.size(); ++i) {
-//            score += pow(mask_correction.mesh[i] - mask_img.mesh[i],2);
-//            counter++;
-//        }
-//
-//        score /= (1.0*counter);
-//
-//        score = log10(1/score);
-//
-//        std::cout << "Mask Correction: "  << score << std::endl;
-//
-//        return score;
-//
-//    }
-//
-//
-//
-//    void create_mask_bench(float noise_level,int y_num,int x_num){
-//
-//        mask_img.init(y_num,x_num,1);
-//
-//        std::default_random_engine generator;
-//        std::normal_distribution<float> distribution(0.0,1.0);
-//
-//        for (int i = 0; i < mask_img.mesh.size(); ++i) {
-//            mask_img.mesh[i] = distribution(generator)*noise_level;
-//
-//        }
-//
-//    }
-//
-//    template<typename T>
-//    void distort_image(PixelData<T>& input_img){
-//        uint64_t z = 0;
-//
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(z)
-//#endif
-//        for (z = 0; z < input_img.z_num; ++z) {
-//            for (uint64_t x = 0; x < input_img.x_num; ++x) {
-//                for (uint64_t y = 0; y < input_img.y_num; ++y) {
-//                    input_img.at(y,x,z) = (T) input_img.at(y,x,z)*(1 +  mask_img(y,x,0));
-//                }
-//            }
-//        }
-//
-//    }
-//
-//
-//    template<typename T>
-//    void compute_sum(PixelData<T>& input_img){
-//
-//        sum_img.initWithValue(input_img.y_num,input_img.x_num,1,0);
-//
-//        for (uint64_t z = 0; z < input_img.z_num; ++z) {
-//
-//            uint64_t x = 0;
-//
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(x)
-//#endif
-//            for ( x = 0; x < input_img.x_num; ++x) {
-//                for (uint64_t y = 0; y < input_img.y_num; ++y) {
-//                    sum_img.at(y,x,0) += input_img.at(y,x,z);
-//                }
-//            }
-//        }
-//
-//        std::string image_file_name = "/Volumes/BevanT5/Denoise/sum.tif";
-//        TiffUtils::saveMeshAsTiff(image_file_name, sum_img,false);
-//
-//    }
-//
-//
-//    template<typename T>
-//    void compute_mask(PixelData<T>& input_img){
-//
-//
-//
-//        PixelData<float> smoothed;
-//        smoothed.initWithValue(input_img.y_num,input_img.x_num,1,0);
-//
-//
-//        for (uint64_t z = 0; z < input_img.z_num; ++z) {
-//
-//            uint64_t x = 0;
-//
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(x)
-//#endif
-//            for ( x = 0; x < input_img.x_num; ++x) {
-//                for (uint64_t y = 0; y < input_img.y_num; ++y) {
-//                    smoothed.at(y,x,0) += input_img.at(y,x,z);
-//                }
-//            }
-//        }
-//
-//
-//        StencilSetUp setUp;
-//
-//        std::vector<int> stencil_dims;
-//        stencil_dims.resize(3,0);
-//
-//        int dim = 4;
-//
-//        stencil_dims[0] = dim;
-//        stencil_dims[1] = dim;
-//
-//        setUp.setup_standard(stencil_dims);
-//
-//        setUp.calculate_global_index(smoothed);
-//
-//        setUp.stencil_l_index();
-//
-//        LearnDenoise learnDenoise;
-//
-//        Stencil<float> stencil;
-//
-//        learnDenoise.assemble_system(smoothed,setUp,stencil,1000,600,.05,false);
-//
-//        learnDenoise.apply_conv(smoothed,setUp,stencil);
-//
-//        std::string image_file_name = "/Volumes/BevanT5/Denoise/smooth.tif";
-//        TiffUtils::saveMeshAsTiff(image_file_name, smoothed,false);
-//
-//        //gain_mask = (mean_img - f_fit)./f_fit;
-//
-//        mask_correction.initWithValue(input_img.y_num,input_img.x_num,1,0);
-//
-//        int i = 0;
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(i)
-//#endif
-//        for (i = 0; i < sum_img.mesh.size(); ++i) {
-//            mask_correction.mesh[i] = (sum_img.mesh[i] - smoothed.mesh[i])/smoothed.mesh[i];
-//        }
-//
-//        image_file_name = "/Volumes/BevanT5/Denoise/correction.tif";
-//        TiffUtils::saveMeshAsTiff(image_file_name, mask_correction,false);
-//
-//    }
-//
-//
-//    template<typename T>
-//    void apply_correction(PixelData<T>& input_img){
-//
-//        uint64_t z = 0;
-//
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(z)
-//#endif
-//        for (z = 0; z < input_img.z_num; ++z) {
-//            for (uint64_t x = 0; x < input_img.x_num; ++x) {
-//                for (uint64_t y = 0; y < input_img.y_num; ++y) {
-//                    input_img.at(y,x,z) = (T) input_img.at(y,x,z)/(1 +  mask_correction(y,x,0));
-//                }
-//            }
-//        }
-//
-//    }
-//
-//
-//    template<typename T>
-//    void apply_perfect_correction(PixelData<T>& input_img){
-//
-//        uint64_t z = 0;
-//
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(static) private(z)
-//#endif
-//        for (z = 0; z < input_img.z_num; ++z) {
-//            for (uint64_t x = 0; x < input_img.x_num; ++x) {
-//                for (uint64_t y = 0; y < input_img.y_num; ++y) {
-//                    input_img.at(y,x,z) = std::round( 1.0*input_img.at(y,x,z)/(1.0 +  mask_img(y,x,0)));
-//                }
-//            }
-//        }
-//
-//    }
-//
-//
-//
-//
-//};
-
-
-
 
 #endif //LIBAPR_APRDENOISE_H
