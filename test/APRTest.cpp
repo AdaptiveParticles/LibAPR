@@ -3664,6 +3664,7 @@ ASSERT_TRUE(test_auto_parameters(test_data));
 
 }
 
+
 TEST_F(CreateDiffDimsSphereTest, AUTO_PARAMETERS) {
 
 //test iteration
@@ -4031,6 +4032,179 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
         std::cout << "OK!" << std::endl;
     }
 
+}
+
+
+bool test_restricted_stencil(PixelData<double>& stencil_fine, PixelData<double>& stencil_coarse, const int level_delta,
+                             const int coarse_grid_size = 16, const double tol = 1e-5) {
+
+    /// generate coarse image
+    PixelData<double> img_c(coarse_grid_size, coarse_grid_size, coarse_grid_size);
+    for(size_t i = 0; i < img_c.mesh.size(); ++i) {
+        img_c.mesh[i] = i;
+    }
+
+    /// constant upsample coarse image
+    const int size_factor = std::pow(2, level_delta);
+    PixelData<double> img_f(img_c.y_num * size_factor,
+                            img_c.x_num * size_factor,
+                            img_c.z_num * size_factor);
+
+    for(int zc = 0; zc < img_c.z_num; ++zc) {
+        for(int xc = 0; xc < img_c.x_num; ++xc) {
+            for(int yc = 0; yc < img_c.y_num; ++yc) {
+                for(int zf = zc*size_factor; zf < std::min(zc*size_factor+size_factor, img_f.z_num); ++zf) {
+                    for(int xf = xc*size_factor; xf < std::min(xc*size_factor+size_factor, img_f.x_num); ++xf) {
+                        for(int yf = yc*size_factor; yf < std::min(yc*size_factor+size_factor, img_f.y_num); ++yf) {
+                            img_f.at(yf, xf, zf) = img_c.at(yc, xc, zc);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// apply fine stencil
+    MeshNumerics mn;
+    mn.apply_stencil(img_f, stencil_fine);
+
+    /// average downsample fine stencil result
+    PixelData<double> gt(img_c.y_num, img_c.x_num, img_c.z_num);
+    for(int zc = 0; zc < img_c.z_num; ++zc) {
+        for(int xc = 0; xc < img_c.x_num; ++xc) {
+            for(int yc = 0; yc < img_c.y_num; ++yc) {
+                double sum = 0.0f;
+                int counter = 0;
+                for(int zf = zc*size_factor; zf < std::min(zc*size_factor+size_factor, img_f.z_num); ++zf) {
+                    for(int xf = xc*size_factor; xf < std::min(xc*size_factor+size_factor, img_f.x_num); ++xf) {
+                        for(int yf = yc*size_factor; yf < std::min(yc*size_factor+size_factor, img_f.y_num); ++yf) {
+                            sum += img_f.at(yf, xf, zf);
+                            counter++;
+                        }
+                    }
+                }
+                gt.at(yc, xc, zc) = sum / counter;
+            }
+        }
+    }
+
+    /// apply coarse stencil
+    mn.apply_stencil(img_c, stencil_coarse);
+
+    /// compare results ( ignoring boundary )
+    const int offset_z = std::ceil( (stencil_fine.z_num - 1)/ (2.0 * size_factor) );
+    const int offset_x = std::ceil( (stencil_fine.x_num - 1)/ (2.0 * size_factor) );
+    const int offset_y = std::ceil( (stencil_fine.y_num - 1)/ (2.0 * size_factor) );
+
+    int failures = 0;
+    for(int zc = offset_z; zc < img_c.z_num - offset_z; ++zc) {
+        for (int xc = offset_x; xc < img_c.x_num - offset_x; ++xc) {
+            for (int yc = offset_y; yc < img_c.y_num - offset_y; ++yc) {
+                if(std::abs(img_c.at(yc, xc, zc) - gt.at(yc, xc, zc)) > tol) {
+                    std::cout << "Expected: " << gt.at(yc, xc, zc) << " Received " << img_c.at(yc, xc, zc) <<
+                              " at index (" << zc << ", " << xc << ", " << yc << ")" << std::endl;
+                    failures++;
+                }
+            }
+        }
+    }
+    std::cout << "Failures: " << failures << std::endl;
+    return failures==0;
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_RESTRICT_STENCIL) {
+    std::vector<int> z_size = {3, 3, 13, 1, 7, 1, 1, 9};
+    std::vector<int> x_size = {3, 7, 9, 7, 1, 1, 13, 1};
+    std::vector<int> y_size = {3, 13, 1, 3, 9, 17, 1, 1};
+
+    std::vector<int> deltas = {1, 3, 2, 1, 2, 2, 3, 4};
+
+    for(int i = 0; i < deltas.size(); ++i) {
+        /// initialize stencil with unique values
+        Stencil<double> stenc(y_size[i], x_size[i], z_size[i]);
+        double sum = ((double) stenc.data.size() * (stenc.data.size() - 1)) / 2.0;
+        for(size_t idx = 0; idx < stenc.data.size(); ++idx) {
+            stenc.data[idx] = idx / sum;
+        }
+
+        MultiStencil<double> mstenc(stenc, deltas[i]+1);
+        mstenc.restrict_stencils(deltas[i]+1, true);
+
+        PixelData<double> fine_stencil(stenc.shape[0], stenc.shape[1], stenc.shape[2]);
+        std::copy(stenc.data.begin(), stenc.data.end(), fine_stencil.mesh.begin());
+
+        PixelData<double> coarse_stencil(mstenc[deltas[i]].shape[0], mstenc[deltas[i]].shape[1], mstenc[deltas[i]].shape[2]);
+        std::copy(mstenc[deltas[i]].data.begin(), mstenc[deltas[i]].data.end(), coarse_stencil.mesh.begin());
+
+        ASSERT_TRUE( test_restricted_stencil(fine_stencil, coarse_stencil, deltas[i], 16) );
+    }
+}
+
+
+TEST_F(CreateSmallSphereTest, CHECK_STENCIL_VS_PIXELDATA) {
+
+    PixelData<float> tmp(13, 13, 13);
+    for(size_t i = 0; i < tmp.mesh.size(); ++i) {
+        tmp.mesh[i] = i;
+    }
+
+    Stencil<float> stencil;
+    stencil.init(tmp);
+
+    int failures = 0;
+    for(size_t i = 0; i < stencil.data.size(); ++i) {
+        if( std::abs(stencil.data[i] - tmp.mesh[i]) > 1e-5 ) {
+            std::cout << "idx " << i << " stencil = " << stencil.data[i] <<
+                      " pixeldata = " << tmp.mesh[i] << std::endl;
+            failures++;
+        }
+    }
+    std::cout << "Init failures: " << failures << std::endl;
+    ASSERT_EQ(failures, 0);
+
+    int nlevels = 7;
+    for(auto normalize : {true, false}) {
+        MultiStencil<float> mstenc(stencil, nlevels);
+        mstenc.restrict_stencils(nlevels, normalize);
+
+        std::vector<PixelData<float>> pd_vec;
+        APRStencil::get_downsampled_stencils(tmp, pd_vec, nlevels, normalize);
+
+        failures = 0;
+        for(size_t i = 0; i < pd_vec.size(); ++i) {
+            for(size_t j = 0; j < mstenc.stencils.size(); ++j) {
+                if( std::abs(mstenc.stencils[i].data[j] - pd_vec[i].mesh[j]) > 1e-5 ) {
+                    std::cout << "stencil " << i << " idx " << j << " stencil = " << mstenc.stencils[i].data[j] <<
+                              " pixeldata = " << pd_vec[i].mesh[j] << std::endl;
+                    failures++;
+                }
+            }
+        }
+
+        std::cout << "Restrict failures (normalize = " << normalize << "): " << failures << std::endl;
+        ASSERT_EQ(failures, 0);
+    }
+
+    MultiStencil<float> mstenc(stencil, nlevels);
+    mstenc.rescale_stencils(nlevels);
+
+    std::vector<PixelData<float>> pd_vec;
+    APRStencil::get_rescaled_stencils(tmp, pd_vec, nlevels);
+
+    failures = 0;
+    for(size_t i = 0; i < pd_vec.size(); ++i) {
+        for(size_t j = 0; j < mstenc.stencils.size(); ++j) {
+            if( std::abs(mstenc.stencils[i].data[j] - pd_vec[i].mesh[j]) > 1e-5 ) {
+                std::cout << "stencil " << i << " idx " << j << " stencil = " << mstenc.stencils[i].data[j] <<
+                          " pixeldata = " << pd_vec[i].mesh[j] << std::endl;
+                failures++;
+            }
+        }
+    }
+
+    std::cout << "Rescale failures: " << failures << std::endl;
+    ASSERT_EQ(failures, 0);
 }
 
 
