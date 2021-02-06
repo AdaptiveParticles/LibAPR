@@ -1535,6 +1535,14 @@ bool test_apr_file(TestData& test_data){
 
     readFile.read_particles(aprRead,"parts",parts_read);
 
+    // Default read without name, takes the first particles.
+    ParticleData<uint16_t> parts_default;
+    bool no_name = readFile.read_particles(aprRead,parts_default);
+
+    if(!no_name){
+        success = false;
+    }
+
     ParticleData<float> parts2_read;
 
     readFile.read_particles(aprRead,"parts2",parts2_read);
@@ -3183,14 +3191,7 @@ bool test_apr_copy(TestData &test_data){
 
 
 
-std::string get_source_directory_apr(){
-    // returns path to the directory where utils.cpp is stored
 
-    std::string tests_directory = std::string(__FILE__);
-    tests_directory = tests_directory.substr(0, tests_directory.find_last_of("\\/") + 1);
-
-    return tests_directory;
-}
 
 void CreateGTSmallTest::SetUp(){
 
