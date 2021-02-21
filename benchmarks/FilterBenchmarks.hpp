@@ -23,7 +23,7 @@ inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_r
 
     APRTimer timer(true);
 
-    PixelData<float> stenc;
+    Stencil<float> stenc;
 
     auto it = apr.iterator();
 
@@ -36,15 +36,15 @@ inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_r
     }
 
     // unique stencil elements
-    float sz = stenc.mesh.size();
+    float sz = stenc.size();
     float sum = sz * (sz - 1) / 2;
-    for(int i = 0; i < (int) stenc.mesh.size(); ++i) {
-        stenc.mesh[i] = ((float) i) / sum;
+    for(int i = 0; i < (int) stenc.size(); ++i) {
+        stenc[i] = ((float) i) / sum;
     }
 
-    std::vector<PixelData<float>> stencils;
     int nstencils = ds_stencil ? it.level_max() - it.level_min() : 1;
-    APRStencil::get_downsampled_stencils(stenc, stencils, nstencils, false);
+    MultiStencil<float> stencils(stenc, nstencils);
+    stencils.restrict_stencils(nstencils, false);
 
     ParticleData<float> output;
     int burn_in = std::max( std::min(num_rep / 10, 10), 1 );
@@ -66,7 +66,7 @@ inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,in
 
     APRTimer timer(true);
 
-    PixelData<float> stenc;
+    Stencil<float> stenc;
 
     auto it = apr.iterator();
 
@@ -79,15 +79,15 @@ inline void bench_apr_convolve_pencil(APR& apr,ParticleData<partsType>& parts,in
     }
 
     // unique stencil elements
-    float sz = stenc.mesh.size();
+    float sz = stenc.size();
     float sum = sz * (sz - 1) / 2;
-    for(int i = 0; i < (int) stenc.mesh.size(); ++i) {
-        stenc.mesh[i] = ((float) i) / sum;
+    for(int i = 0; i < (int) stenc.size(); ++i) {
+        stenc[i] = ((float) i) / sum;
     }
 
-    std::vector<PixelData<float>> stencils;
     int nstencils = ds_stencil ? it.level_max() - it.level_min() : 1;
-    APRStencil::get_downsampled_stencils(stenc, stencils, nstencils, false);
+    MultiStencil<float> stencils(stenc, nstencils);
+    stencils.restrict_stencils(nstencils, false);
 
     ParticleData<float> output;
     int burn_in = std::max( std::min(num_rep / 10, 10), 1 );
@@ -343,15 +343,27 @@ inline void bench_initial_steps_cuda(APR& apr, ParticleData<partsType>& parts, i
     analysisData.add_float_data(name + "_ne_rows_333_size", ne_counter_333.back());
     analysisData.add_float_data(name + "_ne_rows_555_size", ne_counter_555.back());
 
+    /// send data to GPU
+    ScopedCudaMemHandler<partsType*, JUST_ALLOC> input_gpu(parts.data.data(), parts.data.size());
+    for(int i = 0; i < num_rep/10; ++i) {
+        input_gpu.copyH2D();
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("send particles");
+    for(int i = 0; i < num_rep; ++i) {
+        input_gpu.copyH2D();
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+    analysisData.add_float_data(name + "_send_particles_time", timer.timings.back() / num_rep);
+
+
     /// fill tree
 
     VectorData<float> tree_data;
     tree_data.resize(tree_access.total_number_particles());
-
-    ScopedCudaMemHandler<partsType*, JUST_ALLOC> input_gpu(parts.data.data(), parts.size());
     ScopedCudaMemHandler<float*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
-
-    input_gpu.copyH2D();
 
     cudaDeviceSynchronize();
 
@@ -386,6 +398,21 @@ inline void bench_initial_steps_cuda(APR& apr, ParticleData<partsType>& parts, i
     timer.stop_timer();
 
     analysisData.add_float_data(name + "_fill_tree_alt", timer.timings.back() / num_rep);
+
+
+    /// Copy data to host
+    for(int i = 0; i < num_rep/10; ++i) {
+        input_gpu.copyD2H();
+    }
+    cudaDeviceSynchronize();
+
+    timer.start_timer("retrieve particles");
+    for(int i = 0; i < num_rep; ++i) {
+        input_gpu.copyD2H();
+    }
+    cudaDeviceSynchronize();
+    timer.stop_timer();
+    analysisData.add_float_data(name + "_retrieve_particles_time", timer.timings.back() / num_rep);
 }
 
 
@@ -787,6 +814,8 @@ inline void bench_apr_convolve_cuda_333_full(APR& apr, ParticleData<partsType>& 
 }
 
 
+
+
 template<typename partsType>
 inline void bench_richardson_lucy_apr(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_apr", int niter = 10) {
 
@@ -855,8 +884,6 @@ inline void bench_pixel_convolve_cuda_333(APR& apr,ParticleData<partsType>& part
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
-    cudaDeviceSynchronize();
-
     /// conv 333
 
     for(int i = 0; i < num_rep/10; ++i) {
@@ -917,8 +944,6 @@ inline void bench_pixel_convolve_cuda_555(APR& apr,ParticleData<partsType>& part
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
 
-    cudaDeviceSynchronize();
-
     /// conv 555
 
     for(int i = 0; i < num_rep/10; ++i) {
@@ -954,6 +979,10 @@ inline void bench_pixel_convolve_cuda_555(APR& apr,ParticleData<partsType>& part
         analysisData.add_float_data(name + "_conv_555_reflective", timer.timings.back() / num_rep);
     }
 }
+
+
+
+
 
 template<typename partsType>
 inline void bench_richardson_lucy_pixel(APR& apr,ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData, std::string name = "bench_pixel", int niter = 10) {
