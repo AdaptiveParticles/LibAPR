@@ -124,25 +124,25 @@ namespace APRNumerics {
     template<typename InputType, typename StencilType, typename OutputType,
             std::enable_if_t<std::is_floating_point<StencilType>::value, bool> = true>
     void richardson_lucy(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                         std::vector<PixelData<StencilType>>& psf_vec, std::vector<PixelData<StencilType>>& psf_flipped_vec,
+                         MultiStencil<StencilType>& psf_vec, MultiStencil<StencilType>& psf_flipped_vec,
                          int number_iterations, bool resume=false);
 
     template<typename InputType, typename StencilType, typename OutputType,
             std::enable_if_t<std::is_floating_point<StencilType>::value, bool> = true>
     void richardson_lucy(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                         PixelData<StencilType> &psf, int number_iterations, bool use_stencil_downsample=true,
+                         Stencil<StencilType> &psf, int number_iterations, bool use_stencil_downsample=true,
                          bool normalize=false, bool resume=false);
 
     template<typename InputType, typename StencilType, typename OutputType,
             std::enable_if_t<std::is_floating_point<StencilType>::value, bool> = true>
     void richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                            std::vector<PixelData<StencilType>>& psf_vec, std::vector<PixelData<StencilType>>& psf_flipped_vec,
+                            MultiStencil<StencilType>& psf_vec, MultiStencil<StencilType>& psf_flipped_vec,
                             int number_iterations, float reg_factor, bool resume);
 
     template<typename InputType, typename StencilType, typename OutputType,
             std::enable_if_t<std::is_floating_point<StencilType>::value, bool> = true>
     void richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                            PixelData<StencilType> &psf, int number_iterations, float reg_factor, bool use_stencil_downsample,
+                            Stencil<StencilType> &psf, int number_iterations, float reg_factor, bool use_stencil_downsample,
                             bool normalize, bool resume);
 
     /**
@@ -172,13 +172,15 @@ void APRNumerics::gradient_cfd(APR& apr,
         throw std::invalid_argument("APRNumerics::gradient_cfd argument 'dimension' must be 0 (y), 1 (x) or 2 (z)");
     }
 
-    PixelData<GradientType> stencil((dimension == 0) ? 3 : 1, (dimension == 1) ? 3 : 1, (dimension == 2) ? 3 : 1);
-    stencil.mesh[0] = -1.0f/(2*delta);
-    stencil.mesh[1] = 0;
-    stencil.mesh[2] = 1.0f/(2*delta);
+    Stencil<GradientType> stencil((dimension == 0) ? 3 : 1, (dimension == 1) ? 3 : 1, (dimension == 2) ? 3 : 1);
+    stencil.data[0] = -1.0f/(2*delta);
+    stencil.data[1] = 0;
+    stencil.data[2] = 1.0f/(2*delta);
 
-    std::vector<PixelData<GradientType>> stencil_vec;
-    APRStencil::get_rescaled_stencils(stencil, stencil_vec, apr.level_max() - apr.level_min());
+    const int num_levels = apr.level_max() - apr.level_min();
+    MultiStencil<GradientType> stencil_vec(num_levels);
+    stencil_vec[0].swap(stencil);
+    stencil_vec.rescale_stencils(num_levels);
 
     APRFilter::convolve_pencil(apr, stencil_vec, inputParticles, outputParticles, true);
 }
@@ -197,8 +199,10 @@ void APRNumerics::gradient_sobel(APR& apr,
     }
 
     auto stencil = APRStencil::create_sobel_filter<GradientType>(dimension, delta);
-    std::vector<PixelData<GradientType>> stencil_vec;
-    APRStencil::get_rescaled_stencils(stencil, stencil_vec, apr.level_max() - apr.level_min());
+    const int num_levels = apr.level_max()-apr.level_min();
+    MultiStencil<GradientType> stencil_vec(num_levels);
+    stencil_vec[0].swap(stencil);
+    stencil_vec.rescale_stencils(num_levels);
 
     APRFilter::convolve_pencil(apr, stencil_vec, inputParticles, outputParticles, true);
 }
@@ -480,7 +484,7 @@ void APRNumerics::div_norm_grad(APR &apr,
 template<typename InputType, typename StencilType, typename OutputType,
         std::enable_if_t<std::is_floating_point<StencilType>::value, bool>>
 void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                                   std::vector<PixelData<StencilType>>& psf_vec, std::vector<PixelData<StencilType>>& psf_flipped_vec,
+                                   MultiStencil<StencilType>& psf_vec, MultiStencil<StencilType>& psf_flipped_vec,
                                    int number_iterations, float reg_factor, bool resume) {
 
     auto divide_h = [](const StencilType& a, const InputType& b) -> StencilType {return b / a;};
@@ -499,9 +503,9 @@ void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle
 
     for(int iter = 0; iter < number_iterations; ++iter) {
 
-        APRFilter::convolve(apr, psf_flipped_vec, particle_output, relative_blur);  // re-blur estimate
+        APRFilter::convolve_pencil(apr, psf_flipped_vec, particle_output, relative_blur);  // re-blur estimate
         relative_blur.binary_map(particle_input, relative_blur, divide_h);          // particle_input / relative_blur
-        APRFilter::convolve(apr, psf_vec, relative_blur, error_est);                // correlate ratio
+        APRFilter::convolve_pencil(apr, psf_vec, relative_blur, error_est);                // correlate ratio
         div_norm_grad(apr, particle_output, tmp1, tmp2, tmp3, relative_blur);       // divergence of normalized gradient
 
         // update estimate
@@ -518,20 +522,18 @@ void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle
 template<typename InputType, typename StencilType, typename OutputType,
         std::enable_if_t<std::is_floating_point<StencilType>::value, bool>>
 void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                                   PixelData<StencilType> &psf, int number_iterations, float reg_factor, bool use_stencil_downsample,
+                                   Stencil<StencilType> &psf, int number_iterations, float reg_factor, bool use_stencil_downsample,
                                    bool normalize, bool resume) {
 
-    PixelData<StencilType> psf_flipped(psf, false);
-    for(size_t i = 0; i < psf.mesh.size(); ++i) {
-        psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
-    }
+    Stencil<StencilType> psf_flipped;
+    psf_flipped.reverse_copy(psf);
 
-    std::vector<PixelData<StencilType>> psf_vec;
-    std::vector<PixelData<StencilType>> psf_flipped_vec;
+    const int nstencils = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
+    MultiStencil<StencilType> psf_vec(psf, nstencils);
+    MultiStencil<StencilType> psf_flipped_vec(psf_flipped, nstencils);
 
-    int nstencils = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
-    APRStencil::get_downsampled_stencils(psf, psf_vec, nstencils, normalize);
-    APRStencil::get_downsampled_stencils(psf_flipped, psf_flipped_vec, nstencils, normalize);
+    psf_vec.restrict_stencils(nstencils, normalize);
+    psf_flipped_vec.restrict_stencils(nstencils, normalize);
 
     richardson_lucy_tv(apr, particle_input, particle_output, psf_vec, psf_flipped_vec, number_iterations, reg_factor, resume);
 }
@@ -540,7 +542,7 @@ void APRNumerics::richardson_lucy_tv(APR &apr, ParticleData<InputType> &particle
 template<typename InputType, typename StencilType, typename OutputType,
         std::enable_if_t<std::is_floating_point<StencilType>::value, bool>>
 void APRNumerics::richardson_lucy(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                                std::vector<PixelData<StencilType>>& psf_vec, std::vector<PixelData<StencilType>>& psf_flipped_vec,
+                                MultiStencil<StencilType>& psf_vec, MultiStencil<StencilType>& psf_flipped_vec,
                                 int number_iterations, bool resume) {
 
     auto divide_h = [](const StencilType& a, const InputType& b) -> StencilType {return b/a;};
@@ -565,20 +567,18 @@ void APRNumerics::richardson_lucy(APR &apr, ParticleData<InputType> &particle_in
 template<typename InputType, typename StencilType,typename OutputType,
         std::enable_if_t<std::is_floating_point<StencilType>::value, bool>>
 void APRNumerics::richardson_lucy(APR &apr, ParticleData<InputType> &particle_input, ParticleData<OutputType> &particle_output,
-                                  PixelData<StencilType>& psf, int number_iterations, bool use_stencil_downsample, bool normalize,
+                                  Stencil<StencilType>& psf, int number_iterations, bool use_stencil_downsample, bool normalize,
                                   bool resume) {
 
-    PixelData<StencilType> psf_flipped(psf, false);
-    for(size_t i = 0; i < psf.mesh.size(); ++i) {
-        psf_flipped.mesh[i] = psf.mesh[psf.mesh.size()-1-i];
-    }
+    Stencil<StencilType> psf_flipped;
+    psf_flipped.reverse_copy(psf);
 
-    std::vector<PixelData<StencilType>> psf_vec;
-    std::vector<PixelData<StencilType>> psf_flipped_vec;
+    const int nstencils = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
+    MultiStencil<StencilType> psf_vec(psf, nstencils);
+    MultiStencil<StencilType> psf_flipped_vec(psf_flipped, nstencils);
 
-    int nstencils = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
-    APRStencil::get_downsampled_stencils(psf, psf_vec, nstencils, normalize);
-    APRStencil::get_downsampled_stencils(psf_flipped, psf_flipped_vec, nstencils, normalize);
+    psf_vec.restrict_stencils(nstencils, normalize);
+    psf_flipped_vec.restrict_stencils(nstencils, normalize);
 
     richardson_lucy(apr, particle_input, particle_output, psf_vec, psf_flipped_vec, number_iterations, resume);
 }

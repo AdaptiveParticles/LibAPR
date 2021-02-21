@@ -62,7 +62,7 @@ namespace APRFilter {
      * @param reflect_boundary      use reflective boundary condition? (default: true)
      */
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
-    void convolve(APR &apr, const std::vector<PixelData<T>>& stencils, const ParticleDataTypeInput &particle_input,
+    void convolve(APR &apr, const MultiStencil<T>& stencils, const ParticleDataTypeInput &particle_input,
                   ParticleDataTypeOutput &particle_output, bool reflect_boundary=true);
 
 
@@ -84,7 +84,7 @@ namespace APRFilter {
      * @param reflect_boundary      use reflective boundary condition? (default: true)
      */
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
-    void convolve_pencil(APR &apr, const std::vector<PixelData<T>>& stencils, const ParticleDataTypeInput &particle_input,
+    void convolve_pencil(APR &apr, const MultiStencil<T>& stencils, const ParticleDataTypeInput &particle_input,
                          ParticleDataTypeOutput &particle_output, bool reflect_boundary=true);
 
 
@@ -105,13 +105,13 @@ namespace APRFilter {
      * @param normalize                 should the stencil(s) be normalized to sum to unity? (default: false)
      */
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
-    void convolve(APR &apr, const PixelData<T>& stencil, const ParticleDataTypeInput &particle_input,
+    void convolve(APR &apr, const Stencil<T>& stencil, const ParticleDataTypeInput &particle_input,
                   ParticleDataTypeOutput &particle_output, const bool reflect_boundary=true,
                   const bool use_stencil_downsample=true, const bool normalize=false) {
 
-        int num_levels = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
-        std::vector<PixelData<T>> stencil_vec;
-        APRStencil::get_downsampled_stencils(stencil, stencil_vec, num_levels, normalize);
+        const int num_levels = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
+        MultiStencil<T> stencil_vec;
+        stencil_vec.template fill_restricted(num_levels, normalize);
 
         convolve(apr, stencil_vec, particle_input, particle_output, reflect_boundary);
     }
@@ -134,13 +134,13 @@ namespace APRFilter {
      * @param normalize                 should the stencil(s) be normalized to sum to unity? (default: false)
      */
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
-    void convolve_pencil(APR &apr, const PixelData<T>& stencil, const ParticleDataTypeInput &particle_input,
+    void convolve_pencil(APR &apr, const Stencil<T>& stencil, const ParticleDataTypeInput &particle_input,
                          ParticleDataTypeOutput &particle_output, const bool reflect_boundary=true,
                          const bool use_stencil_downsample=true, const bool normalize=false) {
 
         int num_levels = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
-        std::vector<PixelData<T>> stencil_vec;
-        APRStencil::get_downsampled_stencils(stencil, stencil_vec, num_levels, normalize);
+        MultiStencil<T> stencil_vec;
+        stencil_vec.fill_restricted(stencil, num_levels, normalize);
 
         convolve_pencil(apr, stencil_vec, particle_input, particle_output, reflect_boundary);
     }
@@ -148,7 +148,7 @@ namespace APRFilter {
 
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput, typename TreeDataType>
     void convolve_pencil(APR &apr,
-                         const std::vector<PixelData<T>>& stencils,
+                         const MultiStencil<T>& stencils,
                          const ParticleDataTypeInput &particle_input,
                          const TreeDataType &tree_data,
                          ParticleDataTypeOutput &particle_output,
@@ -156,7 +156,7 @@ namespace APRFilter {
 
     template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput, typename TreeDataType>
     void convolve_pencil(APR &apr,
-                         const PixelData<T>& stencil,
+                         const Stencil<T>& stencil,
                          const ParticleDataTypeInput &particle_input,
                          const TreeDataType &tree_data,
                          ParticleDataTypeOutput &particle_output,
@@ -165,8 +165,8 @@ namespace APRFilter {
                          const bool normalize=false) {
 
         int num_levels = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
-        std::vector<PixelData<T>> stencil_vec;
-        APRStencil::get_downsampled_stencils(stencil, stencil_vec, num_levels, normalize);
+        MultiStencil<T> stencil_vec;
+        stencil_vec.fill_restricted(stencil, num_levels, normalize);
 
         convolve_pencil(apr, stencil_vec, particle_input, tree_data, particle_output, reflect_boundary);
     }
@@ -184,9 +184,9 @@ namespace APRFilter {
      */
     template<typename InputType, typename StencilType, typename OutputType>
     void convolve_sep(APR &apr,
-                      const std::vector<PixelData<StencilType>>& stencils_y,
-                      const std::vector<PixelData<StencilType>>& stencils_x,
-                      const std::vector<PixelData<StencilType>>& stencils_z,
+                      const MultiStencil<StencilType>& stencils_y,
+                      const MultiStencil<StencilType>& stencils_x,
+                      const MultiStencil<StencilType>& stencils_z,
                       const ParticleData<InputType> &particle_input,
                       ParticleData<OutputType> &particle_output,
                       const bool reflect_boundary=true) {
@@ -199,14 +199,14 @@ namespace APRFilter {
 
 
     /**
-     * Separable convolution using three potentially different stencils, supplied as PixelData objects.
+     * Separable convolution using three potentially different stencils, supplied as Stencil objects.
      * Note: it's up to the user to make sure that the dimensions of each stencil are correct
      */
     template<typename InputType, typename StencilType, typename OutputType>
     void convolve_sep(APR &apr,
-                      const PixelData<StencilType>& stencil_y,
-                      const PixelData<StencilType>& stencil_x,
-                      const PixelData<StencilType>& stencil_z,
+                      const Stencil<StencilType>& stencil_y,
+                      const Stencil<StencilType>& stencil_x,
+                      const Stencil<StencilType>& stencil_z,
                       const ParticleData<InputType> &particle_input,
                       ParticleData<OutputType> &particle_output,
                       const bool reflect_boundary=true,
@@ -214,21 +214,21 @@ namespace APRFilter {
                       const bool normalize=false) {
 
         int num_levels = use_stencil_downsample ? apr.level_max() - apr.level_min() : 1;
-        std::vector<PixelData<StencilType>> stencil_vec_y, stencil_vec_x, stencil_vec_z;
-        APRStencil::get_downsampled_stencils(stencil_y, stencil_vec_y, num_levels, normalize);
-        APRStencil::get_downsampled_stencils(stencil_x, stencil_vec_x, num_levels, normalize);
-        APRStencil::get_downsampled_stencils(stencil_z, stencil_vec_z, num_levels, normalize);
+        MultiStencil<StencilType> stencil_vec_y, stencil_vec_x, stencil_vec_z;
+        stencil_vec_y.fill_restricted(stencil_y, num_levels, normalize);
+        stencil_vec_x.fill_restricted(stencil_x, num_levels, normalize);
+        stencil_vec_z.fill_restricted(stencil_z, num_levels, normalize);
 
         convolve_sep(apr, stencil_vec_y, stencil_vec_x, stencil_vec_z, particle_input, particle_output, reflect_boundary);
     }
 
 
     /**
-     * Apply separable convolution using a single 1D stencil in each dimension, supplied as a PixelData object
+     * Apply separable convolution using a single 1D stencil in each dimension, supplied as a Stencil object
      */
     template<typename InputType, typename StencilType, typename OutputType>
     void convolve_sep(APR &apr,
-                      const PixelData<StencilType>& stencil,
+                      const Stencil<StencilType>& stencil,
                       const ParticleData<InputType> &particle_input,
                       ParticleData<OutputType> &particle_output,
                       const bool reflect_boundary=true,
@@ -240,15 +240,15 @@ namespace APRFilter {
             throw std::invalid_argument("APRFilter::convolve_sep expects an input stencil with exactly one non-singleton dimension");
         }
 
-        int ksize = stencil.mesh.size();
+        int ksize = stencil.size();
 
-        PixelData<StencilType> stencil_y(ksize, 1, 1);
-        PixelData<StencilType> stencil_x(1, ksize, 1);
-        PixelData<StencilType> stencil_z(1, 1, ksize);
+        Stencil<StencilType> stencil_y(ksize, 1, 1);
+        Stencil<StencilType> stencil_x(1, ksize, 1);
+        Stencil<StencilType> stencil_z(1, 1, ksize);
 
-        std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_y.mesh.begin());
-        std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_x.mesh.begin());
-        std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_z.mesh.begin());
+        std::copy(stencil.data.begin(), stencil.data.end(), stencil_y.data.begin());
+        std::copy(stencil.data.begin(), stencil.data.end(), stencil_x.data.begin());
+        std::copy(stencil.data.begin(), stencil.data.end(), stencil_z.data.begin());
 
         convolve_sep(apr, stencil_y, stencil_x, stencil_z, particle_input,
                      particle_output, reflect_boundary, use_stencil_downsample, normalize);
@@ -268,13 +268,13 @@ namespace APRFilter {
                       const bool normalize=false) {
 
         int ksize = stencil.size();
-        PixelData<StencilType> stencil_y(ksize, 1, 1);
-        PixelData<StencilType> stencil_x(1, ksize, 1);
-        PixelData<StencilType> stencil_z(1, 1, ksize);
+        Stencil<StencilType> stencil_y(ksize, 1, 1);
+        Stencil<StencilType> stencil_x(1, ksize, 1);
+        Stencil<StencilType> stencil_z(1, 1, ksize);
 
-        std::copy(stencil.begin(), stencil.end(), stencil_y.mesh.begin());
-        std::copy(stencil.begin(), stencil.end(), stencil_x.mesh.begin());
-        std::copy(stencil.begin(), stencil.end(), stencil_z.mesh.begin());
+        std::copy(stencil.begin(), stencil.end(), stencil_y.data.begin());
+        std::copy(stencil.begin(), stencil.end(), stencil_x.data.begin());
+        std::copy(stencil.begin(), stencil.end(), stencil_z.data.begin());
 
         convolve_sep(apr, stencil_y, stencil_x, stencil_z, particle_input,
                      particle_output, reflect_boundary, use_stencil_downsample, normalize);
@@ -673,7 +673,7 @@ namespace APRFilter {
 
 
     template<typename T, typename ParticleDataType, typename APRIteratorType>
-    void run_convolution(APRIteratorType &apr_it, const int z, const int level, const ImageBuffer<T> &temp_vec, const PixelData<T> &stencil,
+    void run_convolution(APRIteratorType &apr_it, const int z, const int level, const ImageBuffer<T> &temp_vec, const Stencil<T> &stencil,
                          ParticleDataType &outputParticles, const std::vector<int> &stencil_half, const std::vector<int> &stencil_shape){
 
         const int x_num = temp_vec.x_num;
@@ -697,7 +697,7 @@ namespace APRFilter {
 
                     for(int ix = 0; ix < stencil_shape[1]; ++ix) {
                         for(int iy = 0; iy < stencil_shape[0]; ++ iy) {
-                            val += temp_vec.mesh[offset + ix * y_num + iy] * stencil.mesh[counter++];
+                            val += temp_vec.mesh[offset + ix * y_num + iy] * stencil[counter++];
                         }
                     }
                 }
@@ -709,12 +709,14 @@ namespace APRFilter {
 
     template<typename T, typename ParticleDataType, typename APRIteratorType>
     void run_convolution_pencil(APRIteratorType &apr_it, const int level, const int z, const int x,
-                                const ImageBuffer<T> &temp_vec, const PixelData<T> &stencil,
+                                const ImageBuffer<T> &temp_vec, const Stencil<T> &stencil,
                                 ParticleDataType &outputParticles, const std::vector<int> &stencil_half,
                                 const std::vector<int> &stencil_shape){
 
         const int y_num = temp_vec.y_num;
         const int xy_num = temp_vec.x_num * y_num;
+
+        std::vector<T> tjohej(stencil.size());
 
         for (apr_it.begin(level, z, x); apr_it < apr_it.end(); ++apr_it) {
 
@@ -725,14 +727,14 @@ namespace APRFilter {
             // compute the value TODO: optimize this
             for(int iz = 0; iz < stencil_shape[2]; ++iz) {
 
-                uint64_t base_offset = ((z + iz) % stencil_shape[2]) * xy_num + y;
+                size_t base_offset = ((z + iz) % stencil_shape[2]) * xy_num + y;
 
                 for(int ix = 0; ix < stencil_shape[1]; ++ix) {
 
-                    uint64_t offset = base_offset + ((x + ix) % stencil_shape[1]) * y_num;
+                    size_t offset = base_offset + ((x + ix) % stencil_shape[1]) * y_num;
 
                     for(int iy = 0; iy < stencil_shape[0]; ++ iy) {
-                        val += temp_vec.mesh[offset + iy] * stencil.mesh[counter++];
+                        val += temp_vec.mesh[offset + iy] * stencil[counter++];
                     }
                 }
             }
@@ -742,7 +744,7 @@ namespace APRFilter {
 
 
     template<typename ParticleDataTypeInput, typename T, typename ParticleDataTypeOutput>
-    void create_test_particles_equiv(APR& apr, const std::vector<PixelData<T>> &stencil_vec,
+    void create_test_particles_equiv(APR& apr, const MultiStencil<T> &stencil_vec,
                                      const ParticleDataTypeInput& input_particles, ParticleDataTypeOutput& output_particles,
                                      const bool reflect_boundary = true) {
 
@@ -817,9 +819,9 @@ namespace APRFilter {
 
             int level = level_local;
 
-            PixelData<T> stencil(stencil_vec[stencil_counter], true);
+            auto& stencil = stencil_vec[stencil_counter];
 
-            std::vector<int> stencil_halves = {((int)stencil.y_num-1)/2, ((int)stencil.x_num-1)/2, ((int)stencil.z_num-1)/2};
+            std::vector<int> stencil_halves = {((int)stencil.shape[0]-1)/2, ((int)stencil.shape[1]-1)/2, ((int)stencil.shape[2]-1)/2};
 
             for (int z = 0; z < apr.z_num(level); ++z) {
                 //lastly loop over particle locations and compute filter.
@@ -861,7 +863,7 @@ namespace APRFilter {
                                             iz = (apr_it.z_num(level) - 1) - (iz - (apr_it.z_num(level) - 1));
                                         }
 
-                                        neigh_sum += stencil.mesh[counter++] * by_level_recon.at(iy, ix, iz);
+                                        neigh_sum += stencil[counter++] * by_level_recon.at(iy, ix, iz);
                                     }
                                 }
                             }
@@ -873,7 +875,7 @@ namespace APRFilter {
                                         if(((k+w)>=0) & ((k+w) < (apr.y_num(level)))){
                                             if(((i+q)>=0) & ((i+q) < (apr.x_num(level)))){
                                                 if(((z+l)>=0) & ((z+l) < (apr.z_num(level)))){
-                                                    neigh_sum += stencil.mesh[counter] * by_level_recon.at(k + w, i + q, z+l);
+                                                    neigh_sum += stencil[counter] * by_level_recon.at(k + w, i + q, z+l);
                                                 }
                                             }
                                         }
@@ -1060,7 +1062,7 @@ namespace APRFilter {
 
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
-void APRFilter::convolve(APR &apr, const std::vector<PixelData<T>>& stencils, const ParticleDataTypeInput &particle_input,
+void APRFilter::convolve(APR &apr, const MultiStencil<T>& stencils, const ParticleDataTypeInput &particle_input,
                          ParticleDataTypeOutput &particle_output, const bool reflect_boundary) {
 
     particle_output.init(apr);
@@ -1073,17 +1075,17 @@ void APRFilter::convolve(APR &apr, const std::vector<PixelData<T>>& stencils, co
 
     /// allocate image buffer with pad for isotropic patch reconstruction
     // this is reused for lower levels -- assumes that the stencils are not increasing in size !
-    int y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(apr.level_max()) + stencils[0].y_num - 1 : 1;
-    int x_num_m = (apr.org_dims(1) > 1) ? apr.x_num(apr.level_max()) + stencils[0].x_num - 1 : 1;
-    ImageBuffer<T> temp_vec(y_num_m, x_num_m, stencils[0].z_num);
+    int y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(apr.level_max()) + stencils[0].shape[0] - 1 : 1;
+    int x_num_m = (apr.org_dims(1) > 1) ? apr.x_num(apr.level_max()) + stencils[0].shape[1] - 1 : 1;
+    ImageBuffer<T> temp_vec(y_num_m, x_num_m, stencils[0].shape[2]);
 
     for (int level = apr.level_max(); level >= apr.level_min(); --level) {
 
         int stencil_num = std::min((int)stencils.size()-1,(int)(apr.level_max()-level));
 
-        const std::vector<int> stencil_shape = {(int) stencils[stencil_num].y_num,
-                                                (int) stencils[stencil_num].x_num,
-                                                (int) stencils[stencil_num].z_num};
+        const std::vector<int> stencil_shape = {(int) stencils[stencil_num].shape[0],
+                                                (int) stencils[stencil_num].shape[1],
+                                                (int) stencils[stencil_num].shape[2]};
         const std::vector<int> stencil_half = {(stencil_shape[0] - 1) / 2,
                                                (stencil_shape[1] - 1) / 2,
                                                (stencil_shape[2] - 1) / 2};
@@ -1170,7 +1172,7 @@ void APRFilter::convolve(APR &apr, const std::vector<PixelData<T>>& stencils, co
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput>
 void APRFilter::convolve_pencil(APR &apr,
-                                const std::vector<PixelData<T>>& stencils,
+                                const MultiStencil<T>& stencils,
                                 const ParticleDataTypeInput &particle_input,
                                 ParticleDataTypeOutput &particle_output,
                                 const bool reflect_boundary) {
@@ -1184,7 +1186,7 @@ void APRFilter::convolve_pencil(APR &apr,
 
 template<typename ParticleDataTypeInput, typename T,typename ParticleDataTypeOutput, typename TreeDataType>
 void APRFilter::convolve_pencil(APR &apr,
-                                const std::vector<PixelData<T>>& stencils,
+                                const MultiStencil<T>& stencils,
                                 const ParticleDataTypeInput &particle_input,
                                 const TreeDataType &tree_data,
                                 ParticleDataTypeOutput &particle_output,
@@ -1194,7 +1196,7 @@ void APRFilter::convolve_pencil(APR &apr,
     auto apr_it = apr.iterator();
     auto tree_it = apr.tree_iterator();
 
-    size_t y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(apr.level_max()) + stencils[0].y_num - 1 : 1;
+    size_t y_num_m = (apr.org_dims(0) > 1) ? apr.y_num(apr.level_max()) + stencils[0].shape[0] - 1 : 1;
 
     int num_threads = 1;
 #ifdef HAVE_OPENMP
@@ -1204,16 +1206,16 @@ void APRFilter::convolve_pencil(APR &apr,
     std::vector<ImageBuffer<T>> temp_vecs(num_threads);
 
     for(int i = 0; i < num_threads; ++i) {
-        temp_vecs[i].init(y_num_m, stencils[0].x_num, stencils[0].z_num);
+        temp_vecs[i].init(y_num_m, stencils[0].shape[1], stencils[0].shape[2]);
     }
 
     for (int level = apr.level_max(); level >= apr.level_min(); --level) {
 
-        int stencil_num = std::min((int)stencils.size()-1,(int)(apr.level_max()-level));
+        int stencil_num = std::min((int)stencils.size()-1, apr.level_max()-level);
 
-        const std::vector<int> stencil_shape = {stencils[stencil_num].y_num,
-                                                stencils[stencil_num].x_num,
-                                                stencils[stencil_num].z_num};
+        const std::vector<int> stencil_shape = {stencils[stencil_num].shape[0],
+                                                stencils[stencil_num].shape[1],
+                                                stencils[stencil_num].shape[2]};
         const std::vector<int> stencil_half = {(stencil_shape[0] - 1) / 2,
                                                (stencil_shape[1] - 1) / 2,
                                                (stencil_shape[2] - 1) / 2};

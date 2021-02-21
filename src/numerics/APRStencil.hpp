@@ -24,6 +24,25 @@ public:
         init(y_num, x_num, z_num, aValue);
     }
 
+    Stencil(const Stencil& other, const bool aShouldCopyData=false) {
+        if(aShouldCopyData) {
+            std::cout << "copy stencil from other" << std::endl;
+            copy(other);
+        } else {
+            std::cout << "init stencil from other" << std::endl;
+            init(other);
+        }
+    }
+
+    template<typename T>
+    Stencil(const PixelData<T>& pd, const bool aShouldCopyData=false) {
+        init(pd, aShouldCopyData);
+    }
+
+    inline size_t size() const { return data.size(); }
+    inline stencilType& operator[](size_t index) { return data[index]; }
+    inline const stencilType& operator[](size_t index) const { return data[index]; }
+
     void init(const int y_num, const int x_num, const int z_num) {
         shape[0] = y_num;
         shape[1] = x_num;
@@ -39,19 +58,16 @@ public:
     }
 
     template<typename T>
-    void init(const PixelData<T>& aMesh) {
-        shape[0] = aMesh.y_num;
-        shape[1] = aMesh.x_num;
-        shape[2] = aMesh.z_num;
-        data.insert(data.end(), aMesh.mesh.begin(), aMesh.mesh.end());
+    void init(const PixelData<T>& aMesh, const bool aShouldCopyData=false) {
+        init(aMesh.y_num, aMesh.x_num, aMesh.z_num);
+        if(aShouldCopyData) {
+            std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), data.begin());
+        }
     }
 
     template<typename T>
     void init(const Stencil<T>& other) {
-        shape[0] = other.shape[0];
-        shape[1] = other.shape[1];
-        shape[2] = other.shape[2];
-        data.insert(data.end(), other.data.begin(), other.data.end());
+        init(other.shape[0], other.shape[1], other.shape[2]);
     }
 
     void swap(Stencil& other){
@@ -64,8 +80,15 @@ public:
         shape[0] = other.shape[0];
         shape[1] = other.shape[1];
         shape[2] = other.shape[2];
-        data.resize(other.data.size());
-        std::copy(other.data.begin(), other.data.end(), data.begin());
+        data.assign(other.data.begin(), other.data.end());
+    }
+
+    template<typename U>
+    void reverse_copy(const Stencil<U>& other) {
+        shape[0] = other.shape[0];
+        shape[1] = other.shape[1];
+        shape[2] = other.shape[2];
+        data.assign(other.data.rbegin(), other.data.rend());
     }
 
     void normalize() {
@@ -380,11 +403,11 @@ namespace APRStencil {
 
 
     template<typename T>
-    PixelData<T> create_gaussian_filter(const std::vector<float>& sigma = {1, 1, 1},
+    Stencil<T> create_gaussian_filter(const std::vector<float>& sigma = {1, 1, 1},
                                         const std::vector<int>& size = {5, 5, 5},
                                         const bool normalize=true) {
 
-        PixelData<T> stencil(size[0], size[1], size[2]);
+        Stencil<T> stencil(size[0], size[1], size[2]);
 
         std::vector<float> gauss_y(size[0]);
         std::vector<float> gauss_x(size[1]);
@@ -428,8 +451,8 @@ namespace APRStencil {
         }
 
         if(normalize) {
-            for(size_t i = 0; i < stencil.mesh.size(); ++i) {
-                stencil.mesh[i] /= sum;
+            for(size_t i = 0; i < stencil.data.size(); ++i) {
+                stencil.data[i] /= sum;
             }
         }
 
@@ -437,34 +460,33 @@ namespace APRStencil {
     }
 
     template<typename T>
-    PixelData<T> create_gaussian_filter(const float sigma, const int size, const bool normalize=true) {
+    Stencil<T> create_gaussian_filter(const float sigma, const int size, const bool normalize=true) {
         return create_gaussian_filter<T>({sigma, sigma, sigma}, {size, size, size}, normalize);
     }
 
 
     template<typename T>
-    PixelData<T> create_mean_filter(const std::vector<int>& size = {5, 5, 5}) {
-        PixelData<T> stencil(size[0], size[1], size[2]);
+    Stencil<T> create_mean_filter(const std::vector<int>& size = {5, 5, 5}) {
 
-        T sum = stencil.mesh.size();
-        stencil.fill(1.0/sum);
+        T sum = size[0]*size[1]*size[2];
+        Stencil<T> stencil(size[0], size[1], size[2], 1.0/sum);
 
         return stencil;
     }
 
 
     template<typename T>
-    PixelData<T> create_mean_filter(const int size) {
+    Stencil<T> create_mean_filter(const int size) {
         return create_mean_filter<T>({size, size, size});
     }
 
 
     template<typename T>
-    PixelData<T> create_sobel_filter(const int dim, const float delta = 1.0f) {
+    Stencil<T> create_sobel_filter(const int dim, const float delta = 1.0f) {
 
-        PixelData<T> stencil(3, 3, 3);
+        Stencil<T> stencil(3, 3, 3);
         const std::vector<float> smooth1d = {0.25f, 0.5f, 0.25f};
-        const std::vector<float> diff1d = {-1.0f/(2*delta), 0.0f, 1.0f/(2*delta)};
+        const std::vector<float> diff1d = {-1.0f/(2.0f*delta), 0.0f, 1.0f/(2.0f*delta)};
 
         // central finite difference in dimension 'dim', smoothing in the remaining dimensions
         const std::vector<std::vector<float>> filter_bank = {
@@ -484,9 +506,9 @@ namespace APRStencil {
     }
 
     template<typename T>
-    PixelData<T> create_sobel_filter2d(const int dim) {
+    Stencil<T> create_sobel_filter2d(const int dim) {
 
-        PixelData<T> stencil(3, 3, 1);
+        Stencil<T> stencil(3, 3, 1);
         const std::vector<float> smooth1d = {0.25f, 0.5f, 0.25f};
         const std::vector<float> diff1d = {-1.0f, 0.0f, 1.0f};
 
@@ -527,6 +549,18 @@ public:
     void init(const Stencil<U>& aStencil, const int numLevels=1) {
         stencils.resize(numLevels);
         stencils[0].copy(aStencil);
+    }
+
+    template<typename U>
+    void fill_restricted(const Stencil<U>& aStencil, const int numLevels, const bool normalize = false) {
+        init(aStencil, numLevels);
+        restrict_stencils(numLevels, normalize);
+    }
+
+    template<typename U>
+    void fill_rescaled(const Stencil<U>& aStencil, const int numLevels) {
+        init(aStencil, numLevels);
+        rescale_stencils(numLevels);
     }
 
     inline size_t size() const { return stencils.size(); }
@@ -591,13 +625,13 @@ public:
     void rescale_stencils(const int numLevels) {
         stencils.resize(numLevels);
 
-        float level_size = 2.0f;
+        stencilType level_size = 2;
         for (int level_delta = 1; level_delta < numLevels; ++level_delta) {
             stencils[level_delta].init(stencils[0]);
 
-            const float factor = 1.0f / level_size;
-            std::transform(stencils[level_delta].data.begin(), stencils[level_delta].data.end(), stencils[level_delta].data.begin(),
-                           [factor](float &a){ return a*factor; });
+            const stencilType factor = 1 / level_size;
+            std::transform(stencils[0].data.begin(), stencils[0].data.end(), stencils[level_delta].data.begin(),
+                           [factor](stencilType &a) -> stencilType { return a*factor; });
             level_size *= 2;
         }
     }

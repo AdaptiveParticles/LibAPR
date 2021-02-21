@@ -2998,21 +2998,27 @@ bool test_interp_level(TestData &test_data) {
     return true;
 }
 
+template<typename T>
+Stencil<T> create_unique_stencil(int ny, int nx, int nz) {
+    Stencil<T> stenc(ny, nx, nz);
+    double sz = stenc.size();
+    T denom = 1.0 / (sz * (sz-1)/2);
+    for(size_t i = 0; i < stenc.size(); ++i) {
+        stenc[i] = i * denom;
+    }
+    return stenc;
+}
+
+
 
 bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const std::vector<int>& stencil_size = {3, 3, 3}) {
 
     auto it = test_data.apr.iterator();
 
-    PixelData<double> stenc(stencil_size[0], stencil_size[1], stencil_size[2]);
+    auto stenc = create_unique_stencil<double>(stencil_size[0], stencil_size[1], stencil_size[2]);
 
-    double sz = stenc.mesh.size();
-    double sum = sz * (sz-1)/2;
-    for(size_t i = 0; i < stenc.mesh.size(); ++i){
-        stenc.mesh[i] = i / sum;
-    }
-
-    std::vector<PixelData<double>> stencils;
-    APRStencil::get_downsampled_stencils(stenc, stencils, it.level_max()-it.level_min(), true);
+    MultiStencil<double> stencils;
+    stencils.fill_restricted(stenc, it.level_max()-it.level_min());
 
     ParticleData<double> output;
     APRFilter::convolve_pencil(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
@@ -3044,16 +3050,10 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const std::
 
     auto it = test_data.apr.iterator();
 
-    PixelData<double> stenc(stencil_size[0], stencil_size[1], stencil_size[2]);
+    auto stenc = create_unique_stencil<double>(stencil_size[0], stencil_size[1], stencil_size[2]);
 
-    double sz = stenc.mesh.size();
-    double sum = sz * (sz-1)/2;
-    for(size_t i = 0; i < stenc.mesh.size(); ++i){
-        stenc.mesh[i] = i / sum;
-    }
-
-    std::vector<PixelData<double>> stencils;
-    APRStencil::get_downsampled_stencils(stenc, stencils, it.level_max()-it.level_min(), true);
+    MultiStencil<double> stencils;
+    stencils.fill_restricted(stenc, it.level_max()-it.level_min());
 
     ParticleData<double> output;
     APRFilter::convolve(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
@@ -3068,14 +3068,18 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const std::
 
     double eps = 1e-2;
     uint64_t failures = 0;
+    uint64_t max_print = 50;
 
     for(int level = it.level_max(); level >= it.level_min(); --level) {
         for(int z = 0; z < it.z_num(level); ++z) {
             for(int x = 0; x < it.x_num(level); ++x) {
                 for(it.begin(level, z, x); it < it.end(); ++it) {
                     if(std::abs(output[it] - output_gt[it]) > eps) {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
+                        if(failures < max_print) {
+                            std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
+                                      " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z
+                                      << ", " << x << ", " << it.y() << ")" << std::endl;
+                        }
                         failures++;
                     }
                 }
@@ -3970,7 +3974,11 @@ TEST_F(CreateSmallSphereTest, RUN_RICHARDSON_LUCY) {
     auto stenc = APRStencil::create_mean_filter<float>({5, 5, 5});
 
     ParticleData<float> output;
-    APRNumerics::richardson_lucy(test_data.apr, test_data.particles_intensities, output, stenc, 10, true, true, false);
+    APRNumerics::richardson_lucy(test_data.apr, test_data.particles_intensities, output, stenc,
+                                 4, true, true, false);
+
+    APRNumerics::richardson_lucy_tv(test_data.apr, test_data.particles_intensities, output, stenc,
+                                    4, 0.001, true, true, false);
 }
 
 
@@ -4150,7 +4158,7 @@ TEST_F(CreateSmallSphereTest, CHECK_STENCIL_VS_PIXELDATA) {
     }
 
     Stencil<float> stencil;
-    stencil.init(tmp);
+    stencil.init(tmp, true);
 
     int failures = 0;
     for(size_t i = 0; i < stencil.data.size(); ++i) {
@@ -4187,6 +4195,7 @@ TEST_F(CreateSmallSphereTest, CHECK_STENCIL_VS_PIXELDATA) {
     }
 
     MultiStencil<float> mstenc(stencil, nlevels);
+
     mstenc.rescale_stencils(nlevels);
 
     std::vector<PixelData<float>> pd_vec;
@@ -4194,9 +4203,9 @@ TEST_F(CreateSmallSphereTest, CHECK_STENCIL_VS_PIXELDATA) {
 
     failures = 0;
     for(size_t i = 0; i < pd_vec.size(); ++i) {
-        for(size_t j = 0; j < mstenc.stencils.size(); ++j) {
-            if( std::abs(mstenc.stencils[i].data[j] - pd_vec[i].mesh[j]) > 1e-5 ) {
-                std::cout << "stencil " << i << " idx " << j << " stencil = " << mstenc.stencils[i].data[j] <<
+        for(size_t j = 0; j < mstenc.size(); ++j) {
+            if( std::abs(mstenc[i][j] - pd_vec[i].mesh[j]) > 1e-5 ) {
+                std::cout << "stencil " << i << " idx " << j << " stencil = " << mstenc[i][j] <<
                           " pixeldata = " << pd_vec[i].mesh[j] << std::endl;
                 failures++;
             }
