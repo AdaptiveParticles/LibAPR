@@ -69,6 +69,11 @@ int main(int argc, char **argv) {
             bench_pixel_convolve_cuda_333(apr, floatparts, benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData, "pixel", true);
             bench_pixel_convolve_cuda_555(apr, floatparts, benchAPRHelper.get_number_reps(),benchAPRHelper.analysisData, "pixel", true);
 
+#ifdef HAVE_ARRAYFIRE
+            bench_af_convolve(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "af_333", {3, 3, 3});
+            bench_af_convolve(apr, floatparts, benchAPRHelper.get_number_reps(), benchAPRHelper.analysisData, "af_555", {5, 5 ,5});
+#endif
+
             if(options.bench_lr) {
                 bench_richardson_lucy_pixel(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "pixel", 10);
                 bench_richardson_lucy_pixel(apr, floatparts, benchAPRHelper.get_number_reps()/10, benchAPRHelper.analysisData, "pixel", 30);

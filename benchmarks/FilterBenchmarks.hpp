@@ -17,6 +17,15 @@
 #include "numerics/PixelNumericsGPU.hpp"
 #endif
 
+#ifdef HAVE_ARRAYFIRE
+
+#ifndef __NVCC__
+#define AF_DEFINE_CUDA_TYPES 1
+#endif
+#include <arrayfire.h>
+#include <af/cuda.h>
+#endif
+
 
 template<typename partsType>
 inline void bench_apr_convolve(APR& apr,ParticleData<partsType>& parts,int num_rep,AnalysisData& analysisData,int stencil_size, bool ds_stencil=true){
@@ -814,6 +823,43 @@ inline void bench_apr_convolve_cuda_333_full(APR& apr, ParticleData<partsType>& 
 }
 
 
+#ifdef HAVE_ARRAYFIRE
+template<typename partsType>
+inline void bench_af_convolve(APR& apr, ParticleData<partsType>& parts, int num_rep, AnalysisData& analysisData,
+                              std::string name = "bench_apr", const std::vector<int>& ksize = {5, 5, 5}) {
+
+    APRTimer timer(true);
+
+    PixelData<float> filt(ksize[0], ksize[1], ksize[2]);
+    float n = filt.mesh.size();
+    float sum = n * (n-1) / 2.0f;
+    for (size_t i = 0; i < filt.mesh.size(); ++i) {
+        filt.mesh[i] = ((float) i) / sum;
+    }
+
+    PixelData<partsType> tmp;
+    APRReconstruction::interp_img(apr, tmp, parts);
+
+    af::array image = af::array(af::dim4(tmp.z_num, tmp.x_num, tmp.y_num), tmp.mesh.get());
+    af::array stenc = af::array(af::dim4(filt.z_num, filt.x_num, filt.y_num), filt.mesh.get());
+
+    af::array output;
+
+    for (int i = 0; i < num_rep/10; ++i) {
+        output = af::convolve3(image, stenc, AF_CONV_DEFAULT, AF_CONV_SPATIAL);
+    }
+    af::sync();
+
+    timer.start_timer("AF convolve spatial");
+    for (int i = 0; i < num_rep; ++i) {
+        output = af::convolve3(image, stenc, AF_CONV_DEFAULT, AF_CONV_SPATIAL);
+    }
+    af::sync();
+    timer.stop_timer();
+
+    analysisData.add_float_data(name + "_spatial", timer.timings.back() / num_rep);
+}
+#endif
 
 
 template<typename partsType>
