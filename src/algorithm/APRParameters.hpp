@@ -33,7 +33,6 @@ public:
 
     // additional pipeline parameters
     bool reflect_bc_lis = true;
-    int extra_smooth = 0;
     bool check_input = false;
     bool swap_dimensions = false;
     bool neighborhood_optimization = true;
