@@ -63,6 +63,7 @@ find_package(Threads REQUIRED)
 
 find_package(HDF5 REQUIRED)
 find_package(ZLIB REQUIRED)
+
 if(APR_USE_LIBTIFF)
     find_package(TIFF)
     set(CMAKE_C_FLAGS "${CMAKE_CFLAGS} -DHAVE_LIBTIFF")
@@ -71,17 +72,17 @@ endif()
 
 # Handle OpenMP
 find_package(OpenMP)
+
 if(NOT OPENMP_FOUND OR NOT APR_USE_OPENMP)
     message(WARNING "OpenMP support not found or disabled with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
-else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
+
 include_directories(${HDF5_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
 if(APR_PREFER_EXTERNAL_BLOSC)
     find_package(BLOSC)
 endif()
+
 if(BLOSC_FOUND)
     message(STATUS "APR: blosc found, using external blosc")
     include_directories(${BLOSC_INCLUDE_DIR})
@@ -117,18 +118,25 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
-if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
-    if(NOT WIN32)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
+
+if(WIN32)
+
+
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
+
+    if(CMAKE_COMPILER_IS_GNUCC)
+        set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
+        set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
+        if(NOT WIN32)
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
+        endif()
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
+        set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
     endif()
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
 endif()
 
 if (APR_BENCHMARK)
@@ -146,9 +154,8 @@ set(LIBRARY_NAME apr)
 include_directories(src)
 
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
-#set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
 
-add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+add_library(aprObjLib OBJECT ${SOURCE_FILES})
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
