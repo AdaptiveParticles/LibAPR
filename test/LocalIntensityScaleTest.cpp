@@ -377,6 +377,108 @@ namespace {
         EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
     }
 
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_X_DIR) {
+        APRTimer timer(true);
+        PixelData<float> m(1, 13, 1, 0);
+        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
+        initFromZYXarray(m, dataIn);
+
+        LocalIntensityScale lis;
+
+        for (int boundary = 0; boundary <= 1; ++ boundary) {
+            // boundary = 0 there is no reflected boundary
+            // boudnary = 1 there is boundary reflect
+            for (int offset = 0; offset < 6; ++offset) {
+                // Run on CPU
+                PixelData<float> mCpuPadded;
+                paddPixels(m, mCpuPadded, 0, offset * boundary, 0);
+                timer.start_timer("CPU mean X-DIR");
+                lis.calc_sat_mean_x(mCpuPadded, offset);
+                PixelData<float> mCpu;
+                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                timer.start_timer("GPU mean X-DIR");
+                calcMean(mGpu, offset, MEAN_X_DIR, (boundary > 0));
+                timer.stop_timer();
+
+                // Compare results
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+            }
+        }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Z_DIR) {
+        APRTimer timer(true);
+        PixelData<float> m(1, 1, 13, 0);
+        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
+        initFromZYXarray(m, dataIn);
+
+        LocalIntensityScale lis;
+
+        for (int boundary = 0; boundary <= 1; ++ boundary) {
+            // boundary = 0 there is no reflected boundary
+            // boudnary = 1 there is boundary reflect
+            for (int offset = 0; offset < 6; ++offset) {
+                // Run on CPU
+                PixelData<float> mCpuPadded;
+                paddPixels(m, mCpuPadded, 0, 0, offset * boundary);
+                timer.start_timer("CPU mean Z-DIR");
+                lis.calc_sat_mean_z(mCpuPadded, offset);
+                PixelData<float> mCpu;
+                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                timer.start_timer("GPU mean Z-DIR");
+                calcMean(mGpu, offset, MEAN_Z_DIR, (boundary > 0));
+                timer.stop_timer();
+
+                // Compare results
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+            }
+        }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Y_DIR) {
+        APRTimer timer(true);
+        PixelData<float> m(4, 4, 1, 0);
+        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
+        initFromZYXarray(m, dataIn);
+
+        LocalIntensityScale lis;
+
+        for (int boundary = 1; boundary <= 1; ++ boundary) {
+            // boundary = 0 there is no reflected boundary
+            // boudnary = 1 there is boundary reflect
+            std::cout << "\n\n";
+            for (int offset = 1; offset < 2; ++offset) {
+                // Run on CPU
+                PixelData<float> mCpuPadded;
+                paddPixels(m, mCpuPadded, offset * boundary, offset * boundary, 0);
+                timer.start_timer("CPU mean Y-DIR");
+                lis.calc_sat_mean_y(mCpuPadded, offset);
+                PixelData<float> mCpu;
+                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                timer.start_timer("GPU mean Y-DIR");
+                calcMean(mGpu, offset, MEAN_Y_DIR, (boundary > 0));
+
+                timer.stop_timer();
+
+                // Compare results
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01, 4), 0);
+            }
+        }
+    }
+
+
 #endif // APR_USE_CUDA
 
 }

@@ -297,6 +297,54 @@ namespace {
         }
     }
 
+    TEST(MeshDataSimpleTest, PixelDataDimTest) {
+        // size provided
+        {
+            PixelData<int> md(10, 20, 30);
+            auto d = md.getDimension();
+
+            ASSERT_EQ(d.y(), 10);
+            ASSERT_EQ(d.x(), 20);
+            ASSERT_EQ(d.z(), 30);
+            ASSERT_EQ(d.size(), 10*20*30);
+        }
+        { // adding int to all dims
+
+            PixelDataDim x = {1,2,3};
+            auto d = x + 1;
+            ASSERT_EQ(d.y(), 2);
+            ASSERT_EQ(d.x(), 3);
+            ASSERT_EQ(d.z(), 4);
+        }
+        { // subtract int from all dims
+
+            const PixelDataDim x = {1,2,3};
+            auto d = x - 1;
+            ASSERT_EQ(d.y(), 0);
+            ASSERT_EQ(d.x(), 1);
+            ASSERT_EQ(d.z(), 2);
+        }
+        { // adding another PixelDataDim
+
+            PixelDataDim x = {1,2,3};
+            const PixelDataDim y = {5, 10, 15};
+            auto d = x + y;
+            ASSERT_EQ(d.y(), 6);
+            ASSERT_EQ(d.x(), 12);
+            ASSERT_EQ(d.z(), 18);
+        }
+        { // subtract another PixelDataDim
+
+            const PixelDataDim x = {5, 10, 15};
+            PixelDataDim y = {1, 2, 3};
+            auto d = x - y;
+            ASSERT_EQ(d.y(), 4);
+            ASSERT_EQ(d.x(), 8);
+            ASSERT_EQ(d.z(), 12);
+        }
+
+    }
+
     TEST_F(MeshDataTest, ToTypeTest) {
         // Change type and compare if still OK
         typedef short NEW_TYPE;
@@ -735,6 +783,18 @@ TEST(MeshDataSimpleTest, DownSampleCuda) {
         timer.stop_timer();
 
         EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+    }
+}
+
+TEST(MeshDataSimpleTest, PadPixelsCuda) {
+    {   // 1D - yDir
+        PixelData<float> m(2, 3, 1);
+        for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
+        PixelData<float> p(4, 7, 3);
+        padCuda(m, p, PixelDataDim(1,2,1));
+
+        m.printMesh(2);
+        p.printMesh(2);
     }
 }
 #endif

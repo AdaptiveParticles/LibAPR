@@ -67,6 +67,8 @@ __global__ void bsplineXdir(T *image, size_t x_num, size_t y_num,
     const size_t zDirOffset = (blockIdx.z * blockDim.z + threadIdx.z) * x_num * y_num;
     const size_t nextElementXdirOffset = y_num;
     const size_t dirLen = x_num;
+    const size_t minLen = min(dirLen, k0);
+
 
     if (yDirOffset < y_num) {
         float temp1 = 0;
@@ -74,7 +76,7 @@ __global__ void bsplineXdir(T *image, size_t x_num, size_t y_num,
         float temp3 = 0;
         float temp4 = 0;
         // calculate boundary values
-        for (int k = 0; k < k0; ++k) {
+        for (int k = 0; k < minLen; ++k) {
             T val = image[zDirOffset + k * nextElementXdirOffset + yDirOffset];
             temp1 += bc1[k] * val;
             temp2 += bc2[k] * val;

@@ -29,6 +29,32 @@
 #include "misc/CudaMemory.cuh"
 #endif
 
+struct PixelDataDim {
+    size_t yLen;
+    size_t xLen;
+    size_t zLen;
+
+    PixelDataDim(size_t y, size_t x, size_t z) : yLen(y), xLen(x), zLen(z) {}
+
+    size_t y() const {return yLen;}
+    size_t x() const {return xLen;}
+    size_t z() const {return zLen;}
+    size_t size() const { return yLen * xLen * zLen; }
+
+    PixelDataDim operator+(const PixelDataDim &rhs) const {return {yLen + rhs.yLen, xLen + rhs.xLen, zLen + rhs.zLen};}
+    PixelDataDim operator-(const PixelDataDim &rhs) const {return {yLen - rhs.yLen, xLen - rhs.xLen, zLen - rhs.zLen};}
+    template <typename INTEGER>
+    PixelDataDim operator+(INTEGER i) const {return {yLen + i, xLen + i, zLen + i};}
+    template <typename INTEGER>
+    PixelDataDim operator-(INTEGER i) const {return *this + (-i);}
+
+    friend std::ostream & operator<<(std::ostream &os, const PixelDataDim &obj) {
+        os << "{" << obj.yLen << ", " << obj.xLen << ", " << obj.zLen << "}";
+        return os;
+    }
+
+};
+
 template <typename T>
 class ArrayWrapper
 {
@@ -436,6 +462,13 @@ public :
     PixelData(const PixelData<U> &aMesh, bool aShouldCopyData, bool aUsedPinnedMemory = false) {
         init(aMesh.y_num, aMesh.x_num, aMesh.z_num, aUsedPinnedMemory);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
+    }
+
+    /**
+     * Returns dimensions of PixelData
+     */
+    PixelDataDim getDimension() const {
+        return {static_cast<size_t>(y_num), static_cast<size_t>(x_num), static_cast<size_t>(z_num)};
     }
 
     /**

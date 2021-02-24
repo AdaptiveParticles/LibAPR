@@ -10,11 +10,14 @@
 #include "misc/CudaTools.cuh"
 
 #include "downsample.cuh"
+#include "paddPixelData.cuh"
+
 #include <vector>
 
 // explicit instantiation of handled types
 template void downsampleMeanCuda(const PixelData<float>&, PixelData<float>&);
 template void downsampleMaxCuda(const  PixelData<float>&, PixelData<float>&);
+template void padCuda(const PixelData<float>&, PixelData<float>&, const PixelDataDim&);
 
 template <typename T, typename S>
 void downsampleMeanCuda(const PixelData<T> &input, PixelData<S> &output) {
@@ -30,4 +33,12 @@ void downsampleMaxCuda(const PixelData<T> &input, PixelData<S> &output) {
     ScopedCudaMemHandler<PixelData<S>, D2H> out(output);
 
     runDownsampleMax(in.get(), out.get(), input.x_num, input.y_num, input.z_num, 0);
+};
+
+template <typename T>
+void padCuda(const PixelData<T> &input, PixelData<T> &output, const PixelDataDim &padSize) {
+    ScopedCudaMemHandler<const PixelData<T>, H2D> inputData(input);
+    ScopedCudaMemHandler<PixelData<T>, D2H> outputData(output);
+
+    runPad(inputData.get(), outputData.get(), input.getDimension(), padSize, 0);
 };

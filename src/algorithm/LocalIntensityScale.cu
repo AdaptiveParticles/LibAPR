@@ -37,7 +37,7 @@
  * @param z_num
  */
 template <typename T>
-__global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num) {
+__global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num, bool boundaryReflect) {
     // NOTE: Block size in x/z direction must be 1
     const size_t workersOffset = (blockIdx.z * x_num + blockIdx.x) * y_num;
     const int numOfWorkers = blockDim.y;
@@ -53,20 +53,39 @@ __global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_
     while(workerOffset < y_num) {
         if (!waitForNextLoop) v = image[workersOffset + workerOffset];
         bool waitForNextValues = (workerIdx + offsetInTheLoop) % numOfWorkers >= (numOfWorkers - offset);
+
+        // Check if current value is one of the mirrored elements (boundary condition)
+        int numberOfMirrorLeft = offset - workerOffset;
+        int numberOfMirrorRight = workerOffset + offset - (y_num - 1);
+        if (boundaryReflect) {
+            if (numberOfMirrorLeft > 0 && workerOffset >= 1 && workerOffset <= numberOfMirrorLeft) {sum += v; ++countNumOfSumElements;}
+            if (numberOfMirrorRight > 0 && workerOffset < (y_num - 1) && workerOffset >= (y_num - 1 - numberOfMirrorRight)) {sum += v; ++countNumOfSumElements;}
+        }
         for (int off = 1; off <= offset; ++off) {
             T prevElement = __shfl_sync(active, v, workerIdx + blockDim.y - off, blockDim.y);
             T nextElement = __shfl_sync(active, v, workerIdx + off, blockDim.y);
             // LHS boundary check + don't add previous values if they were added in a previous loop execution
             if (workerOffset >= off && !waitForNextLoop) {sum += prevElement; ++countNumOfSumElements;}
+
             // RHS boundary check + don't read next values since they are not read yet
-            if (!waitForNextValues && workerOffset + off < y_num) {sum += nextElement; ++countNumOfSumElements;}
+            if (!waitForNextValues && (workerOffset + off) < y_num) {sum += nextElement; ++countNumOfSumElements;}
+
+            // boundary condition (mirroring)
+            if (boundaryReflect) {
+                int element = workerOffset + off;
+                if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {sum += nextElement; ++countNumOfSumElements;}
+                if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {sum += nextElement; ++countNumOfSumElements;}
+                element = workerOffset - off;
+                if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {sum += prevElement; ++countNumOfSumElements;}
+                if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {sum += prevElement; ++countNumOfSumElements;}
+            }
         }
         waitForNextLoop = waitForNextValues;
         if (!waitForNextLoop) {
             sum += v;
             image[workersOffset + workerOffset] = sum / countNumOfSumElements;
 
-            // workere is done with current element - move to next one
+            // worker is done with current element - move to next one
             sum = 0;
             countNumOfSumElements = 1;
             workerOffset += numOfWorkers;
@@ -93,7 +112,7 @@ constexpr int NumberOfWorkers = 32; // Cannot be greater than 32 since there is 
  * read/write operations for given element.
  */
 template <typename T>
-__global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num) {
+__global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num, bool boundaryReflect = false) {
     const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.z * blockDim.z + threadIdx.z) * y_num * x_num;
     const int workerYoffset = blockIdx.y * blockDim.y + threadIdx.y ;
     const int workerIdx = threadIdx.y;
@@ -113,12 +132,18 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // saturate cache with #offset elements since it will allow to calculate first element value on LHS
         float sum = 0;
         int count = 0;
-        while (count < offset) {
+        while (count <= offset) {
             T v = image[workerOffset + currElementOffset];
             sum += v;
             data[count][workerIdx] = v;
+            if (boundaryReflect && count > 0) {data[2 * offset - count + 1][workerIdx] = v; sum += v;}
             currElementOffset += nextElementOffset;
             ++count;
+        }
+        currElementOffset -= nextElementOffset;
+        --count;
+        if (boundaryReflect) {
+            count = divisor;
         }
 
         // Pointer in circular buffer
@@ -147,9 +172,17 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
         }
 
         // Handle last #offset elements on RHS
+        int boundaryPtr = (beginPtr - 1 - 1 + (2*offset+1)) % divisor;
+
         while (saveElementOffset < currElementOffset) {
-            count = count - 1;
+            if (!boundaryReflect) count = count - 1;
             sum -= data[beginPtr][workerIdx];
+
+            if (boundaryReflect) {
+                sum += data[boundaryPtr][workerIdx];
+                boundaryPtr = (boundaryPtr - 1 + (2*offset+1)) % divisor;
+            }
+
             image[workerOffset + saveElementOffset] = sum / count;
             beginPtr = (beginPtr + 1) % divisor;
             saveElementOffset += nextElementOffset;
@@ -173,7 +206,7 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
  * read/write operations for given element.
  */
 template <typename T>
-__global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num) {
+__global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_t z_num, bool boundaryReflect = false) {
     const size_t workerOffset = blockIdx.y * blockDim.y + threadIdx.y + (blockIdx.z * blockDim.z + threadIdx.z) * y_num; // *.z is 'x'
     const int workerYoffset = blockIdx.y * blockDim.y + threadIdx.y ;
     const int workerIdx = threadIdx.y;
@@ -193,12 +226,18 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
         // saturate cache with #offset elements since it will allow to calculate first element value on LHS
         float sum = 0;
         int count = 0;
-        while (count < offset) {
+        while (count <= offset) {
             T v = image[workerOffset + currElementOffset];
             sum += v;
             data[count][workerIdx] = v;
+            if (boundaryReflect && count > 0) {data[2 * offset - count + 1][workerIdx] = v; sum += v;}
             currElementOffset += nextElementOffset;
             ++count;
+        }
+        currElementOffset -= nextElementOffset;
+        --count;
+        if (boundaryReflect) {
+            count = divisor;
         }
 
         // Pointer in circular buffer
@@ -227,9 +266,17 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
         }
 
         // Handle last #offset elements on RHS
+        int boundaryPtr = (beginPtr - 1 - 1 + (2*offset+1)) % divisor;
+
         while (saveElementOffset < currElementOffset) {
-            count = count - 1;
+            if (!boundaryReflect) count = count - 1;
             sum -= data[beginPtr][workerIdx];
+
+            if (boundaryReflect) {
+                sum += data[boundaryPtr][workerIdx];
+                boundaryPtr = (boundaryPtr - 1 + (2*offset+1)) % divisor;
+            }
+
             image[workerOffset + saveElementOffset] = sum / count;
             beginPtr = (beginPtr + 1) % divisor;
             saveElementOffset += nextElementOffset;
@@ -238,48 +285,48 @@ __global__ void meanZdir(T *image, int offset, size_t x_num, size_t y_num, size_
 }
 
 template <typename T>
-void runMeanYdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+void runMeanYdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream, bool boundaryReflect) {
     dim3 threadsPerBlock(1, NumberOfWorkers, 1);
     dim3 numBlocks((x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
                    1,
                    (z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
-    meanYdir<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, offset, x_num, y_num, z_num);
+    meanYdir<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, offset, x_num, y_num, z_num, boundaryReflect);
 }
 
 template <typename T>
-void runMeanXdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+void runMeanXdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream, bool boundaryReflect) {
     dim3 threadsPerBlock(1, NumberOfWorkers, 1);
     dim3 numBlocks(1,
                    (y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (z_num + threadsPerBlock.z - 1) / threadsPerBlock.z);
     // Shared memory size  - it is able to keep filter len elements for each worker.
     const int sharedMemorySize = (offset * 2 + 1) * sizeof(float) * NumberOfWorkers;
-    meanXdir<<<numBlocks,threadsPerBlock, sharedMemorySize, aStream>>>(cudaImage, offset, x_num, y_num, z_num);
+    meanXdir<<<numBlocks,threadsPerBlock, sharedMemorySize, aStream>>>(cudaImage, offset, x_num, y_num, z_num, boundaryReflect);
 }
 
 template <typename T>
-void runMeanZdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream) {
+void runMeanZdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_num, cudaStream_t aStream, bool boundaryReflect) {
     dim3 threadsPerBlock(1, NumberOfWorkers, 1);
     dim3 numBlocks(1,
                    (y_num + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (x_num + threadsPerBlock.x - 1) / threadsPerBlock.x); // intentionally here for better memory readings
     // Shared memory size  - it is able to keep filter len elements for each worker.
     const int sharedMemorySize = (offset * 2 + 1) * sizeof(float) * NumberOfWorkers;
-    meanZdir<<<numBlocks,threadsPerBlock, sharedMemorySize, aStream>>>(cudaImage, offset, x_num, y_num, z_num);
+    meanZdir<<<numBlocks,threadsPerBlock, sharedMemorySize, aStream>>>(cudaImage, offset, x_num, y_num, z_num, boundaryReflect);
 }
 
 template <typename T, typename S>
-void runMean(T *cudaImage, const PixelData<S> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags, cudaStream_t aStream) {
+void runMean(T *cudaImage, const PixelData<S> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags, cudaStream_t aStream, bool boundaryReflect = false) {
     if (flags & MEAN_Y_DIR) {
-        runMeanYdir(cudaImage, offsetY, image.x_num, image.y_num, image.z_num, aStream);
+        runMeanYdir(cudaImage, offsetY, image.x_num, image.y_num, image.z_num, aStream, boundaryReflect);
     }
 
     if (flags & MEAN_X_DIR) {
-        runMeanXdir(cudaImage, offsetX, image.x_num, image.y_num, image.z_num, aStream);
+        runMeanXdir(cudaImage, offsetX, image.x_num, image.y_num, image.z_num, aStream, boundaryReflect);
     }
 
     if (flags & MEAN_Z_DIR) {
-        runMeanZdir(cudaImage, offsetZ, image.x_num, image.y_num, image.z_num, aStream);
+        runMeanZdir(cudaImage, offsetZ, image.x_num, image.y_num, image.z_num, aStream, boundaryReflect);
     }
 }
 
@@ -347,9 +394,9 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
 
     // --------- CUDA ----------------
     runCopy1D(cudaImage, cudaTemp, image.mesh.size(), aStream);
-    runMean(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR, aStream);
+    runMean(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
     runAbsDiff1D(cudaImage, cudaTemp, image.mesh.size(), aStream);
-    runMean(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream);
+    runMean(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
     runRescaleAndThreshold(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
 }
 
@@ -360,17 +407,17 @@ template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>
 // =================================================== TEST helpers
 // TODO: should be moved somewhere
 template <typename T>
-void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags) {
+void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags, bool boundaryReflect) {
     ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
     APRTimer timer(true);
     timer.start_timer("GpuDeviceTimeFull");
-    runMean(cudaImage.get(), image, offset, offset, offset, flags, 0);
+    runMean(cudaImage.get(), image, offset, offset, offset, flags, 0, boundaryReflect);
     timer.stop_timer();
 }
 
 // explicit instantiation of handled types
-template void calcMean(PixelData<float>&, int, TypeOfMeanFlags);
-template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags);
+template void calcMean(PixelData<float>&, int, TypeOfMeanFlags, bool);
+template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags, bool);
 
 
 template <typename T>
