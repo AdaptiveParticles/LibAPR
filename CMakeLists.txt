@@ -168,7 +168,14 @@ add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
     set(CMAKE_CUDA_STANDARD 14)
-    set(CMAKE_CUDA_RUNTIME_LIBRARY "Static")
+    set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+
+    if(${CMAKE_VERSION} VERSION_GREATER "3.18.0") 
+        message("Additional flags for CUDA ")
+    	set(CMAKE_CUDA_ARCHITECTURES 30)
+   endif()
+
+    set(CMAKE_CUDA_RUNTIME_LIBRARY "Shared")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --default-stream per-thread -Xptxas -v -DAPR_USE_CUDA")
     set(CMAKE_CUDA_FLAGS_RELEASE "-O3 --use_fast_math") # -lineinfo for profiling
     set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -g -G")
