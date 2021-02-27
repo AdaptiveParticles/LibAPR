@@ -4,6 +4,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
 
+message(STATUS "CMAKE VERSION ${CMAKE_VERSION}")
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
