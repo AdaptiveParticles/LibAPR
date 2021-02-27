@@ -124,7 +124,7 @@ if(WIN32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_COMPILE")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_COMPILE")
 
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
+#    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
 #    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic") #need to update these
 
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
