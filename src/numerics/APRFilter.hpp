@@ -5,11 +5,14 @@
 #ifndef LIBAPR_APRFILTER_HPP
 #define LIBAPR_APRFILTER_HPP
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846 //added for clang-cl windows compilation as cmath.h does not define this in clang (not part of the standard)
+#endif
+
 #include "numerics/APRStencil.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 
 #include<cmath>
-
 
 template<typename T>
 class ImageBuffer {

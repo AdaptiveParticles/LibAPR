@@ -121,6 +121,27 @@ include_directories("external/glm")
 
 if(WIN32)
 
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_COMPILE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_COMPILE")
+
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
+#    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic") #need to update these
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+
+        message(STATUS "Compiling on windows with CLANG!")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcxx-exceptions")
+
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        message(STATUS "Compiling on windows with MSVC!")
+
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_VS")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_VS")
+
+    endif()
+
 
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
