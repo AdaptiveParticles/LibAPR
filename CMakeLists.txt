@@ -77,6 +77,9 @@ find_package(OpenMP)
 
 if(NOT OPENMP_FOUND OR NOT APR_USE_OPENMP)
     message(WARNING "OpenMP support not found or disabled with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
+    set(OPENMP_LINK "")
+else()
+    set(OPENMP_LINK "")
 endif()
 
 include_directories(${HDF5_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
