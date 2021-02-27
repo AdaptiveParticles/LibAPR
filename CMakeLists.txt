@@ -1,7 +1,7 @@
 ###############################################################################
 # APR - Adaptive Particle Representation
 ###############################################################################
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.10)
 project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
 
 set(CMAKE_CXX_STANDARD 14)
@@ -131,7 +131,8 @@ if(WIN32)
 
         message(STATUS "Compiling on windows with CLANG!")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcxx-exceptions")
-
+#        set(CMAKE_CXX_FLAGS_RELEASE "-Xclang -O3 -Xclang -ffast-math")
+        set(CMAKE_CXX_FLAGS_DEBUG "-Xclang -O0 -Xclang -g  -Xclang -Wall -Xclang -pedantic")
     endif()
 
     if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
