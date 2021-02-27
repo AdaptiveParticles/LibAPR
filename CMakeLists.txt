@@ -220,8 +220,11 @@ if(APR_BUILD_STATIC_LIB)
     # generate fat static library by adding dependencies
     if(NOT BLOSC_FOUND)
         include(cmake/AddStaticLibs.cmake)
-        addStaticLibs(${STATIC_TARGET_NAME} blosc_static)
+        addStaticLibs(${STATIC_TARGET_NAME} blosc_static) #this is not working currently for clang-cl please use external.
+    else()
+        target_link_libraries(${STATIC_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES}  ${ZLIB_LIBRARIES} )
     endif()
+
 endif()
 
 if(APR_BUILD_SHARED_LIB)
