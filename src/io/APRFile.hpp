@@ -39,6 +39,10 @@ public:
     template<typename DataType>
     bool read_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
 
+    template<typename DataType>
+    bool read_particles(APR& apr,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
+
+
     //set helpers
     bool get_read_write_tree(){
         return with_tree_flag;
@@ -455,6 +459,10 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
 }
 
+
+
+
+
 /**
    * Read particles from file, they will be associated with a given time point, and either as APR particles of APRTree particles (see get_particles_names for saved particle datasets)
    * @param apr requires a valid APR, this is for more general functionality including partial reading by level.
@@ -603,6 +611,21 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
 
     return true;
 
+}
+
+template<typename DataType>
+bool APRFile::read_particles(APR& apr,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t ,std::string channel_name){
+
+    std::vector<std::string> file_names = this->get_particles_names();
+    std::string particles_name = file_names[0]; //by default it takes the first set of particles.
+
+    bool read =  this->read_particles(apr,particles_name,particles,apr_or_tree,t,channel_name);
+
+    if(read){
+        std::cout << "Default Reading Particles Named: " << particles_name << std::endl;
+    }
+
+    return read;
 }
 
 

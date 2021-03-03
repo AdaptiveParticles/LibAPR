@@ -45,6 +45,15 @@ public:
         compressor = parts2Copy.compressor;
     }
 
+
+    auto end(){
+      return data.end();
+    }
+
+    auto begin() {
+        return data.begin();
+    }
+
     void swap(ParticleData& aObj) {
         std::swap(compressor, aObj.compressor);
         data.swap(aObj.data);

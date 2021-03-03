@@ -43,6 +43,12 @@ with the older version__.
 * CMake 3.6 or higher
 * LibTIFF 4.0 or higher
 
+
+NB: This update to 2.0 introduces changes to IO and iteration that are not compatable with old versions.
+
+If compiling with APR_DENOISE flag the package also requires:
+* Eigen3.
+
 ## Building
 
 The repository requires submodules, and needs to be cloned recursively:
@@ -75,6 +81,8 @@ cmake -DAPR_USE_OPENMP=OFF ..
 ### Building on Linux
 
 On Ubuntu, install the `cmake`, `build-essential`, `libhdf5-dev` and `libtiff5-dev` packages (on other distributions, refer to the documentation there, the package names will be similar). OpenMP support is provided by the GCC compiler installed as part of the `build-essential` package.
+
+For denoising support also requires: `libeigen3-dev`
 
 In the directory of the cloned repository, run
 
