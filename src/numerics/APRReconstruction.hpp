@@ -28,7 +28,7 @@ struct ReconPatch{
      * are set to the dimension size at the specified level_delta.
      * @param apr
      */
-    inline void check_limits(APR& apr) {
+    void check_limits(APR& apr) {
         int max_img_y = std::ceil(apr.org_dims(0)*pow(2.f, level_delta));
         int max_img_x = std::ceil(apr.org_dims(1)*pow(2.f, level_delta));
         int max_img_z = std::ceil(apr.org_dims(2)*pow(2.f, level_delta));
