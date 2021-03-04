@@ -66,7 +66,7 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
 
     PixelData<partsType> pipelineImage;
 
-    APRReconstruction::interp_img(apr,pipelineImage,parts);
+    APRReconstruction::reconstruct_constant(apr,pipelineImage,parts);
 
     APRConverter<partsType> aprConverter;
 
