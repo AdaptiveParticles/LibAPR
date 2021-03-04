@@ -28,7 +28,7 @@ struct ReconPatch{
      * are set to the dimension size at the specified level_delta.
      * @param apr
      */
-    void check_limits(APR& apr) {
+    bool check_limits(APR& apr) {
         int max_img_y = std::ceil(apr.org_dims(0)*pow(2.f, level_delta));
         int max_img_x = std::ceil(apr.org_dims(1)*pow(2.f, level_delta));
         int max_img_z = std::ceil(apr.org_dims(2)*pow(2.f, level_delta));
@@ -43,7 +43,9 @@ struct ReconPatch{
 
         if(y_begin >= y_end || x_begin >= x_end || z_begin >= z_end) {
             std::wcerr << "ReconPatch expects begin < end in all dimensions" << std::endl;
+            return false;
         }
+        return true;
     }
 };
 
@@ -253,7 +255,10 @@ void APRReconstruction::reconstruct_smooth(APR& apr, PixelData<U>& img, partsTyp
 template<typename U, typename partsType, typename treeType>
 void APRReconstruction::reconstruct_constant(APR& apr, PixelData<U>& img, partsType& parts, treeType& tree_parts, ReconPatch& patch) {
 
-    patch.check_limits(apr);
+    if (!patch.check_limits(apr)) {
+        std::wcerr << "APRReconstruction::reconstruct_constant: invalid patch size - exiting" << std::endl;
+        return;
+    }
 
     if (patch.level_delta < 0) {
         if (tree_parts.size() != apr.total_number_tree_particles()) {
@@ -267,11 +272,6 @@ void APRReconstruction::reconstruct_constant(APR& apr, PixelData<U>& img, partsT
     const int x_end = patch.x_end;
     const int z_begin = patch.z_begin;
     const int z_end = patch.z_end;
-
-    if (y_begin >= y_end || x_begin >= x_end || z_begin >= z_end) {
-        std::cout << "Invalid Patch Size: Exiting" << std::endl;
-        return;
-    }
 
     img.initWithResize(y_end - y_begin, x_end - x_begin, z_end - z_begin);
 
@@ -356,7 +356,10 @@ void APRReconstruction::reconstruct_constant(APR& apr, PixelData<U>& img, partsT
 template<typename U>
 void APRReconstruction::reconstruct_level(APR& apr, PixelData<U>& img, ReconPatch& patch) {
 
-    patch.check_limits(apr);
+    if (!patch.check_limits(apr)) {
+        std::wcerr << "APRReconstruction::reconstruct_level: invalid patch size - exiting" << std::endl;
+        return;
+    }
 
     const int y_begin = patch.y_begin;
     const int y_end = patch.y_end;
@@ -364,11 +367,6 @@ void APRReconstruction::reconstruct_level(APR& apr, PixelData<U>& img, ReconPatc
     const int x_end = patch.x_end;
     const int z_begin = patch.z_begin;
     const int z_end = patch.z_end;
-
-    if (y_begin >= y_end || x_begin >= x_end || z_begin >= z_end) {
-        std::cout << "Invalid Patch Size: Exiting" << std::endl;
-        return;
-    }
 
     img.initWithResize(y_end - y_begin, x_end - x_begin, z_end - z_begin);
 
@@ -456,6 +454,11 @@ void APRReconstruction::reconstruct_smooth(APR& apr, PixelData<U>& img, partsTyp
     //
     //  Performs a smooth interpolation, based on the depth (level l) in each direction.
     //
+
+    if (!patch.check_limits(apr)) {
+        std::wcerr << "APRReconstruction::reconstruct_smooth: invalid patch size - exiting" << std::endl;
+        return;
+    }
 
     PixelData<uint8_t> k_img;
 
