@@ -104,9 +104,11 @@ public:
     inline uint64_t total_number_particles() const { return aprInfo.total_number_particles; }
     uint64_t org_dims(int dim) const { return aprInfo.org_dims[dim]; }
 
-    // TODO: should check that treeInfo is initialized
-    inline uint64_t total_number_tree_particles() const { return treeInfo.total_number_particles; } // #TODO remove one of these
-    inline uint64_t total_number_parent_cells() const { return treeInfo.total_number_particles; }
+    inline uint64_t total_number_tree_particles() const { return treeInfo.total_number_particles; }
+
+    inline int number_dimensions() const {
+        return aprInfo.number_dimensions;
+    }
 
     double computational_ratio(){
         return (org_dims(0)*org_dims(1)*org_dims(2))/(1.0*aprInfo.total_number_particles);
