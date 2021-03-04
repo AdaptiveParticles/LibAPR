@@ -3054,6 +3054,54 @@ bool test_reconstruct_patch(TestData &test_data, const int level_delta = 0) {
 }
 
 
+bool test_reconstruct_patch_smooth(TestData &test_data) {
+
+    ReconPatch patch;
+    patch.z_begin = 13;
+    patch.z_end = 119;
+    patch.x_begin = 21;
+    patch.x_end = 58;
+    patch.y_begin = 24;
+    patch.y_end = 104;
+    patch.level_delta = 0;
+
+    APRTimer timer(true);
+    PixelData<float> recon_patch;
+    PixelData<float> recon_full;
+
+    /// full reconstruction
+    APRReconstruction::reconstruct_smooth(test_data.apr, recon_full, test_data.particles_intensities);
+
+    /// patch reconstruction
+    APRReconstruction::reconstruct_smooth(test_data.apr, recon_patch, test_data.particles_intensities, patch);
+
+    size_t failures = 0;
+    float tol = 0.1;
+    size_t max_print = 4;
+    const int offset = 8; // values may be different at boundaries
+    for(int z = patch.z_begin+offset; z < patch.z_end-offset; ++z) {
+        for(int x = patch.x_begin+offset; x < patch.x_end-offset; ++x) {
+            for(int y = patch.y_begin+offset; y < patch.y_end-offset; ++y) {
+                float gt = recon_full.at(y, x, z);
+                float est = recon_patch.at(y-patch.y_begin, x-patch.x_begin, z-patch.z_begin);
+
+                if(std::abs(gt-est) > tol) {
+                    if(failures < max_print) {
+                        std::cout << "Expected " << gt << " but received " << est << " at (z,x,y) = (" << z << ", " << x << ", " << y << ")" << std::endl;
+                    }
+                    failures++;
+                }
+            }
+        }
+    }
+
+    const size_t tot_compared = (recon_patch.z_num - 2*offset) * (recon_patch.x_num - 2*offset) * (recon_patch.y_num - 2*offset);
+    std::cout << "test_reconstruct_patch_smooth: " << failures << " failures out of " << tot_compared << std::endl;
+
+    return failures == 0;
+}
+
+
 
 
 
@@ -3793,12 +3841,16 @@ TEST_F(CreateSmallSphereTest, TEST_RECONSTRUCT) {
     ASSERT_TRUE(test_reconstruct_patch(test_data, 0));
     ASSERT_TRUE(test_reconstruct_patch(test_data, -1));
     ASSERT_TRUE(test_reconstruct_patch(test_data, -2));
+
+    ASSERT_TRUE(test_reconstruct_patch_smooth(test_data));
 }
 
 TEST_F(CreateDiffDimsSphereTest, TEST_RECONSTRUCT) {
     ASSERT_TRUE(test_reconstruct_patch(test_data, 0));
     ASSERT_TRUE(test_reconstruct_patch(test_data, -1));
     ASSERT_TRUE(test_reconstruct_patch(test_data, -2));
+
+    ASSERT_TRUE(test_reconstruct_patch_smooth(test_data));
 }
 
 
