@@ -229,8 +229,6 @@ void APRReconstruction::reconstruct_smooth(APR& apr, PixelData<U>& img, partsTyp
     //  Performs a smooth interpolation, based on the depth (level l) in each direction.
     //
 
-    APRTimer timer(true);
-
     PixelData<uint8_t> k_img;
 
     int offset_max = 20;
@@ -238,24 +236,17 @@ void APRReconstruction::reconstruct_smooth(APR& apr, PixelData<U>& img, partsTyp
     reconstruct_constant(apr, img, parts);
     reconstruct_level(apr, k_img);
 
-    timer.start_timer("sat y");
-    //demo
     if(img.y_num > 1) {
         calc_sat_adaptive_y(img, k_img, scale_d[0], offset_max, apr.level_max());
     }
-    timer.stop_timer();
 
-    timer.start_timer("sat x");
     if(img.x_num > 1) {
         calc_sat_adaptive_x(img, k_img, scale_d[1], offset_max, apr.level_max());
     }
-    timer.stop_timer();
 
-    timer.start_timer("sat z");
     if(img.z_num > 1) {
         calc_sat_adaptive_z(img, k_img, scale_d[2], offset_max, apr.level_max());
     }
-    timer.stop_timer();
 }
 
 
@@ -475,7 +466,6 @@ void APRReconstruction::reconstruct_smooth(APR& apr, PixelData<U>& img, partsTyp
 
     const int max_level = apr.level_max() + patch.level_delta;
 
-    //demo
     if(img.y_num > 1) {
         calc_sat_adaptive_y(img, k_img, scale_d[0], offset_max, max_level);
     }
