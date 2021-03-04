@@ -16,10 +16,10 @@ class GenInfo {
 
 public:
     int l_min = 0;
-    int l_max = 0;
-    int org_dims[3]={0,0,0};
+    int l_max = -1;
+    int org_dims[3] = {0,0,0};
 
-    uint8_t number_dimensions = 3;
+    uint8_t number_dimensions = 0;
 
     std::vector<int> x_num;
     std::vector<int> y_num;
