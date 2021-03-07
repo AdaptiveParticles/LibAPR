@@ -35,4 +35,7 @@ install:
 - git submodule update
 
 script:
-- sh ./cmake-build.sh
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh ./cmake-build.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./cmake-build.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then sh ./cmake-build_windows.sh; fi
+
