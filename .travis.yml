@@ -19,6 +19,9 @@ matrix:
         - libtiff5
   - os: osx
     osx_image: xcode11.4
+  - os: windows
+    language: cpp
+
 
 install:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
