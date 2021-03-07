@@ -793,12 +793,13 @@ void ComputeGradient::calc_inv_bspline_y(PixelData<T>& input){
     for (int64_t j = 0; j < z_num; ++j) {
         for (int64_t i = 0;i < x_num; ++i) {
 
+            const int64_t idx = j * x_num * y_num + i * y_num;
+
 #ifdef HAVE_OPENMP
 #pragma omp simd
 #endif
             for (int64_t k = 0; k < y_num; ++k) {
-                int64_t idx = j * x_num * y_num + i * y_num + k;
-                temp_vec[k] = input.mesh[idx];
+                temp_vec[k] = input.mesh[idx+k];
             }
 
             //LHS boundary condition
@@ -848,14 +849,16 @@ void ComputeGradient::calc_inv_bspline_z(PixelData<T>& input){
         }
 
         for (int64_t j = 0; j < z_num - 1; ++j) {
-            int64_t jxnumynum = j * xnumynum;
+            const int64_t jxnumynum = j * xnumynum;
+
+            const int64_t idx = jxnumynum + xnumynum + iynum;
 
             //initialize the loop
             #ifdef HAVE_OPENMP
 	        #pragma omp simd
             #endif
             for (int64_t k = 0; k < (y_num); ++k) {
-                temp_vec[k].temp_3 = input.mesh[jxnumynum + xnumynum + iynum + k]; // (j+1)th column in z dir
+                temp_vec[k].temp_3 = input.mesh[idx + k]; // (j+1)th column in z dir
             }
 
             #ifdef HAVE_OPENMP
@@ -905,7 +908,8 @@ void ComputeGradient::calc_inv_bspline_x(PixelData<T>& input) {
 	#pragma omp parallel for default(shared) firstprivate(temp_vec)
     #endif
     for(int64_t j = 0; j < z_num; ++j) {
-        int64_t jxnumynum = j * xnumynum;
+        const int64_t jxnumynum = j * xnumynum;
+
 
         //initialize the loop
         for (int64_t k = y_num - 1; k >= 0; --k) {
@@ -915,14 +919,16 @@ void ComputeGradient::calc_inv_bspline_x(PixelData<T>& input) {
 
         //LHS boundary condition is accounted for with this initialization
         for (int64_t i = 0; i < x_num-1; ++i) {
-            int64_t iynum = i * y_num;
+            const int64_t iynum = i * y_num;
+
+            const int64_t idx = jxnumynum + iynum + y_num;
 
             //initialize the loop
             #ifdef HAVE_OPENMP
 	        #pragma omp simd
             #endif
             for (int64_t k = 0; k < y_num; ++k) {
-                temp_vec[k].temp_3 = input.mesh[jxnumynum + iynum + y_num + k]; // get (i+1)th column
+                temp_vec[k].temp_3 = input.mesh[idx + k]; // get (i+1)th column
             }
 
             #ifdef HAVE_OPENMP

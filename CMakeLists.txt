@@ -2,7 +2,7 @@
 # APR - Adaptive Particle Representation
 ###############################################################################
 cmake_minimum_required(VERSION 3.10)
-project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
+project(APR DESCRIPTION "Adaptive Particle Representation library")
 
 message(STATUS "CMAKE VERSION ${CMAKE_VERSION}")
 
@@ -79,7 +79,9 @@ if(NOT OPENMP_FOUND OR NOT APR_USE_OPENMP)
     message(WARNING "OpenMP support not found or disabled with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
     set(OPENMP_LINK "")
 else()
-    set(OPENMP_LINK "")
+    set(OPENMP_LINK "OpenMP::OpenMP_CXX")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
 
 include_directories(${HDF5_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
@@ -136,12 +138,16 @@ if(WIN32)
 
         message(STATUS "Compiling on windows with CLANG!")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcxx-exceptions")
-#        set(CMAKE_CXX_FLAGS_RELEASE "-Xclang -O3 -Xclang -ffast-math")
+
         set(CMAKE_CXX_FLAGS_DEBUG "-Xclang -O0 -Xclang -g  -Xclang -Wall -Xclang -pedantic")
+        set(CMAKE_CXX_FLAGS_RELEASE "/MD /EHsc /std:c++17 /arch:AVX2 -Xclang -O3 /nologo /fp:fast") #-flto=thin -march=native /O2 /Ob2
+
     endif()
 
     if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         message(STATUS "Compiling on windows with MSVC!")
+
+        set(CMAKE_CXX_FLAGS_RELEASE "/MD /EHsc /std:c++17 /arch:AVX2 /O2 /Ob2 /nologo /fp:fast")
 
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_VS")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_VS")
