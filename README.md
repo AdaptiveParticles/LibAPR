@@ -142,7 +142,7 @@ cd vcpkg
 ./vcpkg.exe install blosc:x64-windows gtest:x64-windows tiff:x64-windows hdf5:x64-windows szip:x64-windows
 cd ..
 ```
-Now you should have all dependencies set up to be able to build the library with clang-cl, note here you must compiled with using external gtest and blosc (just installed with vcpkg), done through the  -DAPR_PREFER_EXTERNAL_BLOSC=ON -DAPR_PREFER_EXTERNAL_GTEST=ON flags, in addition, it is important to note you need to tell cmake to configure for clang-cl on windows using: -G "Visual Studio 16 2019" -A x64 -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -T ClangCL.
+Now you should have all dependencies set up to be able to build the library with clang-cl, note here you must compiled with using external gtest and blosc (just installed with vcpkg), done through the  -DAPR_PREFER_EXTERNAL_BLOSC=ON -DAPR_PREFER_EXTERNAL_GTEST=ON flags, in addition, it is important to note you need to tell cmake to configure for clang-cl on windows using: -G "Visual Studio 16 2019" -A x64 -T ClangCL and to search for dependencies from vcpkg at your vcpkg install location: -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows .
 
 Now for example to build the tests and examples:
 ```
