@@ -16,8 +16,8 @@ option(APR_BUILD_STATIC_LIB "Builds static library" OFF)
 option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
 option(APR_USE_LIBTIFF "Use LibTIFF" ON)
 option(APR_TESTS "Build APR tests" OFF)
-option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
-option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
+option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" ON)
+option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" ON)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
@@ -131,9 +131,6 @@ if(WIN32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_COMPILE")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_COMPILE")
 
-#    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
-#    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic") #need to update these
-
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
         message(STATUS "Compiling on windows with CLANG!")
@@ -182,7 +179,7 @@ endif()
 # Generate APR library
 ###############################################################################
 
-set(LIBRARY_NAME apr)
+set(LIBRARY_NAME APR)
 
 include_directories(src)
 
