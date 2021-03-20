@@ -1,5 +1,9 @@
 language: cpp
 
+cache: # see https://docs.travis-ci.com/user/caching/
+  - directories:
+      - $HOME/.cache
+
 matrix:
   include:
   - os: linux
@@ -17,6 +21,7 @@ matrix:
         - clang-3.6
         - libhdf5-dev
         - libtiff5
+        - lcov
   - os: osx
     osx_image: xcode11.4
   - os: windows
@@ -24,6 +29,8 @@ matrix:
 
 
 install:
+- mkdir -p $HOME/.cache
+- touch $HOME/.cache/mydependency.so
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install c-blosc; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then echo "UPDATESTARTUPTTY" | gpg-connect-agent > /dev/null 2>&1; fi
@@ -33,7 +40,7 @@ install:
 - git submodule update
 
 script:
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh ./cmake-build.sh; fi
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./cmake-build.sh; fi
-- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then travis_wait 40 sh ./cmake-build_windows.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh ./cmake-build-linux.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./cmake-build-osx.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then travis_wait 40 sh ./cmake-build-windows.sh; fi
 
