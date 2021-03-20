@@ -196,7 +196,7 @@ on the command line in your build folder. Please let us know by creating an issu
 
 ## Java wrappers
 
-Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper)
+Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper) Not compatable with recent releases.
 
 ## Coming soon
 
