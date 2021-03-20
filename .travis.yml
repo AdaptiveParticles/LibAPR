@@ -18,6 +18,8 @@ matrix:
         - libhdf5-dev
         - libtiff5
         - lcov
+        - libgtest-dev
+        - libblosc-dev
   - os: osx
     osx_image: xcode11.4
   - os: windows

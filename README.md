@@ -81,6 +81,7 @@ cmake -DAPR_USE_OPENMP=OFF ..
 ### Building on Linux
 
 On Ubuntu, install the `cmake`, `build-essential`, `libhdf5-dev` and `libtiff5-dev` packages (on other distributions, refer to the documentation there, the package names will be similar). OpenMP support is provided by the GCC compiler installed as part of the `build-essential` package.
+In addition require `libblosc-dev`, and if testing is enabled `libgtest-dev`.
 
 For denoising support also requires: `libeigen3-dev`
 
