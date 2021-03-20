@@ -129,12 +129,16 @@ void ComputeGradient::mask_gradient(PixelData<T>& grad_ds, const APRParameters& 
     //
     //
 
-    //PixelData<uint16_t> temp_mask;
+    PixelData<uint16_t> temp_mask;
     PixelData<uint16_t> temp_ds;
 
     std::string file_name = par.input_dir + par.mask_file;
 #ifdef HAVE_LIBTIFF
-    PixelData<uint16_t> temp_mask = TiffUtils::getMesh<uint16_t>(file_name);
+
+    //TiffUtils::getMesh(file_name, temp_mask);
+
+    temp_mask = TiffUtils::getMesh<uint16_t>(file_name);
+
 
     downsample(temp_mask, temp_ds,
                [](const T &x, const T &y) -> T { return std::max(x, y); },

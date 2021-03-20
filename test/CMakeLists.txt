@@ -16,3 +16,18 @@ if(APR_USE_CUDA)
    buildTarget(testAPRCuda APRTestCuda.cpp)
 endif()
 
+
+if(APR_BUILD_EXAMPLES)
+    buildTarget(testExamples ExamplesTest.cpp)
+endif()
+
+if(APR_DENOISE)
+    buildTarget(testDenoise DenoiseTest.cpp)
+endif()
+
+
+## Performance Benchmark Tests
+
+#buildTarget(BenchmarkTest BenchmarkTest.cpp)
+
+

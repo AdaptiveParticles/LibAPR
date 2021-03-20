@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     aprFile.read_apr(apr);
 
     ParticleData<uint16_t> parts;
-    aprFile.read_particles(apr,"particles",parts);
+    aprFile.read_particles(apr,parts);
 
     aprFile.close();
 
