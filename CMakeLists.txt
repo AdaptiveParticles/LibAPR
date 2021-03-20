@@ -23,11 +23,14 @@ option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
 option(APR_DENOISE "enable denoising code" OFF)
 
-
 #Logic for code-coverage using code-cov
 option(CODE_COVERAGE "Enable coverage reporting" OFF)
 
 if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+
+    # Code Coverage Configuration
+    add_library(coverage_config INTERFACE)
+
     # Add required flags (GCC & LLVM/Clang)
     target_compile_options(coverage_config INTERFACE
             -O0        # no optimization
