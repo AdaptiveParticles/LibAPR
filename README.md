@@ -158,6 +158,10 @@ We provide a working Dockerfile that installs the library within the image in a 
 
 Note: not recently tested.
 
+## Install instructions 
+
+Please see: INSTALL_INSTRUCTIONS.md and https://github.com/AdaptiveParticles/APR_cpp_project_example for a minimal project using the APR.
+
 ## Examples and Documentation
 
 There are 12 basic examples, that show how to generate and compute with the APR. These can be built by adding 
