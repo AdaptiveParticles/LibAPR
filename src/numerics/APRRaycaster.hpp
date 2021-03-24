@@ -22,10 +22,9 @@
 #include "data_structures/APR/particles/ParticleData.hpp"
 
 #include "data_structures/APR/APR.hpp"
-#include "numerics/APRRaycaster.cpp"
-#include "vis/Camera.cpp"
-#include "vis/Object.cpp"
-#include "vis/RaytracedObject.cpp"
+#include "vis/Camera.h"
+#include "vis/Object.h"
+#include "vis/RaytracedObject.h"
 
 #include "numerics/APRReconstruction.hpp"
 

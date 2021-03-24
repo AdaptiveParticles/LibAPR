@@ -3,7 +3,6 @@
 //
 
 #include "RaytracedObject.h"
-#include <glm/gtc/matrix_access.hpp>
 #include <iostream>
 #include <algorithm>
 

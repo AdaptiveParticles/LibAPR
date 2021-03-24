@@ -8,6 +8,7 @@
 
 #include "Object.h"
 #include "Camera.h"
+#include <glm/gtc/matrix_access.hpp>
 
 class RaytracedObject : public Object {
 
