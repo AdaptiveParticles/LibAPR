@@ -23,6 +23,10 @@ struct ReconPatch{
     int z_end=-1;
     int level_delta=0;
 
+    size_t size() const {
+        return (size_t)(z_end-z_begin)*(x_end-x_begin)*(y_end-y_begin);
+    }
+
     /**
      * Check the patch limits against the domain size of an APR. Lower limits < 0 are set to 0, upper limits < 0
      * are set to the dimension size at the specified level_delta.
