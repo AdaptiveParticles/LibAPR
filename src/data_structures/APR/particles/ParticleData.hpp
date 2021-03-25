@@ -46,13 +46,11 @@ public:
     }
 
 
-    auto end(){
-      return data.end();
-    }
+    inline DataType* begin() { return data.begin(); }
+    inline DataType* end(){ return data.end(); }
 
-    auto begin() {
-        return data.begin();
-    }
+    inline const DataType* begin() const { return data.begin(); }
+    inline const DataType* end() const { return data.end(); }
 
     void swap(ParticleData& aObj) {
         std::swap(compressor, aObj.compressor);
