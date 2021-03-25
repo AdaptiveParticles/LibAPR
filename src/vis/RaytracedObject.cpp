@@ -6,6 +6,8 @@
 #include <iostream>
 #include <algorithm>
 
+RaytracedObject::RaytracedObject() : Object() {}
+
 RaytracedObject::RaytracedObject(glm::vec3 position, glm::fquat rotation) : Object(position, rotation) { this->position = position; this->rotation = rotation; }
 
 std::pair<glm::vec3, glm::vec3>

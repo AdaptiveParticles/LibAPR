@@ -9,7 +9,7 @@
 
 #include "Object.h"
 
-class Camera : Object {
+class Camera : public Object {
     friend class RaytracedObject;
 
 protected:
@@ -28,6 +28,7 @@ protected:
     float fov = 50.0f;
 
 public:
+    Camera();
     Camera(glm::vec3 position, glm::fquat rotation);
 
     Camera* setPerspectiveCamera(float aspectRatio, float fov, float nearPlane, float farPlane);

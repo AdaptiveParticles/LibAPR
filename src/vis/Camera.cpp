@@ -4,6 +4,8 @@
 
 #include "Camera.h"
 
+Camera::Camera() : Object() {}
+
 Camera::Camera(glm::vec3 position, glm::fquat rotation) : Object(position, rotation) { this->position = position; }
 
 Camera* Camera::setPerspectiveCamera(float aspectRatio, float fov, float nearPlane, float farPlane) {

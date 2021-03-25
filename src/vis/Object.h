@@ -27,6 +27,9 @@ public:
     Object(glm::vec3 position = glm::vec3(0.0f), glm::fquat rotation = glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
     ~Object();
 
+    void setPosition(glm::vec3 position) { this->position = position; }
+    void setRotation(glm::fquat rotation) { this->rotation = rotation; }
+
     glm::vec3 getPosition();
     glm::fquat getRotation();
     glm::mat4* getModel();
