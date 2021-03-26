@@ -29,6 +29,7 @@
 class APRRaycaster {
 
 public:
+    bool verbose = false;
 
     int direction = 0;
 
@@ -189,10 +190,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     float init_val = 0;
 
 
-    APRTimer timer;
-
-    timer.verbose_flag = true;
-
+    APRTimer timer(verbose);
     timer.start_timer("Compute APR maximum projection raycast");
 
     /////////////////////////////////////
@@ -569,9 +567,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     int view_count = 0;
     float init_val = 0;
 
-    APRTimer timer;
-
-    timer.verbose_flag = true;
+    APRTimer timer(verbose);
 
     timer.start_timer("Compute APR maximum projection raycast");
 
@@ -825,9 +821,7 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
 
     cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
 
-    APRTimer timer;
-
-    timer.verbose_flag = true;
+    APRTimer timer(verbose);
 
     int view_count = 0;
 
