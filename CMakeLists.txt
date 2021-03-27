@@ -11,8 +11,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # APR build options:
 option(APR_INSTALL "Install APR library" OFF)
-option(APR_BUILD_SHARED_LIB "Builds shared library" ON)
-option(APR_BUILD_STATIC_LIB "Builds static library" OFF)
+option(APR_BUILD_SHARED_LIB "Builds shared library" OFF)
+option(APR_BUILD_STATIC_LIB "Builds static library" ON)
 option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
 option(APR_USE_LIBTIFF "Use LibTIFF" ON)
 option(APR_TESTS "Build APR tests" OFF)
