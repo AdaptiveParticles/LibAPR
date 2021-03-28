@@ -9,7 +9,13 @@
 
 #include "Object.h"
 
-class Camera : Object {
+#ifdef WIN_COMPILE
+#define LIBRARY_API __declspec(dllexport)
+#else
+#define LIBRARY_API
+#endif
+
+class LIBRARY_API Camera : Object {
     friend class RaytracedObject;
 
 protected:

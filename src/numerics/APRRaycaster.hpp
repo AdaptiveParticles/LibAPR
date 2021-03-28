@@ -25,14 +25,8 @@
 
 #include "numerics/APRReconstruction.hpp"
 
-#ifdef WIN_COMPILE
-#define LIBRARY_API __declspec(dllexport)
-#else
-#define LIBRARY_API
-#endif
 
-
-class LIBRARY_API APRRaycaster {
+class APRRaycaster {
 
 public:
 

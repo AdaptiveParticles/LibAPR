@@ -37,7 +37,6 @@ void
 APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, int x_num, int y_num) {
     glm::vec2 pos = glmObjects->raytracedObject.worldToScreen(glmObjects->mvp, glm::vec3(x_actual, y_actual, z_actual),
                                                               x_num, y_num);
-
     dim1 = round(-pos.y);
     dim2 = round(-pos.x);
 }

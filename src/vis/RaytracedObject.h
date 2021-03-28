@@ -10,7 +10,13 @@
 #include "Camera.h"
 #include <glm/gtc/matrix_access.hpp>
 
-class RaytracedObject : public Object {
+#ifdef WIN_COMPILE
+#define LIBRARY_API __declspec(dllexport)
+#else
+#define LIBRARY_API
+#endif
+
+class LIBRARY_API RaytracedObject : public Object {
 
 protected:
     glm::vec3 extent_min;
