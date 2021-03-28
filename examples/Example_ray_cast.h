@@ -1,7 +1,7 @@
 #ifndef LIBAPR_EXAMPLE_RAY_CAST_H
 #define LIBAPR_EXAMPLE_RAY_CAST_H
 
-#include "numerics/APRRaycaster.cpp"
+#include "numerics/APRRaycaster.hpp"
 #include "data_structures/APR/APR.hpp"
 
 struct cmdLineOptions{
