@@ -5,11 +5,14 @@
 #ifndef LIBAPR_APRFILTER_HPP
 #define LIBAPR_APRFILTER_HPP
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846 //added for clang-cl windows compilation as cmath.h does not define this in clang (not part of the standard)
+#endif
+
 #include "numerics/APRStencil.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 
 #include<cmath>
-
 
 template<typename T>
 class ImageBuffer {
@@ -392,10 +395,6 @@ namespace APRFilter {
                 uint64_t z_in = (stencil_half[2] + (stencil_half[2] - z)) % stencil_shape[2];
                 uint64_t in_offset = z_in * x_num * y_num;
 
-                // copy slice at z_in to z
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
                 for(int x = 0; x < x_num; ++x) {
                     std::copy(temp_vec.mesh.begin() + in_offset + x * y_num,
                               temp_vec.mesh.begin() + in_offset + (x+1) * y_num,
@@ -410,9 +409,6 @@ namespace APRFilter {
                 uint64_t in_offset = z_in * x_num * y_num;
 
                 // copy slice at z_in to z
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
                 for(int x = 0; x < x_num; ++x) {
                     std::copy(temp_vec.mesh.begin() + in_offset + x * y_num,
                               temp_vec.mesh.begin() + in_offset + (x+1) * y_num,
@@ -423,9 +419,7 @@ namespace APRFilter {
 
             // fill slice at z with zeroes
             T pad_value = 0;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
+
             for(int x = 0; x < x_num; ++x) {
                 std::fill(temp_vec.mesh.begin() + out_offset + x * y_num,
                           temp_vec.mesh.begin() + out_offset + (x+1) * y_num,
