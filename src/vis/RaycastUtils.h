@@ -5,10 +5,6 @@
 #ifndef APR_RAYCASTUTILS_H
 #define APR_RAYCASTUTILS_H
 
-#include "Object.h"
-#include "Camera.h"
-#include "RaytracedObject.h"
-
 #ifdef WIN_COMPILE
 #define LIBRARY_API __declspec(dllexport)
 #else

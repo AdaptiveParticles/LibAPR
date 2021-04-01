@@ -24,10 +24,6 @@
 #include "data_structures/APR/APR.hpp"
 
 #include "numerics/APRReconstruction.hpp"
-
-#include "vis/Camera.h"
-#include "vis/Object.h"
-#include "vis/RaytracedObject.h"
 #include "vis/RaycastUtils.h"
 
 class APRRaycaster {
@@ -58,7 +54,7 @@ public:
     std::string name = "raycast";
 
     template<typename S, typename V, class BinaryOperation>
-            void perform_raycast(APR &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
+    void perform_raycast(APR &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
 
     template<typename S, typename V, typename T, class BinaryOperation>
     void perform_raycast_patch(APR &apr, ParticleData<S> &particle_data,
