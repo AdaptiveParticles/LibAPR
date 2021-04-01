@@ -395,6 +395,7 @@ namespace APRFilter {
                 uint64_t z_in = (stencil_half[2] + (stencil_half[2] - z)) % stencil_shape[2];
                 uint64_t in_offset = z_in * x_num * y_num;
 
+                // copy slice at z_in to z
                 for(int x = 0; x < x_num; ++x) {
                     std::copy(temp_vec.mesh.begin() + in_offset + x * y_num,
                               temp_vec.mesh.begin() + in_offset + (x+1) * y_num,
