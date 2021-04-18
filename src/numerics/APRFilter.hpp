@@ -609,8 +609,8 @@ namespace APRFilter {
      * pixels correspond to groups of 2^dim particles. The values must be precomputed (e.g., through APRTreeNumerics::fill_tree_mean)
      * and passed to the function through tree_data
      */
-    template<typename APRTreeIteratorType, typename T, typename ParticleDataType>
-    void update_lower_level(APRTreeIteratorType& tree_it,
+    template<typename T, typename ParticleDataType>
+    void update_lower_level(LinearIterator& tree_it,
                             const int level,
                             const int z,
                             ImageBuffer<T> &temp_vec,
@@ -948,11 +948,11 @@ namespace APRFilter {
  * pixels correspond to groups of 2^dim particles. The values must be precomputed (e.g., through APRTreeNumerics::fill_tree_mean)
  * and passed to the function through tree_data
  */
-    template<typename T, typename ParticleDataType, typename APRTreeIteratorType>
+    template<typename T, typename ParticleDataType>
     inline void update_lower_level(const int level,
                                    const int z,
                                    const int x,
-                                   APRTreeIteratorType &tree_it,
+                                   LinearIterator &tree_it,
                                    ImageBuffer<T> &temp_vec,
                                    ParticleDataType &tree_data,
                                    const std::vector<int> &stencil_half,
