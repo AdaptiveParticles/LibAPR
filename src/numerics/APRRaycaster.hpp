@@ -682,7 +682,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
                         int dim1 = 0;
                         int dim2 = 0;
-                        getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
+                        getPos(glmObjects,dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
                                depth_slice[level].y_num);
 
                         if ((dim1 > 0) & (dim2 > 0) &

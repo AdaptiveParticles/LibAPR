@@ -93,16 +93,7 @@ int main(int argc, char **argv) {
     ///
     /////////////
 
-    //apr_raycaster.perform_raycast(apr,apr.particles_intensities,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
-
-    ReconPatch rp;
-    rp.level_delta = -1;
-    apr_raycaster.scale_down = pow(2,rp.level_delta);
-
-//    apr_raycaster.perform_raycast_patch(apr,parts,treeData,views1,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
-
-
-    apr_raycaster.perform_raycast_patch(apr,parts,treeData,views,rp,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
+    apr_raycaster.perform_raycast(apr,parts,views,[] (const uint16_t& a,const uint16_t& b) {return std::max(a,b);});
 
     //////////////
     ///
