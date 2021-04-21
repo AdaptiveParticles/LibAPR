@@ -16,7 +16,7 @@ struct GlmObjectsContainer {
     glm::mat4 mvp;
 };
 
-void initObjects(GlmObjectsContainer* glmObjects, int imageWidth, int imageHeight, float radius, float theta, float x0, float y0,
+void initObjects(GlmObjectsContainer* &glmObjects, int imageWidth, int imageHeight, float radius, float theta, float x0, float y0,
                  float z0, float x0f, float y0f, float z0f, float phi, float phi_s) {
     Camera cam = Camera(glm::vec3(x0 + radius*sin(phi), y0 + radius * sin(theta)*cos(phi_s), z0 + radius * cos(theta)*cos(phi_s)),
                         glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
@@ -28,12 +28,12 @@ void initObjects(GlmObjectsContainer* glmObjects, int imageWidth, int imageHeigh
     };
 }
 
-void killObjects(GlmObjectsContainer* glmObjects) {
+void killObjects(GlmObjectsContainer* &glmObjects) {
     delete glmObjects;
     glmObjects = nullptr;
 }
 
-void getPos(GlmObjectsContainer* glmObjects, int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, int x_num, int y_num) {
+void getPos(GlmObjectsContainer* &glmObjects, int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, int x_num, int y_num) {
     glm::vec2 pos = glmObjects->raytracedObject.worldToScreen(glmObjects->mvp, glm::vec3(x_actual, y_actual, z_actual),
                                                               x_num, y_num);
     dim1 = round(-pos.y);
