@@ -395,6 +395,7 @@ namespace APRFilter {
                 uint64_t z_in = (stencil_half[2] + (stencil_half[2] - z)) % stencil_shape[2];
                 uint64_t in_offset = z_in * x_num * y_num;
 
+                // copy slice at z_in to z
                 for(int x = 0; x < x_num; ++x) {
                     std::copy(temp_vec.mesh.begin() + in_offset + x * y_num,
                               temp_vec.mesh.begin() + in_offset + (x+1) * y_num,
@@ -506,8 +507,8 @@ namespace APRFilter {
      * Fills a pixel image with the particle values at a given level and depth (z), where the particles exactly match
      * the pixels.
      */
-    template<typename APRIteratorType, typename T, typename ParticleDataType>
-    void update_same_level(APRIteratorType& apr_it,
+    template<typename T, typename ParticleDataType>
+    void update_same_level(LinearIterator& apr_it,
                            const int level,
                            const int z,
                            ImageBuffer<T> &temp_vec,
@@ -538,8 +539,8 @@ namespace APRFilter {
      * Fills a pixel image with the particle values from one level below a given level and depth (z), that is, the
      * particles correspond to groups of 2^dim pixels.
      */
-    template<typename APRIteratorType, typename T, typename ParticleDataType>
-    void update_higher_level(APRIteratorType& apr_it,
+    template< typename T, typename ParticleDataType>
+    void update_higher_level(LinearIterator& apr_it,
                              const int level,
                              const int z,
                              ImageBuffer<T> &temp_vec,
@@ -569,8 +570,8 @@ namespace APRFilter {
     }
 
 
-    template<typename APRIteratorType, typename T, typename ParticleDataType>
-    void update_higher_level(APRIteratorType& apr_it,
+    template<typename T, typename ParticleDataType>
+    void update_higher_level(LinearIterator& apr_it,
                              const int level,
                              const int z,
                              ImageBuffer<T> &temp_vec,
@@ -608,8 +609,8 @@ namespace APRFilter {
      * pixels correspond to groups of 2^dim particles. The values must be precomputed (e.g., through APRTreeNumerics::fill_tree_mean)
      * and passed to the function through tree_data
      */
-    template<typename APRTreeIteratorType, typename T, typename ParticleDataType>
-    void update_lower_level(APRTreeIteratorType& tree_it,
+    template<typename T, typename ParticleDataType>
+    void update_lower_level(LinearIterator& tree_it,
                             const int level,
                             const int z,
                             ImageBuffer<T> &temp_vec,
@@ -639,9 +640,9 @@ namespace APRFilter {
     /**
      * Reconstruct isotropic neighborhoods around the particles at a given level and depth (z) in a pixel image.
      */
-    template<typename APRIteratorType, typename APRTreeIteratorType, typename T, typename ParticleDataType, typename ParticleTreeDataType>
-    void update_dense_array(APRIteratorType& apr_it,
-                            APRTreeIteratorType& tree_it,
+    template<typename T, typename ParticleDataType, typename ParticleTreeDataType>
+    void update_dense_array(LinearIterator& apr_it,
+                            LinearIterator& tree_it,
                             const int level,
                             const int z,
                             ParticleDataType &tree_data,
@@ -666,8 +667,8 @@ namespace APRFilter {
     }
 
 
-    template<typename T, typename ParticleDataType, typename APRIteratorType>
-    void run_convolution(APRIteratorType &apr_it, const int z, const int level, const ImageBuffer<T> &temp_vec, const PixelData<T> &stencil,
+    template<typename T, typename ParticleDataType>
+    void run_convolution(LinearIterator &apr_it, const int z, const int level, const ImageBuffer<T> &temp_vec, const PixelData<T> &stencil,
                          ParticleDataType &outputParticles, const std::vector<int> &stencil_half, const std::vector<int> &stencil_shape){
 
         const int x_num = temp_vec.x_num;
@@ -701,8 +702,8 @@ namespace APRFilter {
     }
 
 
-    template<typename T, typename ParticleDataType, typename APRIteratorType>
-    void run_convolution_pencil(APRIteratorType &apr_it, const int level, const int z, const int x,
+    template<typename T, typename ParticleDataType>
+    void run_convolution_pencil(LinearIterator &apr_it, const int level, const int z, const int x,
                                 const ImageBuffer<T> &temp_vec, const PixelData<T> &stencil,
                                 ParticleDataType &outputParticles, const std::vector<int> &stencil_half,
                                 const std::vector<int> &stencil_shape){
@@ -889,11 +890,11 @@ namespace APRFilter {
      * Fills a pixel image with the particle values at a given level and depth (z), where the particles exactly match
      * the pixels.
      */
-    template<typename T, typename ParticleDataType, typename APRIteratorType>
+    template<typename T, typename ParticleDataType>
     inline void update_same_level(const int level,
                                   const int z,
                                   const int x,
-                                  APRIteratorType &apr_it,
+                                  LinearIterator &apr_it,
                                   ImageBuffer<T> &temp_vec,
                                   ParticleDataType &inputParticles,
                                   std::vector<int> stencil_half,
@@ -911,11 +912,11 @@ namespace APRFilter {
 
 
 
-    template<typename T, typename ParticleDataType, typename APRIteratorType>
+    template<typename T, typename ParticleDataType>
     inline void update_higher_level(const int level,
                                     const int z,
                                     const int x,
-                                    APRIteratorType &apr_it,
+                                    LinearIterator &apr_it,
                                     ImageBuffer<T> &temp_vec,
                                     ParticleDataType &inputParticles,
                                     const std::vector<int> &stencil_half,
@@ -947,11 +948,11 @@ namespace APRFilter {
  * pixels correspond to groups of 2^dim particles. The values must be precomputed (e.g., through APRTreeNumerics::fill_tree_mean)
  * and passed to the function through tree_data
  */
-    template<typename T, typename ParticleDataType, typename APRTreeIteratorType>
+    template<typename T, typename ParticleDataType>
     inline void update_lower_level(const int level,
                                    const int z,
                                    const int x,
-                                   APRTreeIteratorType &tree_it,
+                                   LinearIterator &tree_it,
                                    ImageBuffer<T> &temp_vec,
                                    ParticleDataType &tree_data,
                                    const std::vector<int> &stencil_half,
@@ -970,9 +971,9 @@ namespace APRFilter {
 /**
  * Reconstruct isotropic neighborhoods around the particles at a given level and depth (z) in a pixel image.
  */
-    template<typename T, typename ParticleDataType, typename ParticleTreeDataType, typename APRIteratorType, typename APRTreeIteratorType>
-    void update_dense_array(APRIteratorType &apr_it,
-                            APRTreeIteratorType &tree_it,
+    template<typename T, typename ParticleDataType, typename ParticleTreeDataType>
+    void update_dense_array(LinearIterator &apr_it,
+                            LinearIterator &tree_it,
                             const int level,
                             const int z,
                             const int x,

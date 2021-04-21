@@ -70,7 +70,7 @@ bool denoise_example(cmdLineOptionsDenoise& options){
     // reconstruct noisy input image by piecewise constant interpolation
     timer.start_timer("pc interp");
     PixelData<uint16_t> recon_pc;
-    APRReconstruction::interp_img(apr,recon_pc, parts);
+    APRReconstruction::reconstruct_constant(apr,recon_pc, parts);
     timer.stop_timer();
 
     // save reconstructed input as TIFF
@@ -100,7 +100,7 @@ bool denoise_example(cmdLineOptionsDenoise& options){
 
     // reconstruct image from denoised particles by piecewise constant interpolation
     timer.start_timer("pc interp");
-    APRReconstruction::interp_img(apr,recon_pc, parts_denoised);
+    APRReconstruction::reconstruct_constant(apr,recon_pc, parts_denoised);
     timer.stop_timer();
 
     // save denosied image as TIFF

@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
 
             timer.start_timer("pc interp");
             //perform piece-wise constant interpolation
-            APRReconstruction::interp_img(apr,recon_pc, parts);
+            APRReconstruction::reconstruct_constant(apr,recon_pc, parts);
             timer.stop_timer();
 
             if(add_random_gitter){
@@ -225,19 +225,19 @@ int main(int argc, char **argv) {
             PixelData<uint16_t> type_recon;
 
             //pc interp
-            APRReconstruction::interp_img(apr,type_recon, levelp);
+            APRReconstruction::reconstruct_constant(apr,type_recon, levelp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_level.tif", type_recon);
 
             //pc interp
-            APRReconstruction::interp_img(apr,type_recon, xp);
+            APRReconstruction::reconstruct_constant(apr,type_recon, xp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_x.tif", type_recon);
 
             //pc interp
-            APRReconstruction::interp_img(apr,type_recon, yp);
+            APRReconstruction::reconstruct_constant(apr,type_recon, yp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_y.tif", type_recon);
 
             //pc interp
-            APRReconstruction::interp_img(apr,type_recon, zp);
+            APRReconstruction::reconstruct_constant(apr,type_recon, zp);
             TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_z.tif", type_recon);
         }
     }
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
         std::vector<float> scale_d = {2, 2, 2};
 
         timer.start_timer("smooth reconstrution");
-        APRReconstruction::interp_parts_smooth(apr,recon_smooth, parts, scale_d); //#TODO: i'm not convinced this is working correclty.
+        APRReconstruction::reconstruct_smooth(apr,recon_smooth, parts, scale_d); //#TODO: i'm not convinced this is working correclty.
         timer.stop_timer();
 
         float elapsed_seconds = timer.t2 - timer.t1;

@@ -123,7 +123,7 @@ else()
 endif()
 
 # Add submodule GLM (include files only)
-include_directories("external/glm")
+include_directories(external/glm)
 
 #message(STATUS "---------------------- VARS BEG ---------------------")
 #get_cmake_property(_variableNames VARIABLES)
@@ -198,8 +198,9 @@ set(LIBRARY_NAME APR)
 include_directories(src)
 
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
+set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp src/vis/RaycastUtils.cpp)
 
-add_library(aprObjLib OBJECT ${SOURCE_FILES})
+add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
@@ -262,7 +263,7 @@ if(APR_BUILD_SHARED_LIB)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
 
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}  ${CUDA_CUDART_LIBRARY} ${ZLIB_LIBRARIES})
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${CUDA_CUDART_LIBRARY} ${ZLIB_LIBRARIES})
     if(BLOSC_FOUND)
         target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
     else()
@@ -302,7 +303,7 @@ if(APR_INSTALL)
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION ${INSTALL_INCLUDE_PROJECT_DIR}/io)
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION ${INSTALL_INCLUDE_PROJECT_DIR})
 
-    set(APR_TARGETS LibAprTargets)
+    set(APR_TARGETS LibAPRTargets)
     install(TARGETS ${SHARED_TARGET_NAME} ${STATIC_TARGET_NAME}
             EXPORT ${APR_TARGETS}
             LIBRARY DESTINATION ${INSTALL_LIB_DIR}
@@ -313,18 +314,18 @@ if(APR_INSTALL)
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/apr.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/apr.pc" @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/apr.pc" DESTINATION lib/pkgconfig COMPONENT DEV)
 
-    # AprTargets
+    # APRTargets
     set(APR_NAMESPACE ${LIBRARY_NAME}::)
-    export( EXPORT ${APR_TARGETS} FILE "${CMAKE_CURRENT_BINARY_DIR}/AprTargets.cmake" NAMESPACE ${APR_NAMESPACE})
-    install(EXPORT ${APR_TARGETS} FILE AprTargets.cmake NAMESPACE ${APR_NAMESPACE} DESTINATION ${INSTALL_CMAKE_DIR})
+    export( EXPORT ${APR_TARGETS} FILE "${CMAKE_CURRENT_BINARY_DIR}/APRTargets.cmake" NAMESPACE ${APR_NAMESPACE})
+    install(EXPORT ${APR_TARGETS} FILE APRTargets.cmake NAMESPACE ${APR_NAMESPACE} DESTINATION ${INSTALL_CMAKE_DIR})
 
-    # AprConfig
-    configure_file(cmake/AprConfig.cmake "${CMAKE_CURRENT_BINARY_DIR}/AprConfig.cmake" @ONLY)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/AprConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/AprConfigVersion.cmake DESTINATION ${INSTALL_CMAKE_DIR} COMPONENT DEV)
+    # APRConfig
+    configure_file(cmake/AprConfig.cmake "${CMAKE_CURRENT_BINARY_DIR}/APRConfig.cmake" @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/APRConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/APRConfigVersion.cmake DESTINATION ${INSTALL_CMAKE_DIR} COMPONENT DEV)
 
-    # AprConfigVersion
+    # APRConfigVersion
     include(CMakePackageConfigHelpers)
-    write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/AprConfigVersion.cmake" VERSION ${APR_VERSION_STRING} COMPATIBILITY AnyNewerVersion)
+    write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/APRConfigVersion.cmake" VERSION ${APR_VERSION_STRING} COMPATIBILITY AnyNewerVersion)
 
     # uninstall
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-uninstall.cmake.in"

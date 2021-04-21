@@ -159,7 +159,7 @@ namespace TiffUtils {
      * @return mesh with tiff or empty mesh if reading file failed
      */
     template<typename T>
-    PixelData<T> getMesh(const std::string &aFileName,bool verbose = true) {
+    PixelData<T> getMesh(const std::string &aFileName, bool verbose = false) {
         TiffInfo tiffInfo(aFileName);
         return getMesh<T>(tiffInfo,verbose);
     }
@@ -171,10 +171,10 @@ namespace TiffUtils {
      * @return mesh with tiff or empty mesh if reading file failed
      */
     template<typename T>
-    PixelData<T> getMesh(const TiffInfo &aTiff,bool verbose = true) {
+    PixelData<T> getMesh(const TiffInfo &aTiff, bool verbose = false) {
         if (!aTiff.isFileOpened()) return PixelData<T>();
         PixelData<T> mesh(aTiff.iImgHeight, aTiff.iImgWidth, aTiff.iNumberOfDirectories);
-        getMesh(aTiff, mesh,verbose);
+        getMesh(aTiff, mesh, verbose);
         return mesh;
     }
 
@@ -200,7 +200,7 @@ namespace TiffUtils {
     * @return mesh with tiff or empty mesh if reading file failed
     */
     template<typename T>
-    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh,bool verbose = true) {
+    void getMesh(const TiffInfo &aTiff, PixelData<T> &aInputMesh, bool verbose = false) {
         if (!aTiff.isFileOpened()) return;
 
         if(verbose) {
@@ -280,7 +280,7 @@ namespace TiffUtils {
      * @param aData mesh with data
      */
     template<typename T>
-    void saveMeshAsTiff(const std::string &aFileName, const PixelData<T> &aData,bool verbose = true) {
+    void saveMeshAsTiff(const std::string &aFileName, const PixelData<T> &aData, bool verbose = false) {
         if(verbose) {
             std::cout << __func__ << ": " << "FileName: [" << aFileName << "] " << aData << std::endl;
         }
@@ -352,10 +352,10 @@ namespace TiffUtils {
      * @param aData mesh with data
      */
     template<typename T>
-    void saveMeshAsTiffUint16(const std::string &filename, const PixelData<T> &aData,bool verbose = true) {
+    void saveMeshAsTiffUint16(const std::string &filename, const PixelData<T> &aData, bool verbose = false) {
         //  Converts the data to uint16t then writes it (requires creation of a complete copy of the data)
         PixelData<uint16_t> mesh16{aData, true /*copy data*/};
-        saveMeshAsTiff(filename, mesh16,verbose);
+        saveMeshAsTiff(filename, mesh16, verbose);
     }
 }
 
