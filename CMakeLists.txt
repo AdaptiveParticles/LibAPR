@@ -201,6 +201,7 @@ set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
 set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp src/vis/RaycastUtils.cpp)
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+set_property(TARGET aprObjLib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
