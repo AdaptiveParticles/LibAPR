@@ -6,15 +6,9 @@ matrix:
     sudo: false
     addons:
       apt:
-        sources:
-        - sourceline: ppa:teward/swig3.0
-        - sourceline: ppa:george-edison55/precise-backports
-        - sourceline: ppa:ubuntu-toolchain-r/test
-        - llvm-toolchain-precise-3.6
         packages:
         - cmake
         - cmake-data
-        - clang-3.6
         - libhdf5-dev
         - libtiff5
   - os: osx
