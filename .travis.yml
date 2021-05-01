@@ -29,15 +29,8 @@ matrix:
   - os: windows
     language: cpp
 
-
 install:
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install c-blosc; fi
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then echo "UPDATESTARTUPTTY" | gpg-connect-agent > /dev/null 2>&1; fi
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install cmake || brew upgrade cmake ; fi
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=clang++-3.6; fi
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CXX=clang++-3.6; fi
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CC=clang-3.6; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade cmake ; fi
 - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then travis_wait 10 choco install visualstudio2019buildtools --params "--add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Llvm.Clang --add Microsoft.VisualStudio.Component.Windows10SDK.19041	--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.ComponentGroup.UWP.VC.BuildTools"; fi
 - git submodule init
 - git submodule update
