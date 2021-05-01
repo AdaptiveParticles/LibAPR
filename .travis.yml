@@ -19,6 +19,13 @@ matrix:
         - libtiff5
   - os: osx
     osx_image: xcode11.4
+    addons:
+      homebrew:
+        packages:
+          - c-blosc
+          - cmake
+          - llvm
+          - libomp
   - os: windows
     language: cpp
 
