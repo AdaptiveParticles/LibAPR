@@ -508,7 +508,7 @@ namespace APRFilter {
      * the pixels.
      */
     template<typename T, typename ParticleDataType>
-    void update_same_level(LinearIterator& apr_it,
+    void update_same_level(LinearIterator apr_it,
                            const int level,
                            const int z,
                            ImageBuffer<T> &temp_vec,
@@ -540,7 +540,7 @@ namespace APRFilter {
      * particles correspond to groups of 2^dim pixels.
      */
     template< typename T, typename ParticleDataType>
-    void update_higher_level(LinearIterator& apr_it,
+    void update_higher_level(LinearIterator apr_it,
                              const int level,
                              const int z,
                              ImageBuffer<T> &temp_vec,
@@ -571,7 +571,7 @@ namespace APRFilter {
 
 
     template<typename T, typename ParticleDataType>
-    void update_higher_level(LinearIterator& apr_it,
+    void update_higher_level(LinearIterator apr_it,
                              const int level,
                              const int z,
                              ImageBuffer<T> &temp_vec,
@@ -610,7 +610,7 @@ namespace APRFilter {
      * and passed to the function through tree_data
      */
     template<typename T, typename ParticleDataType>
-    void update_lower_level(LinearIterator& tree_it,
+    void update_lower_level(LinearIterator tree_it,
                             const int level,
                             const int z,
                             ImageBuffer<T> &temp_vec,
@@ -641,8 +641,8 @@ namespace APRFilter {
      * Reconstruct isotropic neighborhoods around the particles at a given level and depth (z) in a pixel image.
      */
     template<typename T, typename ParticleDataType, typename ParticleTreeDataType>
-    void update_dense_array(LinearIterator& apr_it,
-                            LinearIterator& tree_it,
+    void update_dense_array(LinearIterator apr_it,
+                            LinearIterator tree_it,
                             const int level,
                             const int z,
                             ParticleDataType &tree_data,
@@ -668,7 +668,7 @@ namespace APRFilter {
 
 
     template<typename T, typename ParticleDataType>
-    void run_convolution(LinearIterator &apr_it, const int z, const int level, const ImageBuffer<T> &temp_vec, const PixelData<T> &stencil,
+    void run_convolution(LinearIterator apr_it, const int z, const int level, const ImageBuffer<T> &temp_vec, const PixelData<T> &stencil,
                          ParticleDataType &outputParticles, const std::vector<int> &stencil_half, const std::vector<int> &stencil_shape){
 
         const int x_num = temp_vec.x_num;
