@@ -149,7 +149,7 @@ if(WIN32)
         message(STATUS "Compiling on windows with CLANG!")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcxx-exceptions")
 
-        set(CMAKE_CXX_FLAGS_DEBUG "/MD /Z7")
+        set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Z7")
         set(CMAKE_CXX_FLAGS_RELEASE "/MD /EHsc /std:c++17 /arch:AVX2 -Xclang -O3 /nologo /fp:fast") #-flto=thin -march=native /O2 /Ob2
 
     endif()
@@ -158,7 +158,7 @@ if(WIN32)
         message(STATUS "Compiling on windows with MSVC!")
 
         set(CMAKE_CXX_FLAGS_RELEASE "/MD /EHsc /std:c++17 /arch:AVX2 /O2 /Ob2 /nologo /fp:fast")
-        set(CMAKE_CXX_FLAGS_DEBUG "/MD /Z7")
+        set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Z7")
 
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_VS")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_VS")
