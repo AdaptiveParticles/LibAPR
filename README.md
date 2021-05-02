@@ -99,7 +99,7 @@ This will create the `libapr.so` library in the `build` directory.
 
 On OSX, install the `cmake`, `hdf5` and `libtiff`  [homebrew](https://brew.sh) packages and have the [Xcode command line tools](http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/) installed.
 
-If you want to compile with OpenMP support, also install the `llvm` package (this can also be done using homebrew), as the clang version shipped by Apple currently does not support OpenMP.
+If you want to compile with OpenMP support (Recommended), also install the `llvm` and `libomp` package via homebrew as the clang version shipped by Apple currently does not support OpenMP.
 
 In the directory of the cloned repository, run
 
@@ -108,15 +108,6 @@ mkdir build
 cd build
 cmake ..
 make
-```
-
-This will create the `libapr.dylib` library in the `build` directory.
-
-
-In case you want to use the homebrew-installed clang (OpenMP support), modify the call to `cmake` above to
-
-```
-CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake ..
 ```
 
 ### Building on Windows
@@ -139,6 +130,7 @@ choco install -y cmake.portable
 install the required visual studio compiler tools and clang: (Note you can also do this via downloading 2019 community and selecting the correct packages)
 ```
 choco install visualstudio2019buildtools --params "--add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Llvm.Clang --add Microsoft.VisualStudio.Component.Windows10SDK.19041	--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.ComponentGroup.UWP.VC.BuildTools"
+choco install -y llvm
 ```
 Now install your dependencies using vcpkg, in an install directory (VCPKG_PATH) of your choice do the following:
 ```
@@ -147,7 +139,7 @@ cd vcpkg
 ./bootstrap-vcpkg.bat
 ./vcpkg.exe install blosc:x64-windows gtest:x64-windows tiff:x64-windows hdf5:x64-windows szip:x64-windows
 ```
-Now navigate to your cloned LibAPR directory (git clone --recursive https://github.com/AdaptiveParticles/LibAPR.git) and use vcpkg to install the required dependencies. You should have all dependencies set up to be able to build the library with clang-cl -A x64 -T ClangCL and to search for dependencies from vcpkg at your vcpkg install location: -DCMAKE_TOOLCHAIN_FILE="VCPKG_PATH/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows .
+Now navigate to your cloned LibAPR directory (git clone --recursive https://github.com/AdaptiveParticles/LibAPR.git). You should have all dependencies set up to be able to build the library with clang-cl `-A x64 -T ClangCL` and to search for dependencies from vcpkg at your vcpkg install location: `-DCMAKE_TOOLCHAIN_FILE="VCPKG_PATH/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows` .
 
 Now for example to build the tests and examples (Please note you will need to update below with your own VCPKG_PATH from the steps above.
 ```
