@@ -242,12 +242,14 @@ if(APR_BUILD_STATIC_LIB)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
     target_include_directories(${STATIC_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
 
+    target_link_libraries(${STATIC_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${CUDA_CUDART_LIBRARY} ${ZLIB_LIBRARIES})
+
     # generate fat static library by adding dependencies
     if(NOT BLOSC_FOUND)
         include(cmake/AddStaticLibs.cmake)
         addStaticLibs(${STATIC_TARGET_NAME} blosc_static) #this is not working currently for clang-cl please use external.
     else()
-        target_link_libraries(${STATIC_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES}  ${ZLIB_LIBRARIES} )
+        target_link_libraries(${STATIC_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
     endif()
 
 endif()
