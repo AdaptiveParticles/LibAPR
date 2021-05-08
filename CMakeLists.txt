@@ -1,21 +1,23 @@
 ###############################################################################
 # APR - Adaptive Particle Representation
 ###############################################################################
-cmake_minimum_required(VERSION 3.9)
-project(LibAPR DESCRIPTION "Adaptive Particle Representation library")
+cmake_minimum_required(VERSION 3.10)
+project(APR DESCRIPTION "Adaptive Particle Representation library")
+
+message(STATUS "CMAKE VERSION ${CMAKE_VERSION}")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # APR build options:
 option(APR_INSTALL "Install APR library" OFF)
-option(APR_BUILD_SHARED_LIB "Builds shared library" ON)
-option(APR_BUILD_STATIC_LIB "Builds static library" OFF)
+option(APR_BUILD_SHARED_LIB "Builds shared library" OFF)
+option(APR_BUILD_STATIC_LIB "Builds static library" ON)
 option(APR_BUILD_EXAMPLES "Build APR examples" OFF)
 option(APR_USE_LIBTIFF "Use LibTIFF" ON)
 option(APR_TESTS "Build APR tests" OFF)
-option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" OFF)
-option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" OFF)
+option(APR_PREFER_EXTERNAL_GTEST "When found, use the installed GTEST libs instead of included sources" ON)
+option(APR_PREFER_EXTERNAL_BLOSC "When found, use the installed BLOSC libs instead of included sources" ON)
 option(APR_USE_CUDA "should APR use CUDA? (experimental - under development)" OFF)
 option(APR_USE_OPENMP "should APR use OpenMP?" ON)
 option(APR_BENCHMARK "add benchmarking code" OFF)
@@ -77,7 +79,6 @@ if(APR_DENOISE)
 
 endif()
 
-
 if(APR_USE_LIBTIFF)
     find_package(TIFF)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_LIBTIFF")
@@ -86,17 +87,22 @@ endif()
 
 # Handle OpenMP
 find_package(OpenMP)
+
 if(NOT OPENMP_FOUND OR NOT APR_USE_OPENMP)
     message(WARNING "OpenMP support not found or disabled with current compiler. While APR can compile like this, performance might not be optimal. Please see README.md for instructions.")
+    set(OPENMP_LINK "")
 else()
+    set(OPENMP_LINK "OpenMP::OpenMP_CXX")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_OPENMP ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP ${OpenMP_CXX_FLAGS}")
 endif()
+
 include_directories(${HDF5_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR})
 
 if(APR_PREFER_EXTERNAL_BLOSC)
     find_package(BLOSC)
 endif()
+
 if(BLOSC_FOUND)
     message(STATUS "APR: blosc found, using external blosc")
     include_directories(${BLOSC_INCLUDE_DIR})
@@ -117,7 +123,7 @@ else()
 endif()
 
 # Add submodule GLM (include files only)
-include_directories("external/glm")
+include_directories(external/glm)
 
 #message(STATUS "---------------------- VARS BEG ---------------------")
 #get_cmake_property(_variableNames VARIABLES)
@@ -132,18 +138,49 @@ include_directories("external/glm")
 # If you ever want to compile with Intel's icc (or any other compiler) provide
 # compiler names/paths in cmake command like this:
 # CC="icc" CXX="icc" CXXFLAGS="-O3" cmake -DAPR_TESTS=1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
-if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
-    if(NOT WIN32)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
+
+if(WIN32)
+
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_COMPILE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_COMPILE")
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+
+        message(STATUS "Compiling on windows with CLANG!")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcxx-exceptions")
+
+        set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Z7")
+        set(CMAKE_CXX_FLAGS_RELEASE "/MD /EHsc /std:c++17 /arch:AVX2 -Xclang -O3 /nologo /fp:fast") #-flto=thin -march=native /O2 /Ob2
+
     endif()
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        message(STATUS "Compiling on windows with MSVC!")
+
+        set(CMAKE_CXX_FLAGS_RELEASE "/MD /EHsc /std:c++17 /arch:AVX2 /O2 /Ob2 /nologo /fp:fast")
+        set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Z7")
+
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWIN_VS")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWIN_VS")
+
+    endif()
+
+
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
+
+    if(CMAKE_COMPILER_IS_GNUCC)
+        set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
+        set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
+        if(NOT WIN32)
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
+        endif()
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
+        set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
+    endif()
 endif()
 
 if (APR_BENCHMARK)
@@ -156,14 +193,15 @@ endif()
 # Generate APR library
 ###############################################################################
 
-set(LIBRARY_NAME apr)
+set(LIBRARY_NAME APR)
 
 include_directories(src)
 
 set(SOURCE_FILES src/io/blosc_filter.c src/io/hdf5functions_blosc.cpp)
-#set(SOURCE_FILES_RAYCAST src/numerics/APRRaycaster.cpp src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp)
+set(SOURCE_FILES_RAYCAST src/vis/Camera.cpp src/vis/Object.cpp src/vis/RaytracedObject.cpp src/vis/RaycastUtils.cpp)
 
 add_library(aprObjLib OBJECT ${SOURCE_FILES} ${SOURCE_FILES_RAYCAST})
+set_property(TARGET aprObjLib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
@@ -204,11 +242,16 @@ if(APR_BUILD_STATIC_LIB)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
     target_include_directories(${STATIC_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
 
+    target_link_libraries(${STATIC_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${CUDA_CUDART_LIBRARY} ${ZLIB_LIBRARIES})
+
     # generate fat static library by adding dependencies
     if(NOT BLOSC_FOUND)
         include(cmake/AddStaticLibs.cmake)
-        addStaticLibs(${STATIC_TARGET_NAME} blosc_static)
+        addStaticLibs(${STATIC_TARGET_NAME} blosc_static) #this is not working currently for clang-cl please use external.
+    else()
+        target_link_libraries(${STATIC_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
     endif()
+
 endif()
 
 if(APR_BUILD_SHARED_LIB)
@@ -223,7 +266,7 @@ if(APR_BUILD_SHARED_LIB)
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY VERSION ${APR_VERSION_STRING})
     set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY SOVERSION ${APR_VERSION_MAJOR})
 
-    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES}  ${CUDA_CUDART_LIBRARY} ${ZLIB_LIBRARIES})
+    target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${CUDA_CUDART_LIBRARY} ${ZLIB_LIBRARIES})
     if(BLOSC_FOUND)
         target_link_libraries(${SHARED_TARGET_NAME} PRIVATE ${BLOSC_LIBRARIES} ${ZLIB_LIBRARIES})
     else()
@@ -263,7 +306,7 @@ if(APR_INSTALL)
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION ${INSTALL_INCLUDE_PROJECT_DIR}/io)
     install(FILES ${PROJECT_BINARY_DIR}/ConfigAPR.h COMPONENT DEV DESTINATION ${INSTALL_INCLUDE_PROJECT_DIR})
 
-    set(APR_TARGETS LibAprTargets)
+    set(APR_TARGETS LibAPRTargets)
     install(TARGETS ${SHARED_TARGET_NAME} ${STATIC_TARGET_NAME}
             EXPORT ${APR_TARGETS}
             LIBRARY DESTINATION ${INSTALL_LIB_DIR}
@@ -274,18 +317,18 @@ if(APR_INSTALL)
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/apr.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/apr.pc" @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/apr.pc" DESTINATION lib/pkgconfig COMPONENT DEV)
 
-    # AprTargets
+    # APRTargets
     set(APR_NAMESPACE ${LIBRARY_NAME}::)
-    export( EXPORT ${APR_TARGETS} FILE "${CMAKE_CURRENT_BINARY_DIR}/AprTargets.cmake" NAMESPACE ${APR_NAMESPACE})
-    install(EXPORT ${APR_TARGETS} FILE AprTargets.cmake NAMESPACE ${APR_NAMESPACE} DESTINATION ${INSTALL_CMAKE_DIR})
+    export( EXPORT ${APR_TARGETS} FILE "${CMAKE_CURRENT_BINARY_DIR}/APRTargets.cmake" NAMESPACE ${APR_NAMESPACE})
+    install(EXPORT ${APR_TARGETS} FILE APRTargets.cmake NAMESPACE ${APR_NAMESPACE} DESTINATION ${INSTALL_CMAKE_DIR})
 
-    # AprConfig
-    configure_file(cmake/AprConfig.cmake "${CMAKE_CURRENT_BINARY_DIR}/AprConfig.cmake" @ONLY)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/AprConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/AprConfigVersion.cmake DESTINATION ${INSTALL_CMAKE_DIR} COMPONENT DEV)
+    # APRConfig
+    configure_file(cmake/AprConfig.cmake "${CMAKE_CURRENT_BINARY_DIR}/APRConfig.cmake" @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/APRConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/APRConfigVersion.cmake DESTINATION ${INSTALL_CMAKE_DIR} COMPONENT DEV)
 
-    # AprConfigVersion
+    # APRConfigVersion
     include(CMakePackageConfigHelpers)
-    write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/AprConfigVersion.cmake" VERSION ${APR_VERSION_STRING} COMPATIBILITY AnyNewerVersion)
+    write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/APRConfigVersion.cmake" VERSION ${APR_VERSION_STRING} COMPATIBILITY AnyNewerVersion)
 
     # uninstall
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-uninstall.cmake.in"

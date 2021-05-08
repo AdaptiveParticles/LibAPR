@@ -874,14 +874,14 @@ private:
 
 template<typename T, typename S, typename R, typename C>
 void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C constant_operator, bool aInitializeOutput = false) {
-    const int z_num = aInput.z_num;
-    const int x_num = aInput.x_num;
-    const int y_num = aInput.y_num;
+    const size_t z_num = aInput.z_num;
+    const size_t x_num = aInput.x_num;
+    const size_t y_num = aInput.y_num;
 
     // downsampled dimensions twice smaller (rounded up)
-    const int z_num_ds = ceil(z_num/2.0);
-    const int x_num_ds = ceil(x_num/2.0);
-    const int y_num_ds = ceil(y_num/2.0);
+    const size_t z_num_ds = ceil(z_num/2.0);
+    const size_t x_num_ds = ceil(x_num/2.0);
+    const size_t y_num_ds = ceil(y_num/2.0);
 
     APRTimer timer;
     timer.verbose_flag = false;
@@ -896,19 +896,19 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
     #ifdef HAVE_OPENMP
     #pragma omp parallel for default(shared)
     #endif
-    for (int z = 0; z < z_num_ds; ++z) {
-        for (int x = 0; x < x_num_ds; ++x) {
+    for (size_t z = 0; z < z_num_ds; ++z) {
+        for (size_t x = 0; x < x_num_ds; ++x) {
 
             // shifted +1 in original inMesh space
-            const int shx = std::min(2*x + 1, x_num - 1);
-            const int shz = std::min(2*z + 1, z_num - 1);
+            const size_t shx = std::min(2*x + 1, x_num - 1);
+            const size_t shz = std::min(2*z + 1, z_num - 1);
 
             const ArrayWrapper<T> &inMesh = aInput.mesh;
             ArrayWrapper<S> &outMesh = aOutput.mesh;
 
-            for (int y = 0; y < y_num_ds; ++y) {
-                const int shy = std::min(2*y + 1, y_num - 1);
-                const size_t idx = (size_t) z * x_num_ds * y_num_ds + x * y_num_ds + y;
+            for (size_t y = 0; y < y_num_ds; ++y) {
+                const size_t shy = std::min(2*y + 1, y_num - 1);
+                const size_t idx = z * x_num_ds * y_num_ds + x * y_num_ds + y;
                 outMesh[idx] =  constant_operator(
                         reduce(reduce(reduce(reduce(reduce(reduce(reduce(        // inMesh coordinates
                                inMesh[2*z * x_num * y_num + 2*x * y_num + 2*y],  // z,   x,   y
@@ -927,7 +927,7 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
 }
 
 template<typename T>
-void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
+void const_upsample_img(PixelData<T>& input_us, PixelData<T>& input){
     //
     //
     //  Bevan Cheeseman 2016
@@ -942,13 +942,13 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
 
     //restrict the domain to be only as big as possibly needed
 
-    const int z_num_ds = input.z_num;
-    const int x_num_ds = input.x_num;
-    const int y_num_ds = input.y_num;
+    const size_t z_num_ds = input.z_num;
+    const size_t x_num_ds = input.x_num;
+    const size_t y_num_ds = input.y_num;
 
-    const int z_num = input_us.z_num;
-    const int x_num = input_us.x_num;
-    const int y_num = input_us.y_num;
+    const size_t z_num = input_us.z_num;
+    const size_t x_num = input_us.x_num;
+    const size_t y_num = input_us.y_num;
 
     timer.start_timer("resize");
 
@@ -959,7 +959,7 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
 
     timer.start_timer("up_sample_const");
 
-    int j, i, k;
+    size_t j, i, k;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared) private(j,i,k) firstprivate(temp_vec) if(z_num_ds*x_num_ds > 100)
@@ -973,9 +973,9 @@ void const_upsample_img(PixelData<T>& input_us,PixelData<T>& input){
             }
 
 
-            for (int z = 2*j; z <= std::min(2*j+1, z_num-1); ++z) {
-                for (int x = 2*i; x <= std::min(2*i+1, x_num-1); ++x) {
-                    for (int y = 0; y < y_num; ++y) {
+            for (size_t z = 2*j; z <= std::min(2*j+1, z_num-1); ++z) {
+                for (size_t x = 2*i; x <= std::min(2*i+1, x_num-1); ++x) {
+                    for (size_t y = 0; y < y_num; ++y) {
 
                         input_us.mesh[z*x_num*y_num + x*y_num + y] = temp_vec[y/2];
 

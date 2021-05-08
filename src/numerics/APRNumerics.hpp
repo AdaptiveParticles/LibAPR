@@ -196,7 +196,16 @@ void APRNumerics::gradient_sobel(APR& apr,
         throw std::invalid_argument("APRNumerics::gradient_sobel argument 'dimension' must be 0 (y), 1 (x) or 2 (z)");
     }
 
-    auto stencil = APRStencil::create_sobel_filter<GradientType>(dimension, delta);
+    PixelData<GradientType> stencil;
+    if(apr.number_dimensions() == 3) {
+        auto tmp = APRStencil::create_sobel_filter<GradientType>(dimension, delta);
+        stencil.swap(tmp);
+    } else if(apr.number_dimensions() == 2 && dimension != 2) {
+        auto tmp = APRStencil::create_sobel_filter2d<GradientType>(dimension, delta);
+        stencil.swap(tmp);
+    } else {
+        return gradient_cfd(apr, inputParticles, outputParticles, dimension, delta);
+    }
     std::vector<PixelData<GradientType>> stencil_vec;
     APRStencil::get_rescaled_stencils(stencil, stencil_vec, apr.level_max() - apr.level_min());
 

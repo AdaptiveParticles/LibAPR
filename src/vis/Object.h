@@ -14,7 +14,13 @@
 #include <glm/gtx/matrix_operation.hpp>
 #include <vector>
 
-class Object {
+#ifdef WIN_COMPILE
+#define LIBRARY_API __declspec(dllexport)
+#else
+#define LIBRARY_API
+#endif
+
+class LIBRARY_API Object {
 
 protected:
     glm::mat4 model = glm::diagonal4x4(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));

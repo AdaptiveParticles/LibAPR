@@ -1,1 +1,1 @@
-include("${CMAKE_CURRENT_LIST_DIR}/AprTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/APRTargets.cmake")

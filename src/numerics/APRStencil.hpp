@@ -342,11 +342,12 @@ namespace APRStencil {
     }
 
     template<typename T>
-    PixelData<T> create_sobel_filter2d(const int dim) {
+    PixelData<T> create_sobel_filter2d(const int dim, const float delta = 1.f) {
 
         PixelData<T> stencil(3, 3, 1);
+
         const std::vector<float> smooth1d = {0.25f, 0.5f, 0.25f};
-        const std::vector<float> diff1d = {-1.0f, 0.0f, 1.0f};
+        const std::vector<float> diff1d = {-1.0f/(2*delta), 0.0f, 1.0f/(2*delta)};
 
         // central finite difference in dimension 'dim', smoothing in the other dimension
         const std::vector<std::vector<float>> filter_bank = {
@@ -354,9 +355,9 @@ namespace APRStencil {
                 dim == 1 ? diff1d : smooth1d,
         };
 
-        for(int i = 0; i < 3; ++i) {
-            for(int j = 0; j < 3; ++j) {
-                stencil.at(i, j, 1) = filter_bank[0][i] * filter_bank[1][j];
+        for(int j = 0; j < 3; ++j) {
+            for(int i = 0; i < 3; ++i) {
+                stencil.at(i, j, 0) = filter_bank[0][i] * filter_bank[1][j];
             }
         }
         return stencil;

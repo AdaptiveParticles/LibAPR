@@ -610,11 +610,10 @@ bool test_symmetry_pipeline(){
             PixelData<uint16_t> smooth = TiffUtils::getMesh<uint16_t>("smooth_bsplines.tif");
 
             PixelData<uint16_t> recon_img;
-            APRReconstruction::interp_img(apr, recon_img, parts);
+            APRReconstruction::reconstruct_constant(apr, recon_img, parts);
 
             PixelData<uint16_t> level_img;
-            parts.fill_with_levels(apr);
-            APRReconstruction::interp_img(apr, level_img, parts);
+            APRReconstruction::reconstruct_level(apr, level_img);
 
 //    TiffUtils::saveMeshAsTiff("level_image.tif",level_img);
 //    TiffUtils::saveMeshAsTiff("img_recon.tif",recon_img);
@@ -1370,7 +1369,7 @@ bool test_apr_tree(TestData& test_data) {
 
     //generate tree test data
     PixelData<float> pc_image;
-    APRReconstruction::interp_img(test_data.apr,pc_image,test_data.particles_intensities);
+    APRReconstruction::reconstruct_constant(test_data.apr,pc_image,test_data.particles_intensities);
 
 
     std::vector<PixelData<float>> downsampled_img;
@@ -2885,7 +2884,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
     particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
 
     PixelData<uint16_t> pc_recon;
-    APRReconstruction::interp_img(apr,pc_recon,particles_intensities);
+    APRReconstruction::reconstruct_constant(apr,pc_recon,particles_intensities);
 
     //read in used scale
 
@@ -2949,7 +2948,7 @@ bool test_pipeline_bound_blocked(TestData& test_data, float rel_error){
 
     // Piecewise constant reconstruction
     PixelData<uint16_t> pc_recon;
-    APRReconstruction::interp_img(aprBatch,pc_recon,particles_intensities);
+    APRReconstruction::reconstruct_constant(aprBatch,pc_recon,particles_intensities);
 
     //read in intensity scale computed for the entire image by the standard converter
     PixelData<float> scale = TiffUtils::getMesh<float>(test_data.output_dir + "local_intensity_scale_step.tif");
@@ -2963,10 +2962,10 @@ bool test_pipeline_bound_blocked(TestData& test_data, float rel_error){
 }
 
 
-bool test_interp_level(TestData &test_data) {
+bool test_reconstruct_level(TestData &test_data) {
 
     PixelData<uint8_t> level_recon;
-    APRReconstruction::interp_level(test_data.apr, level_recon);
+    APRReconstruction::reconstruct_level(test_data.apr, level_recon);
 
     auto apr_it = test_data.apr.iterator();
     VectorData<uint8_t> level_parts;
@@ -2986,17 +2985,124 @@ bool test_interp_level(TestData &test_data) {
     }
 
     PixelData<uint8_t> level_recon_gt;
-    APRReconstruction::interp_img(test_data.apr, level_recon_gt, level_parts);
+    APRReconstruction::reconstruct_constant(test_data.apr, level_recon_gt, level_parts);
 
     for(uint64_t idx = 0; idx < level_recon.mesh.size(); ++idx) {
         if(level_recon.mesh[idx] != level_recon_gt.mesh[idx]) {
-            std::cout << "interp_level failed at index " << idx << ". Expected " << level_recon_gt.mesh[idx] <<
+            std::cout << "reconstruct_level failed at index " << idx << ". Expected " << level_recon_gt.mesh[idx] <<
                          " but got " << level_recon.mesh[idx] << std::endl;
             return false;
         }
     }
     return true;
 }
+
+
+
+bool test_reconstruct_patch(TestData &test_data, const int level_delta = 0) {
+
+    ReconPatch patch;
+    patch.z_begin = 13;
+    patch.z_end = 119;
+    patch.x_begin = 21;
+    patch.x_end = 58;
+    patch.y_begin = 24;
+    patch.y_end = 104;
+    patch.level_delta = level_delta;
+
+    APRTimer timer(true);
+    PixelData<float> recon_patch;
+    PixelData<float> recon_full;
+
+    ParticleData<float> tree_data;
+    APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data);
+
+    /// full reconstruction
+    APRReconstruction::reconstruct_constant(test_data.apr, recon_full, test_data.particles_intensities);
+
+    if (level_delta < 0) {
+        std::vector<PixelData<float>> img_pyramid;
+        const int level = test_data.apr.level_max() + patch.level_delta;
+        downsamplePyrmaid(recon_full, img_pyramid, test_data.apr.level_max(), level);
+        recon_full.swap(img_pyramid[level]);
+    }
+
+    /// patch reconstruction
+    APRReconstruction::reconstruct_constant(test_data.apr, recon_patch, test_data.particles_intensities, tree_data, patch);
+
+    size_t failures = 0;
+    float tol = 0.001;
+    size_t max_print = 10;
+
+    for(int z = patch.z_begin; z < patch.z_end; ++z) {
+        for(int x = patch.x_begin; x < patch.x_end; ++x) {
+            for(int y = patch.y_begin; y < patch.y_end; ++y) {
+                float gt = recon_full.at(y, x, z);
+                float est = recon_patch.at(y-patch.y_begin, x-patch.x_begin, z-patch.z_begin);
+
+                if(std::abs(gt-est) > tol) {
+                    if(failures < max_print) {
+                        std::cout << "Expected " << gt << " but received " << est << " at (z,x,y) = (" << z << ", " << x << ", " << y << ")" << std::endl;
+                    }
+                    failures++;
+                }
+            }
+        }
+    }
+
+    return failures == 0;
+}
+
+
+bool test_reconstruct_patch_smooth(TestData &test_data) {
+
+    ReconPatch patch;
+    patch.z_begin = 13;
+    patch.z_end = 119;
+    patch.x_begin = 21;
+    patch.x_end = 58;
+    patch.y_begin = 24;
+    patch.y_end = 104;
+    patch.level_delta = 0;
+
+    APRTimer timer(true);
+    PixelData<float> recon_patch;
+    PixelData<float> recon_full;
+
+    /// full reconstruction
+    APRReconstruction::reconstruct_smooth(test_data.apr, recon_full, test_data.particles_intensities);
+
+    /// patch reconstruction
+    APRReconstruction::reconstruct_smooth(test_data.apr, recon_patch, test_data.particles_intensities, patch);
+
+    size_t failures = 0;
+    float tol = 0.1;
+    size_t max_print = 4;
+    const int offset = 8; // values may be different at boundaries
+    for(int z = patch.z_begin+offset; z < patch.z_end-offset; ++z) {
+        for(int x = patch.x_begin+offset; x < patch.x_end-offset; ++x) {
+            for(int y = patch.y_begin+offset; y < patch.y_end-offset; ++y) {
+                float gt = recon_full.at(y, x, z);
+                float est = recon_patch.at(y-patch.y_begin, x-patch.x_begin, z-patch.z_begin);
+
+                if(std::abs(gt-est) > tol) {
+                    if(failures < max_print) {
+                        std::cout << "Expected " << gt << " but received " << est << " at (z,x,y) = (" << z << ", " << x << ", " << y << ")" << std::endl;
+                    }
+                    failures++;
+                }
+            }
+        }
+    }
+
+    const size_t tot_compared = (recon_patch.z_num - 2*offset) * (recon_patch.x_num - 2*offset) * (recon_patch.y_num - 2*offset);
+    std::cout << "test_reconstruct_patch_smooth: " << failures << " failures out of " << tot_compared << std::endl;
+
+    return failures == 0;
+}
+
+
+
 
 
 bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const std::vector<int>& stencil_size = {3, 3, 3}) {
@@ -3731,6 +3837,22 @@ TEST_F(CreateSmallSphereTest, LINEAR_ACCESS_IO) {
 
 }
 
+TEST_F(CreateSmallSphereTest, TEST_RECONSTRUCT) {
+    ASSERT_TRUE(test_reconstruct_patch(test_data, 0));
+    ASSERT_TRUE(test_reconstruct_patch(test_data, -1));
+    ASSERT_TRUE(test_reconstruct_patch(test_data, -2));
+
+    ASSERT_TRUE(test_reconstruct_patch_smooth(test_data));
+}
+
+TEST_F(CreateDiffDimsSphereTest, TEST_RECONSTRUCT) {
+    ASSERT_TRUE(test_reconstruct_patch(test_data, 0));
+    ASSERT_TRUE(test_reconstruct_patch(test_data, -1));
+    ASSERT_TRUE(test_reconstruct_patch(test_data, -2));
+
+    ASSERT_TRUE(test_reconstruct_patch_smooth(test_data));
+}
+
 
 TEST_F(CreateDiffDimsSphereTest, LINEAR_ACCESS_CREATE) {
 
@@ -3797,7 +3919,7 @@ TEST_F(CreateDiffDimsSphereTest, RANDOM_ACCESS) {
 
 TEST_F(CreateDiffDimsSphereTest, RECONSTRUCT_LEVEL) {
 
-    ASSERT_TRUE(test_interp_level(test_data));
+    ASSERT_TRUE(test_reconstruct_level(test_data));
 
 }
 

@@ -3,9 +3,18 @@
 //
 
 #include "RaytracedObject.h"
-#include <glm/gtc/matrix_access.hpp>
 #include <iostream>
 #include <algorithm>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// Implementation of glm related stuff. Main reason is to avoid necessity to have glm header files installed
+// to use libAPR.
+
+
+
 
 RaytracedObject::RaytracedObject(glm::vec3 position, glm::fquat rotation) : Object(position, rotation) { this->position = position; this->rotation = rotation; }
 

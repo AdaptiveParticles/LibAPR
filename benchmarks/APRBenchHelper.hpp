@@ -390,14 +390,15 @@ public:
 
                             for (int y_tile = 0; y_tile < tile_dims[0]; ++y_tile) {
 
-                                int y_offset = (y_tile * org_dims_y) / apr_tiled.aprInfo.level_size[new_level];
+                                uint16_t y_offset = (y_tile * org_dims_y) / apr_tiled.aprInfo.level_size[new_level];
 
                                 std::copy(lin_a_input.y_vec.begin() + begin ,lin_a_input.y_vec.begin() + end,
                                         lin_a_output.y_vec.begin() + begin_new + y_tile*total);
 
-                                transform(lin_a_output.y_vec.begin() + begin_new + y_tile*total, lin_a_output.y_vec.begin() + begin_new + (y_tile+1)*total
-                                        , lin_a_output.y_vec.begin() + begin_new + y_tile*total,
-                                          bind2nd(std::plus<uint16_t>(), y_offset));
+                                std::transform(lin_a_output.y_vec.begin() + begin_new + y_tile*total,
+                                               lin_a_output.y_vec.begin() + begin_new + (y_tile+1)*total,
+                                               lin_a_output.y_vec.begin() + begin_new + y_tile*total,
+                                               [y_offset](uint16_t a){return a + y_offset;});
                                 //add constant
 
                                 std::copy(parts.data.begin() + begin ,parts.data.begin() + end,

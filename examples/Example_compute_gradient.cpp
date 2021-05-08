@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
         // reconstruct pixel image from gradient
         timer.start_timer("reconstruct pixel image");
         PixelData<float> gradient_magnitude_image;
-        APRReconstruction::interp_img(apr, gradient_magnitude_image, output);
+        APRReconstruction::reconstruct_constant(apr, gradient_magnitude_image, output);
         timer.stop_timer();
 
         timer.start_timer("write pixel image to file");

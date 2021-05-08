@@ -67,14 +67,14 @@ cmake -DAPR_USE_OPENMP=OFF ..
 
 | Option | Description | Default value |
 |:--|:--|:--|
-| APR_BUILD_SHARED_LIB | Build shared library | ON |
-| APR_BUILD_STATIC_LIB | Build static library | OFF |
+| APR_BUILD_SHARED_LIB | Build shared library | OFF |
+| APR_BUILD_STATIC_LIB | Build static library | ON |
 | APR_BUILD_EXAMPLES | Build executable examples | OFF |
 | APR_TESTS | Build unit tests | OFF |
 | APR_BENCHMARK | Build executable performance benchmarks | OFF |
 | APR_USE_LIBTIFF | Enable LibTIFF (Required for tests and examples) | ON |
-| APR_PREFER_EXTERNAL_GTEST | Use installed gtest instead of included sources | OFF |
-| APR_PREFER_EXTERNAL_BLOSC | Use installed blosc instead of included sources | OFF |
+| APR_PREFER_EXTERNAL_GTEST | Use installed gtest instead of included sources | ON |
+| APR_PREFER_EXTERNAL_BLOSC | Use installed blosc instead of included sources | ON |
 | APR_USE_OPENMP | Enable multithreading via OpenMP | ON |
 | APR_USE_CUDA | Enable CUDA (Under development - APR conversion pipeline is currently not working with CUDA enabled) | OFF |
 
@@ -99,7 +99,7 @@ This will create the `libapr.so` library in the `build` directory.
 
 On OSX, install the `cmake`, `hdf5` and `libtiff`  [homebrew](https://brew.sh) packages and have the [Xcode command line tools](http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/) installed.
 
-If you want to compile with OpenMP support, also install the `llvm` package (this can also be done using homebrew), as the clang version shipped by Apple currently does not support OpenMP.
+If you want to compile with OpenMP support (Recommended), also install the `llvm` and `libomp` package via homebrew as the clang version shipped by Apple currently does not support OpenMP.
 
 In the directory of the cloned repository, run
 
@@ -110,43 +110,57 @@ cmake ..
 make
 ```
 
-This will create the `libapr.dylib` library in the `build` directory.
-
-
-In case you want to use the homebrew-installed clang (OpenMP support), modify the call to `cmake` above to
-
-```
-CC="/usr/local/opt/llvm/bin/clang" CXX="/usr/local/opt/llvm/bin/clang++" LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" CPPFLAGS="-I/usr/local/opt/llvm/include" cmake ..
-```
-
 ### Building on Windows
 
-__The simplest way to utilise the library from Windows 10 is through using the Windows Subsystem for Linux; see: https://docs.microsoft.com/en-us/windows/wsl/install-win10 then follow linux instructions.__
+On windows there are two working strategies we have tested. Either cheating and using WSL2 and linux above, or utilising a recent version clang-cl or clang directly as included in MSVC 2019 >16.8.6. Note for earlier versions OpenMP support did not work.
 
-__Compilation only works with mingw64/clang or the Intel C++ Compiler, with Intel C++ being the recommended way__
+The easiest way to set up your windows environment we have found is using chocolatey + vcpkg. 
 
-The below instructions for VS can be attempted; however they have not been reproduced.
+Chocolatey Install:
 
-You need to have Visual Studio 2017 installed, with [the community edition](https://www.visualstudio.com/downloads/) being sufficient. LibAPR does not compile correctly with the default Visual Studio compiler, so you also need to have the [Intel C++ Compiler, 18.0 or higher](https://software.intel.com/en-us/c-compilers) installed. [`cmake`](https://cmake.org/download/) is also a requirement.
+First install chocolatey using powershell: https://chocolatey.org/install
 
-Furthermore, you need to have HDF5 installed (binary distribution download at [The HDF Group](http://hdfgroup.org) and LibTIFF (source download from [SimpleSystems](http://www.simplesystems.org/libtiff/). LibTIFF needs to be compiled via `cmake`. LibTIFF's install target will then install the library into `C:\Program Files\tiff`.
+Open an admin powershell (for chocolatey steps)
 
-In the directory of the cloned repository, run:
+If not installed, install git and cmake:
+```
+choco install -y git 
+choco install -y cmake.portable
+```
+install the required visual studio compiler tools and clang: (Note you can also do this via downloading 2019 community and selecting the correct packages)
+```
+choco install visualstudio2019buildtools --params "--add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Llvm.Clang --add Microsoft.VisualStudio.Component.Windows10SDK.19041	--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.ComponentGroup.UWP.VC.BuildTools"
+choco install -y llvm
+```
+Now install your dependencies using vcpkg, in an install directory (VCPKG_PATH) of your choice do the following:
+```
+git clone https://github.com/microsoft/vcpkg
+cd vcpkg
+./bootstrap-vcpkg.bat
+./vcpkg.exe install blosc:x64-windows gtest:x64-windows tiff:x64-windows hdf5:x64-windows szip:x64-windows
+```
+Now navigate to your cloned LibAPR directory (git clone --recursive https://github.com/AdaptiveParticles/LibAPR.git). You should have all dependencies set up to be able to build the library with clang-cl `-A x64 -T ClangCL` and to search for dependencies from vcpkg at your vcpkg install location: `-DCMAKE_TOOLCHAIN_FILE="VCPKG_PATH/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows` .
 
+Now for example to build the tests and examples (Please note you will need to update below with your own VCPKG_PATH from the steps above.
 ```
 mkdir build
 cd build
-cmake -G "Visual Studio 15 2017 Win64" -DTIFF_INCLUDE_DIR="C:/Program Files/tiff/include" -DTIFF_LIBRARY="C:/Program Files/tiff/lib/tiff.lib " -DHDF5_ROOT="C:/Program Files/HDF_Group/HDF5/1.8.17"  -T "Intel C++ Compiler 18.0" ..
-cmake --build . --config Debug
+
+Cmake -A x64 -DCMAKE_TOOLCHAIN_FILE="VCPKG_PATH/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -T ClangCL -DAPR_BUILD_EXAMPLES=ON -DAPR_TESTS=ON ..
+cmake --build . --config Release
 ```
 
-This will set the appropriate hints for Visual Studio to find both LibTIFF and HDF5. This will create the `apr.dll` library in the `build/Debug` directory. If you need a `Release` build, run `cmake --build . --config Release` from the `build` directory.
+The above examples is also used in CI and can be executed in the cmake-build_windows.sh
 
 ### Docker build
 
 We provide a working Dockerfile that installs the library within the image in a separate [repository](https://github.com/MSusik/libaprdocker).
 
 Note: not recently tested.
+
+## Install instructions 
+
+Please see: INSTALL_INSTRUCTIONS.md and https://github.com/AdaptiveParticles/APR_cpp_project_example for a minimal project using the APR.
 
 ## Examples and Documentation
 
@@ -182,7 +196,7 @@ on the command line in your build folder. Please let us know by creating an issu
 
 ## Java wrappers
 
-Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper)
+Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper) Not compatable with recent releases.
 
 ## Coming soon
 

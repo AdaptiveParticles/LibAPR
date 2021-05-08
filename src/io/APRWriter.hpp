@@ -1205,22 +1205,22 @@ public:
             }
 
             if(tree){
-
+                // open group
                 objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
 
                 bool tree_exists = group_exists(fileId,subGroupTree);
-
                 if(tree_exists) {
-                    //tree doesn't exist can't open it
+                    // open tree group
                     objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
                     return true;
                 } else {
+                    //tree group doesn't exist
                     return false;
                 }
 
             } else {
                 objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
-                return false;
+                return true;
             }
 
 
