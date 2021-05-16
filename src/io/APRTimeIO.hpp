@@ -6,6 +6,8 @@
 #define APR_TIME_APRTIMEIO_HPP
 
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/particles/PartCellData.hpp"
+#include "io/APRWriter.hpp"
 
 
 
@@ -27,13 +29,13 @@ struct Buffer{
 
 template<typename ImageType>
 struct TimeData{
-    ExtraPartCellData<ImageType>* add_fp;
-    ExtraPartCellData<ImageType>* update_fp;
-    ExtraPartCellData<ImageType>* remove_fp;
+    PartCellData<ImageType>* add_fp;
+    PartCellData<ImageType>* update_fp;
+    PartCellData<ImageType>* remove_fp;
 
-    ExtraPartCellData<ImageType>* add_y;
-    ExtraPartCellData<ImageType>* update_y;
-    ExtraPartCellData<ImageType>* remove_y;
+    PartCellData<ImageType>* add_y;
+    PartCellData<ImageType>* update_y;
+    PartCellData<ImageType>* remove_y;
 
     unsigned int l_max;
 
@@ -53,17 +55,17 @@ struct ChangeTable{
     std::vector<PixelData<uint64_t>> particle_sum;
 
     void init(RandomAccess& init_access){
-        add_b.resize(init_access.l_max+1);
-        add_e.resize(init_access.l_max+1);
-        remove_b.resize(init_access.l_max+1);
-        remove_e.resize(init_access.l_max+1);
+        add_b.resize(init_access.level_max()+1);
+        add_e.resize(init_access.level_max()+1);
+        remove_b.resize(init_access.level_max()+1);
+        remove_e.resize(init_access.level_max()+1);
 
-        update_b.resize(init_access.l_max+1);
-        update_e.resize(init_access.l_max+1);
+        update_b.resize(init_access.level_max()+1);
+        update_e.resize(init_access.level_max()+1);
 
-        particle_sum.resize(init_access.l_max+1);
+        particle_sum.resize(init_access.level_max()+1);
 
-        for (int i = init_access.l_min; i <= init_access.l_max; ++i) {
+        for (int i = init_access.l_min; i <= init_access.level_max(); ++i) {
             add_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
             remove_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
 
@@ -155,7 +157,7 @@ class APRTimeIO : public APRWriter{
     BufferPc add_buff;
     BufferPc remove_buff;
 
-    std::vector<APR<ImageType>> APR_buffer;
+    std::vector<APR> APR_buffer;
 
     ChangeTable changeTable;
 
@@ -163,7 +165,7 @@ class APRTimeIO : public APRWriter{
     std::vector<uint64_t> remove_global_index;
     std::vector<uint64_t> add_global_index;
 
-    ExtraParticleData<uint16_t> updated_t_prev;
+    ParticleData<uint16_t> updated_t_prev;
 
 
     bool current_direction = true;
@@ -200,12 +202,12 @@ public:
 
     bool calculate_time_updated = false;
 
-    APR<ImageType> prev_apr;
+    APR prev_apr;
 
-    ExtraPartCellData<ImageType> current_particles;
-    ExtraParticleData<uint16_t> updated_t;
+    PartCellData<ImageType> current_particles;
+    ParticleData<uint16_t> updated_t;
 
-    APR<ImageType>* current_APR;
+    APR* current_APR;
 
     uint64_t number_time_steps=0;
 
@@ -226,7 +228,7 @@ public:
     }
 
     template<typename R,typename S,typename T>
-    void copy_parts_to_pcd(APR<R>& apr,ExtraParticleData<S>& parts2copy,ExtraPartCellData<T>& parts_pcd){
+    void copy_parts_to_pcd(APR<R>& apr,ExtraParticleData<S>& parts2copy,PartCellData<T>& parts_pcd){
 
         auto apr_iterator = apr.iterator();
         parts_pcd.initialize_structure_parts_empty(apr);
@@ -265,7 +267,7 @@ public:
     }
 
     template<typename R,typename S,typename T>
-    void copy_pcd_to_parts(APR<R>& apr,ExtraParticleData<S>& partsDest,ExtraPartCellData<T>& parts_pcd2copy){
+    void copy_pcd_to_parts(APR<R>& apr,ExtraParticleData<S>& partsDest,PartCellData<T>& parts_pcd2copy){
 
         auto apr_iterator = apr.iterator();
         partsDest.data.resize(apr_iterator.total_number_particles());
@@ -566,7 +568,7 @@ public:
 
 
     template<typename R,typename S>
-    void add_particles(APR<R>& apr,ExtraPartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& add_b,std::vector<PixelData<uint64_t>>& add_e,BufferPc& buff,std::vector<S>& buff_f){
+    void add_particles(APR<R>& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& add_b,std::vector<PixelData<uint64_t>>& add_e,BufferPc& buff,std::vector<S>& buff_f){
 
         /*
          *
@@ -658,7 +660,7 @@ public:
 
 
     template<typename R,typename S>
-    void remove_particles(APR<R>& apr,ExtraPartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& remove_b,std::vector<PixelData<uint64_t>>& remove_e,BufferPc& buff){
+    void remove_particles(APR<R>& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& remove_b,std::vector<PixelData<uint64_t>>& remove_e,BufferPc& buff){
         //
         //  Removes the aprticles between timesteps
         //
@@ -791,7 +793,7 @@ public:
 
 
     template<typename R,typename S>
-    void update_particles(APR<R>& apr,ExtraPartCellData<S>& parts_pcd,std::vector<S>& f_data,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const bool forward){
+    void update_particles(APR<R>& apr,PartCellData<S>& parts_pcd,std::vector<S>& f_data,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const bool forward){
         //
         //  Updates particles from the buffer (make more general) //do the change outside the function
         //
@@ -1437,15 +1439,15 @@ public:
 
         for (uint64_t level = (new_access.level_min()); level <= new_access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) new_access.x_num[level];
-            auto z_num_ = (unsigned int) new_access.z_num[level];
+            auto x_num_ = (unsigned int) new_access.x_num(level);
+            auto z_num_ = (unsigned int) new_access.z_num(level);
 
             const bool max_level = (new_access.level_max() == level);
 
             if (max_level) {
                 //account for the APR, where the maximum level is down-sampled one
-                x_num_ = (unsigned int) new_access.x_num[level - 1];
-                z_num_ = (unsigned int) new_access.z_num[level - 1];
+                x_num_ = (unsigned int) new_access.x_num(level - 1);
+                z_num_ = (unsigned int) new_access.z_num(level - 1);
             }
 
             new_access.global_index_by_level_and_zx_end[level].resize(z_num_ * x_num_);
@@ -1465,7 +1467,7 @@ public:
         }
 
         //update the total number of particles
-        new_access.total_number_particles = new_access.global_index_by_level_and_zx_end[new_access.l_max].back();
+        new_access.total_number_particles = new_access.global_index_by_level_and_zx_end[new_access.level_max()].back();
 
     }
 
@@ -1820,7 +1822,7 @@ public:
 
 
     template<typename T>
-    void flatten_pcd(ExtraPartCellData<T>& partCellData,std::vector<T>& flatData){
+    void flatten_pcd(PartCellData<T>& partCellData,std::vector<T>& flatData){
         //
         //  Copy the data from partCellData to a contiguous array
         //
@@ -1858,7 +1860,7 @@ public:
     }
 
     template<typename T,typename R>
-    void flatten_pcd_gen_spatial_info(ExtraPartCellData<T>& partCellData,std::vector<R>& flatData,std::string pc_property) {
+    void flatten_pcd_gen_spatial_info(PartCellData<T>& partCellData,std::vector<R>& flatData,std::string pc_property) {
         //
         //  Copy the data from partCellData to a contiguous array
         //
