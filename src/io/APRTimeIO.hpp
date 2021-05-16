@@ -7,6 +7,7 @@
 
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/particles/PartCellData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
 #include "io/APRWriter.hpp"
 
 
@@ -65,17 +66,17 @@ struct ChangeTable{
 
         particle_sum.resize(init_access.level_max()+1);
 
-        for (int i = init_access.l_min; i <= init_access.level_max(); ++i) {
-            add_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
-            remove_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
+        for (int i = init_access.level_min(); i <= init_access.level_max(); ++i) {
+            add_b[i].init(init_access.x_num(i),init_access.z_num(i),1);
+            remove_b[i].init(init_access.x_num(i),init_access.z_num(i),1);
 
-            add_e[i].init(init_access.x_num[i],init_access.z_num[i],1);
-            remove_e[i].init(init_access.x_num[i],init_access.z_num[i],1);
+            add_e[i].init(init_access.x_num(i),init_access.z_num(i),1);
+            remove_e[i].init(init_access.x_num(i),init_access.z_num(i),1);
 
             particle_sum[i].initWithValue(init_access.gap_map.x_num[i],init_access.gap_map.z_num[i],1,0);
 
-            update_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
-            update_e[i].init(init_access.x_num[i],init_access.z_num[i],1);
+            update_b[i].init(init_access.x_num(i),init_access.z_num(i),1);
+            update_e[i].init(init_access.x_num(i),init_access.z_num(i),1);
         }
     }
 
@@ -227,8 +228,8 @@ public:
 
     }
 
-    template<typename R,typename S,typename T>
-    void copy_parts_to_pcd(APR<R>& apr,ExtraParticleData<S>& parts2copy,PartCellData<T>& parts_pcd){
+    template<typename S,typename T>
+    void copy_parts_to_pcd(APR& apr,ParticleData<S>& parts2copy,PartCellData<T>& parts_pcd){
 
         auto apr_iterator = apr.iterator();
         parts_pcd.initialize_structure_parts_empty(apr);
@@ -240,17 +241,17 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
 
-                    const uint64_t offset_pc_data = apr_iterator.spatial_index_x_max(level) * z + x;
+                    const uint64_t offset_pc_data = apr_iterator.x_num(level) * z + x;
 
-                    auto begin = apr_iterator.set_new_lzx(level, z, x);
+                    auto begin = apr_iterator.begin(level, z, x);
 
                     if(begin != UINT64_MAX) {
 
                         auto b = apr_iterator.global_index();
-                        auto e = apr_iterator.end_index;
+                        auto e = apr_iterator.end();
 
                         parts_pcd.data[level][offset_pc_data].resize(e - b);
 
@@ -266,8 +267,8 @@ public:
 
     }
 
-    template<typename R,typename S,typename T>
-    void copy_pcd_to_parts(APR<R>& apr,ExtraParticleData<S>& partsDest,PartCellData<T>& parts_pcd2copy){
+    template<typename S,typename T>
+    void copy_pcd_to_parts(APR& apr,ParticleData<S>& partsDest,PartCellData<T>& parts_pcd2copy){
 
         auto apr_iterator = apr.iterator();
         partsDest.data.resize(apr_iterator.total_number_particles());
@@ -281,17 +282,17 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
 
-                    const uint64_t offset_pc_data = apr_iterator.spatial_index_x_max(level) * z + x;
+                    const uint64_t offset_pc_data = apr_iterator.x_num(level) * z + x;
 
-                    auto begin = apr_iterator.set_new_lzx(level, z, x);
+                    auto begin = apr_iterator.begin(level, z, x);
 
                     if(begin != UINT64_MAX) {
 
                         auto b = apr_iterator.global_index();
-                        auto e = apr_iterator.end_index;
+                        auto e = apr_iterator.end();
 
                         auto sz = parts_pcd2copy.data[level][offset_pc_data];
 
@@ -309,7 +310,7 @@ public:
 
 
     template<typename R>
-    void transfer_particles_through_time(APR<ImageType>& apr_old,APR<ImageType>& apr_new,ExtraParticleData<R>& old_parts,ExtraParticleData<R>& new_parts,R set_value = 0){
+    void transfer_particles_through_time(APR& apr_old,APR& apr_new,ParticleData<R>& old_parts,ParticleData<R>& new_parts,R set_value = 0){
         //
         //  Propogates a set of particles from one APR to another where the particles exist in both
         //
@@ -327,10 +328,10 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(new_iterator,old_iterator)
 #endif
-            for (z = 0; z < new_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < new_iterator.spatial_index_x_max(level); ++x) {
-                    old_iterator.set_new_lzx(level, z, x);
-                    for (new_iterator.set_new_lzx(level, z, x); new_iterator.global_index() < new_iterator.end_index;
+            for (z = 0; z < new_iterator.z_num(level); z++) {
+                for (x = 0; x < new_iterator.x_num(level); ++x) {
+                    old_iterator.begin(level, z, x);
+                    for (new_iterator.begin(level, z, x); new_iterator.global_index() < new_iterator.end_index;
                          new_iterator.set_iterator_to_particle_next_particle()) {
 
                         while((old_iterator.y() < new_iterator.y()) && (old_iterator.global_index() < old_iterator.end_index)){
@@ -350,8 +351,8 @@ public:
 
     }
 
-    template<typename R,typename S,typename T,typename U>
-    void interp_particles_apr_to_apr(APR<R>& apr_from,APR<S>& apr_to,ExtraParticleData<T>& parts_from,ExtraParticleData<U>& parts_to) {
+    template<typename T,typename U>
+    void interp_particles_apr_to_apr(APR& apr_from,APR& apr_to,ParticleData<T>& parts_from,ParticleData<U>& parts_to) {
         //
         //  APR-> APR interpolation using piecewise constant
         //
@@ -360,8 +361,8 @@ public:
         //  This is done by first direct assignment from {P_from,T_from} -> {P_to,T_to} then followed by upsample(T_to) -> {P_to}
         //
 
-        APRTree<R> tree_from;
-        APRTree<S> tree_to;
+        APRTree tree_from;
+        APRTree tree_to;
 
         // Initilize the two trees
         tree_from.init(apr_from); // access for T_from
@@ -369,8 +370,8 @@ public:
 
         //  Down-sample the original particles
 
-        ExtraParticleData<float> parts_from_tree;
-        ExtraParticleData<U> parts_to_tree;
+        ParticleData<float> parts_from_tree;
+        ParticleData<U> parts_to_tree;
 
         parts_from_tree.data.resize(tree_from.total_number_parent_cells());
         std::fill(parts_from_tree.data.begin(),parts_from_tree.data.end(),0);
@@ -403,18 +404,18 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_from_it,apr_to_it,tree_to_it)
 #endif
-            for (z = 0; z < apr_from_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_from_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_from_it.z_num(level); z++) {
+                for (x = 0; x < apr_from_it.x_num(level); ++x) {
 
                     // Tree Particles
                     if(!max_level){
-                        tree_to_it.set_new_lzx(level, z, x);
+                        tree_to_it.begin(level, z, x);
                     }
 
                     // Particles
-                    apr_to_it.set_new_lzx(level, z, x);
+                    apr_to_it.begin(level, z, x);
 
-                    for (apr_from_it.set_new_lzx(level, z, x); apr_from_it.global_index() < apr_from_it.end_index;
+                    for (apr_from_it.begin(level, z, x); apr_from_it.global_index() < apr_from_it.end_index;
                          apr_from_it.set_iterator_to_particle_next_particle()) {
 
                         while ((apr_to_it.y() < apr_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end_index)) {
@@ -452,16 +453,16 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(tree_from_it,apr_to_it,tree_to_it)
 #endif
-            for (z = 0; z < apr_from_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_from_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_from_it.z_num(level); z++) {
+                for (x = 0; x < apr_from_it.x_num(level); ++x) {
 
                     // Particles
-                    apr_to_it.set_new_lzx(level, z, x);
+                    apr_to_it.begin(level, z, x);
 
                     // Tree Particles
-                    tree_to_it.set_new_lzx(level, z, x);
+                    tree_to_it.begin(level, z, x);
 
-                    for (tree_from_it.set_new_lzx(level, z, x); tree_from_it.global_index() < tree_from_it.end_index;
+                    for (tree_from_it.begin(level, z, x); tree_from_it.global_index() < tree_from_it.end_index;
                          tree_from_it.set_iterator_to_particle_next_particle()) {
 
                         // {P_f->P_t}
@@ -500,13 +501,13 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(tree_to_parent_it, tree_to_it)
 #endif
-            for (z = 0; z < tree_to_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < tree_to_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < tree_to_it.z_num(level); z++) {
+                for (x = 0; x < tree_to_it.x_num(level); ++x) {
 
                     // Parent Tree Particles
-                    tree_to_parent_it.set_new_lzx(level-1, z/2, x/2);
+                    tree_to_parent_it.begin(level-1, z/2, x/2);
 
-                    for (tree_to_it.set_new_lzx(level, z, x); tree_to_it.global_index() < tree_to_it.end_index;
+                    for (tree_to_it.begin(level, z, x); tree_to_it.global_index() < tree_to_it.end_index;
                          tree_to_it.set_iterator_to_particle_next_particle()) {
 
                         while ((tree_to_parent_it.y() < (tree_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end_index)) {
@@ -536,13 +537,13 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_to_it, tree_to_parent_it)
 #endif
-            for (z = 0; z < apr_to_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_to_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_to_it.z_num(level); z++) {
+                for (x = 0; x < apr_to_it.x_num(level); ++x) {
 
                     // Tree Parent Particles
-                    tree_to_parent_it.set_new_lzx(level-1, z/2, x/2);
+                    tree_to_parent_it.begin(level-1, z/2, x/2);
 
-                    for (apr_to_it.set_new_lzx(level, z, x); apr_to_it.global_index() < apr_to_it.end_index;
+                    for (apr_to_it.begin(level, z, x); apr_to_it.global_index() < apr_to_it.end_index;
                          apr_to_it.set_iterator_to_particle_next_particle()) {
 
                         while ((tree_to_parent_it.y() < (apr_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end_index)) {
@@ -567,8 +568,8 @@ public:
 
 
 
-    template<typename R,typename S>
-    void add_particles(APR<R>& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& add_b,std::vector<PixelData<uint64_t>>& add_e,BufferPc& buff,std::vector<S>& buff_f){
+    template<typename S>
+    void add_particles(APR& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& add_b,std::vector<PixelData<uint64_t>>& add_e,BufferPc& buff,std::vector<S>& buff_f){
 
         /*
          *
@@ -611,7 +612,7 @@ public:
 
                     if(add_b[level].at(x_a,z_a,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
 
@@ -659,8 +660,8 @@ public:
 
 
 
-    template<typename R,typename S>
-    void remove_particles(APR<R>& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& remove_b,std::vector<PixelData<uint64_t>>& remove_e,BufferPc& buff){
+    template<typename S>
+    void remove_particles(APR& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& remove_b,std::vector<PixelData<uint64_t>>& remove_e,BufferPc& buff){
         //
         //  Removes the aprticles between timesteps
         //
@@ -702,7 +703,7 @@ public:
 
                     if(remove_b[level].at(x_a,z_a,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
 
@@ -742,8 +743,8 @@ public:
         }
     }
 
-    template<typename R,typename S>
-    void update_particles_val(APR<R>& apr,ExtraParticleData<S>& particles,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const S update_val){
+    template<typename S>
+    void update_particles_val(APR& apr,ParticleData<S>& particles,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const S update_val){
         //
         //  Updates particles from the buffer (make more general) //do the change outside the function
         //
@@ -768,7 +769,7 @@ public:
 
                     if(update_b[level].at(x_,z_,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
                         auto pc = it.get_current_particle_cell();
@@ -792,8 +793,8 @@ public:
     }
 
 
-    template<typename R,typename S>
-    void update_particles(APR<R>& apr,PartCellData<S>& parts_pcd,std::vector<S>& f_data,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const bool forward){
+    template<typename S>
+    void update_particles(APR& apr,PartCellData<S>& parts_pcd,std::vector<S>& f_data,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const bool forward){
         //
         //  Updates particles from the buffer (make more general) //do the change outside the function
         //
@@ -819,7 +820,7 @@ public:
 
                     if(update_b[level].at(x_,z_,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
                         auto pcd_key = it.get_pcd_key();
@@ -1903,10 +1904,10 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z)
 #endif
-            for (z = 0; z < partCellData.z_num[i]; ++z) {
-                for (int x = 0; x < partCellData.x_num[i]; ++x) {
+            for (z = 0; z < partCellData.z_num(i); ++z) {
+                for (int x = 0; x < partCellData.x_num(i); ++x) {
 
-                    auto j = z * partCellData.x_num[i] + x;
+                    auto j = z * partCellData.x_num(i) + x;
 
                     auto idx_b = indx[i][j];
                     auto idx_e = indx[i][j] + partCellData.data[i][j].size();
@@ -2006,7 +2007,7 @@ public:
 
     }
 
-    FileSizeInfo write_key_frame(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name,uint64_t key_frame_num,uint64_t global_index) {
+    FileSizeInfo write_key_frame(APR& apr, const std::string &save_loc, const std::string &file_name,uint64_t key_frame_num,uint64_t global_index) {
         APRCompress<ImageType> apr_compressor;
         apr_compressor.set_compression_type(0);
         delta_num = 0;
