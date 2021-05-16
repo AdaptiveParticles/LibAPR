@@ -9,6 +9,7 @@
 
 class RandomIterator: public GenIterator {
 
+
 protected:
 
     LocalMapIterators local_iterators;

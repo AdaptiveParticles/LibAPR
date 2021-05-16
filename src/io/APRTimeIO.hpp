@@ -331,11 +331,11 @@ public:
             for (z = 0; z < new_iterator.z_num(level); z++) {
                 for (x = 0; x < new_iterator.x_num(level); ++x) {
                     old_iterator.begin(level, z, x);
-                    for (new_iterator.begin(level, z, x); new_iterator.global_index() < new_iterator.end_index;
-                         new_iterator.set_iterator_to_particle_next_particle()) {
+                    for (new_iterator.begin(level, z, x); new_iterator.global_index() < new_iterator.end();
+                         new_iterator++) {
 
-                        while((old_iterator.y() < new_iterator.y()) && (old_iterator.global_index() < old_iterator.end_index)){
-                            old_iterator.set_iterator_to_particle_next_particle();
+                        while((old_iterator.y() < new_iterator.y()) && (old_iterator.global_index() < old_iterator.end())){
+                            old_iterator++;
                         }
 
                         if(new_iterator.y() == old_iterator.y()){
@@ -361,38 +361,41 @@ public:
         //  This is done by first direct assignment from {P_from,T_from} -> {P_to,T_to} then followed by upsample(T_to) -> {P_to}
         //
 
-        APRTree tree_from;
-        APRTree tree_to;
+//        APRTree tree_from;
+//        APRTree tree_to;
 
         // Initilize the two trees
-        tree_from.init(apr_from); // access for T_from
-        tree_to.init(apr_to); // access for T_to
+//        tree_from.init(apr_from); // access for T_from
+//        tree_to.init(apr_to); // access for T_to
 
         //  Down-sample the original particles
+
+
+        // Now PC interp {P_from,T_from} -> {P_to,T_to}
+        auto tree_to_it = apr_to.tree_iterator();
+        auto tree_from_it = apr_from.tree_iterator();
+
+        auto apr_to_it = apr_to.iterator();
+        auto apr_from_it = apr_from.iterator();
+
 
         ParticleData<float> parts_from_tree;
         ParticleData<U> parts_to_tree;
 
-        parts_from_tree.data.resize(tree_from.total_number_parent_cells());
+        parts_from_tree.data.resize(tree_from_it.total_number_particles());
         std::fill(parts_from_tree.data.begin(),parts_from_tree.data.end(),0);
 
         // {P_from} ->(ds) {T_from}
-        tree_from.fill_tree_mean(apr_from,tree_from,parts_from,parts_from_tree);
+        fill_tree_mean(apr_from,parts_from,parts_from_tree);
 
         // Init the target particles
         const U init_val = 0;
         parts_to.data.resize(apr_to.total_number_particles());
         std::fill(parts_to.data.begin(),parts_to.data.end(),init_val);
 
-        parts_to_tree.data.resize(tree_to.total_number_parent_cells());
+        parts_to_tree.data.resize(tree_to_it.total_number_particles());
         std::fill(parts_to_tree.data.begin(),parts_to_tree.data.end(),init_val);
 
-        // Now PC interp {P_from,T_from} -> {P_to,T_to}
-        auto tree_to_it = tree_to.tree_iterator();
-        auto tree_from_it = tree_from.tree_iterator();
-
-        auto apr_to_it = apr_to.iterator();
-        auto apr_from_it = apr_from.iterator();
 
         // First {P_from} -> {P_to,T_to}
         for (unsigned int level = apr_from_it.level_min(); level <= apr_from_it.level_max(); ++level) {
@@ -415,12 +418,12 @@ public:
                     // Particles
                     apr_to_it.begin(level, z, x);
 
-                    for (apr_from_it.begin(level, z, x); apr_from_it.global_index() < apr_from_it.end_index;
-                         apr_from_it.set_iterator_to_particle_next_particle()) {
+                    for (apr_from_it.begin(level, z, x); apr_from_it.global_index() < apr_from_it.end();
+                         apr_from_it++) {
 
-                        while ((apr_to_it.y() < apr_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end_index)) {
+                        while ((apr_to_it.y() < apr_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end())) {
                             // {P_f->P_t}
-                            apr_to_it.set_iterator_to_particle_next_particle();
+                            apr_to_it++;
 
                         }
 
@@ -431,8 +434,8 @@ public:
                         if(!max_level){
                             // {P_f->T_t}
 
-                            while ((tree_to_it.y() < apr_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end_index)) {
-                                tree_to_it.set_iterator_to_particle_next_particle();
+                            while ((tree_to_it.y() < apr_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end())) {
+                                tree_to_it++;
                             }
 
                             if((tree_to_it.y() == apr_from_it.y()) ){
@@ -462,12 +465,12 @@ public:
                     // Tree Particles
                     tree_to_it.begin(level, z, x);
 
-                    for (tree_from_it.begin(level, z, x); tree_from_it.global_index() < tree_from_it.end_index;
-                         tree_from_it.set_iterator_to_particle_next_particle()) {
+                    for (tree_from_it.begin(level, z, x); tree_from_it.global_index() < tree_from_it.end();
+                         tree_from_it++) {
 
                         // {P_f->P_t}
-                        while ((apr_to_it.y() < tree_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end_index)) {
-                            apr_to_it.set_iterator_to_particle_next_particle();
+                        while ((apr_to_it.y() < tree_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end())) {
+                            apr_to_it++;
                         }
 
                         if(apr_to_it.y() == tree_from_it.y()){
@@ -476,8 +479,8 @@ public:
 
 
                         // {P_f->T_t}
-                        while ((tree_to_it.y() < tree_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end_index)) {
-                            tree_to_it.set_iterator_to_particle_next_particle();
+                        while ((tree_to_it.y() < tree_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end())) {
+                            tree_to_it++;
                         }
                         if(tree_to_it.y() == tree_from_it.y()){
                             parts_to_tree[tree_to_it] = parts_from_tree[tree_from_it];
@@ -489,7 +492,7 @@ public:
         }
 
         //require additional iterator here for parent.
-        auto tree_to_parent_it = tree_to.tree_iterator();
+        auto tree_to_parent_it = apr_to.tree_iterator();
 
         // Final step, for those still empty do {T_to} (us)-> {T_to}
         for (unsigned int level = (tree_to_it.level_min()+1); level <= tree_to_it.level_max(); ++level) {
@@ -507,12 +510,12 @@ public:
                     // Parent Tree Particles
                     tree_to_parent_it.begin(level-1, z/2, x/2);
 
-                    for (tree_to_it.begin(level, z, x); tree_to_it.global_index() < tree_to_it.end_index;
-                         tree_to_it.set_iterator_to_particle_next_particle()) {
+                    for (tree_to_it.begin(level, z, x); tree_to_it.global_index() < tree_to_it.end();
+                         tree_to_it++) {
 
-                        while ((tree_to_parent_it.y() < (tree_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end_index)) {
+                        while ((tree_to_parent_it.y() < (tree_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end())) {
                             // {T_t(us)->T_t}
-                            tree_to_parent_it.set_iterator_to_particle_next_particle();
+                            tree_to_parent_it++;
                         }
 
                         if((tree_to_parent_it.y() == (tree_to_it.y()/2))){
@@ -543,12 +546,12 @@ public:
                     // Tree Parent Particles
                     tree_to_parent_it.begin(level-1, z/2, x/2);
 
-                    for (apr_to_it.begin(level, z, x); apr_to_it.global_index() < apr_to_it.end_index;
-                         apr_to_it.set_iterator_to_particle_next_particle()) {
+                    for (apr_to_it.begin(level, z, x); apr_to_it.global_index() < apr_to_it.end();
+                         apr_to_it++) {
 
-                        while ((tree_to_parent_it.y() < (apr_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end_index)) {
+                        while ((tree_to_parent_it.y() < (apr_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end())) {
                             // {T_t(us)->P_t}
-                            tree_to_parent_it.set_iterator_to_particle_next_particle();
+                            tree_to_parent_it++;
                         }
 
                         if(tree_to_parent_it.y() == (apr_to_it.y()/2)){
@@ -586,17 +589,17 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
-            auto y_num_ = (unsigned int) access.y_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
+            auto y_num_ = (unsigned int) access.y_num(level);
 
             const bool max_level = (access.level_max() == level);
 
-            const auto y_num_max = (unsigned int) access.y_num[level];
-            const auto x_num_max = (unsigned int) access.x_num[level];
-            const auto z_num_max = (unsigned int) access.z_num[level];
+            const auto y_num_max = (unsigned int) access.y_num(level);
+            const auto x_num_max = (unsigned int) access.x_num(level);
+            const auto z_num_max = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 
 #ifdef HAVE_OPENMP
@@ -678,17 +681,17 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
-            auto y_num_ = (unsigned int) access.y_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
+            auto y_num_ = (unsigned int) access.y_num(level);
 
             const bool max_level = (access.level_max() == level);
 
-            const auto y_num_max = (unsigned int) access.y_num[level];
-            const auto x_num_max = (unsigned int) access.x_num[level];
-            const auto z_num_max = (unsigned int) access.z_num[level];
+            const auto y_num_max = (unsigned int) access.y_num(level);
+            const auto x_num_max = (unsigned int) access.x_num(level);
+            const auto z_num_max = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_, z_) firstprivate(it)
@@ -756,10 +759,10 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_, z_) firstprivate(it)
@@ -807,10 +810,10 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_, z_) firstprivate(it)
@@ -880,11 +883,11 @@ public:
     void read_apr_init(const std::string &input_file_name){
         file_name = input_file_name;
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
-        op = AprFile::Operation::READ;
+        op = FileStructure::Operation::READ;
 
-        AprFile f(file_name, op, 0);
+        FileStructure f(file_name, op, 0);
 
         uint64_t num_key_frames = get_dims(f.groupId,"keyframe_indices");
         key_frame_index_vector.resize(num_key_frames);
@@ -918,11 +921,11 @@ public:
 
             timer.start_timer("init");
 
-            AprFile::Operation op;
+            FileStructure::Operation op;
 
-            op = AprFile::Operation::READ;
+            op = FileStructure::Operation::READ;
 
-            AprFile f(file_name, op, key_frame, "dt");
+            FileStructure f(file_name, op, key_frame, "dt");
 
             hid_t meta_data = f.objectId;
 
@@ -990,7 +993,7 @@ public:
         APRTimer timer;
         timer.verbose_flag = false;
 
-        APR<ImageType> temp_apr;
+        APR temp_apr;
 
         read_apr(temp_apr, file_name, false, 0, key_frame);
         current_time_step = key_frame_index_vector[key_frame];
@@ -1014,8 +1017,8 @@ public:
         //Need to initialize the change table.
         for (uint64_t level = (init_access.level_min()); level <= init_access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) init_access.x_num[level];
-            auto z_num_ = (unsigned int) init_access.z_num[level];
+            auto x_num_ = (unsigned int) init_access.x_num(level);
+            auto z_num_ = (unsigned int) init_access.z_num(level);
 
             const bool max_level = (init_access.level_max() == level);
 
@@ -1223,22 +1226,22 @@ public:
 
         for (uint64_t level = (new_access.level_min()); level <= new_access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) new_access.x_num[level];
-            auto z_num_ = (unsigned int) new_access.z_num[level];
-            auto y_num_ = (unsigned int) new_access.y_num[level];
+            auto x_num_ = (unsigned int) new_access.x_num(level);
+            auto z_num_ = (unsigned int) new_access.z_num(level);
+            auto y_num_ = (unsigned int) new_access.y_num(level);
 
             const bool max_level = (new_access.level_max() ==level );
 
             if (max_level) {
                 //account for the APR, where the maximum level is down-sampled one
-                x_num_ = (unsigned int) new_access.x_num[level - 1];
-                z_num_ = (unsigned int) new_access.z_num[level - 1];
-                y_num_ = (unsigned int) new_access.y_num[level - 1];
+                x_num_ = (unsigned int) new_access.x_num(level - 1);
+                z_num_ = (unsigned int) new_access.z_num(level - 1);
+                y_num_ = (unsigned int) new_access.y_num(level - 1);
             }
 
-            const auto y_num_max = (unsigned int) new_access.y_num[level];
-            const auto x_num_max = (unsigned int) new_access.x_num[level];
-            const auto z_num_max = (unsigned int) new_access.z_num[level];
+            const auto y_num_max = (unsigned int) new_access.y_num(level);
+            const auto x_num_max = (unsigned int) new_access.x_num(level);
+            const auto z_num_max = (unsigned int) new_access.z_num(level);
 
             std::vector<uint8_t> y_temp;
             y_temp.resize(y_num_,0);

@@ -23,6 +23,9 @@ class APR {
     friend class APRConverterBatch;
     friend class APRBenchHelper;
 
+    template<typename T>
+    friend class APRTimeIO;
+
 protected:
 
     //APR Tree function
