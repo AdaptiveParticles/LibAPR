@@ -1471,7 +1471,7 @@ public:
         }
 
         //update the total number of particles
-        new_access.total_number_particles = new_access.global_index_by_level_and_zx_end[new_access.level_max()].back();
+        new_access.genInfo->total_number_particles = new_access.global_index_by_level_and_zx_end[new_access.level_max()].back();
 
     }
 
