@@ -80,7 +80,7 @@ struct ChangeTable{
         }
     }
 
-    void max(){
+    void set_max(){
         for (int i = 0; i < add_b.size(); ++i) {
             std::fill(add_b[i].mesh.begin(),add_b[i].mesh.end(),UINT64_MAX);
             std::fill(add_e[i].mesh.begin(),add_e[i].mesh.end(),UINT64_MAX);
@@ -1539,7 +1539,7 @@ public:
         remove_global_index.resize(remove_f_end - remove_f_begin);
         add_global_index.resize(add_f_end - add_f_begin);
 
-        changeTable.max();
+        changeTable.set_max();
 
         for (auto j = add_begin; j < add_end; ++j) {
 
