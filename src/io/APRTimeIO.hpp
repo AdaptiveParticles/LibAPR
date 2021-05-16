@@ -9,7 +9,7 @@
 #include "data_structures/APR/particles/PartCellData.hpp"
 #include "data_structures/APR/particles/ParticleData.hpp"
 #include "io/APRWriter.hpp"
-
+#include "numerics/APRReconstruction.hpp"
 
 
 
@@ -159,6 +159,7 @@ class APRTimeIO : public APRWriter{
     BufferPc remove_buff;
 
     std::vector<APR> APR_buffer;
+    std::vector<ParticleData<ImageType>> part_buffer;
 
     ChangeTable changeTable;
 
@@ -204,11 +205,13 @@ public:
     bool calculate_time_updated = false;
 
     APR prev_apr;
+    ParticleData<ImageType> prev_parts;
 
     PartCellData<ImageType> current_particles;
     ParticleData<uint16_t> updated_t;
 
     APR* current_APR;
+    ParticleData<ImageType>* current_particles_flat;
 
     uint64_t number_time_steps=0;
 
@@ -1222,7 +1225,9 @@ public:
         uint64_t z_;
         uint64_t x_;
 
-        const bool odd_end = (new_access.y_num.back()%2) != 0; //odd y-num;
+        auto level_max = new_access.level_max();
+
+        const bool odd_end = (new_access.y_num(level_max)%2) != 0; //odd y-num;
 
         for (uint64_t level = (new_access.level_min()); level <= new_access.level_max(); level++) {
 
@@ -1769,21 +1774,22 @@ public:
 
         if(key_frame_loaded || direct_updated == (UINT64_MAX)) {
 
-            APR<ImageType> temp_apr;
+            APR temp_apr;
 
             read_apr(temp_apr, file_name, false, 0, current_key_frame);
 
-            temp_apr.interp_img(pixelImg, temp_apr.particles_intensities);
+            APRReconstruction::reconstruct_constant(temp_apr,pixelImg,temp_apr.particles_intensities);
+//            temp_apr.interp_img(pixelImg, temp_apr.particles_intensities);
 
             direct_updated = key_frame_index_vector[current_key_frame];
         }
 
 
         if (pixelImg.mesh.size() !=
-            (initial_access_info.org_dims[0] * initial_access_info.org_dims[1] * initial_access_info.org_dims[2])) {
+            (initial_access_info.org_dims(0) * initial_access_info.org_dims(1) * initial_access_info.org_dims(2))) {
             //check if the img needs to be initialized
-            pixelImg.init(initial_access_info.org_dims[0], initial_access_info.org_dims[1],
-                          initial_access_info.org_dims[2]);
+            pixelImg.init(initial_access_info.org_dims(0), initial_access_info.org_dims(1),
+                          initial_access_info.org_dims(2));
         }
 
         //updates
@@ -2011,7 +2017,7 @@ public:
     }
 
     FileSizeInfo write_key_frame(APR& apr, const std::string &save_loc, const std::string &file_name,uint64_t key_frame_num,uint64_t global_index) {
-        APRCompress<ImageType> apr_compressor;
+        APRCompress apr_compressor;
         apr_compressor.set_compression_type(0);
         delta_num = 0;
         key_frame=key_frame_num;
@@ -2019,10 +2025,10 @@ public:
 
         FileSizeInfo fileSizeInfo = write_apr(apr, save_loc, file_name, apr_compressor,BLOSC_ZSTD,4,1,false,true);
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
         std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
-        op = APRWriter::AprFile::Operation::WRITE_APPEND;
-        APRWriter::AprFile f(hdf5_file_name, op, 0);
+        op = FileStructure::Operation::WRITE_APPEND;
+        FileStructure f(hdf5_file_name, op, 0);
 
         //append value.
         std::vector<uint64_t> sz={key_frame_index};
@@ -2041,23 +2047,23 @@ public:
         std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
 
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
         if (write_tree) {
-            op = APRWriter::AprFile::Operation::WRITE_WITH_TREE;
+            op = FileStructure::Operation::WRITE_WITH_TREE;
         } else {
-            op = APRWriter::AprFile::Operation::WRITE;
+            op = FileStructure::Operation::WRITE;
         }
 
         unsigned int t = delta_num;
 
         if(t>=1){
-            op = APRWriter::AprFile::Operation::WRITE_APPEND;
+            op = FileStructure::Operation::WRITE_APPEND;
         } else {
 
         }
 
-        APRWriter::AprFile f(hdf5_file_name, op, key_frame,"dt");
+        FileStructure f(hdf5_file_name, op, key_frame,"dt");
 
 
         delta_num++;
