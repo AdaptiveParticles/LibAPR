@@ -681,7 +681,7 @@ void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityS
 
 
 template<typename T>
-void compute_means(const std::vector<T>& data, const float threshold, float& mean_back, float& mean_fore) {
+void compute_means(const std::vector<T>& data, float threshold, float& mean_back, float& mean_fore) {
     float sum_fore=0.f, sum_back=0.f;
     size_t count_fore=0, count_back=0;
 
