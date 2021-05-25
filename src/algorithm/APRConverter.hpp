@@ -462,8 +462,10 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     computation_timer.start_timer("apply_parameters");
 
     if( par.auto_parameters ) {
+        method_timer.start_timer("autoParameters");
 //        autoParameters(local_scale_temp,grad_temp);
         autoParametersLiEntropy(local_scale_temp2, local_scale_temp, grad_temp);
+        method_timer.stop_timer();
     }
 
     applyParameters(aAPR,par);
@@ -769,9 +771,8 @@ template<typename T,typename S>
 void APRConverter<ImageType>::autoParametersLiEntropy(const PixelData<T> &image,
                                                       const PixelData<T> &localIntensityScale,
                                                       const PixelData<S> &grad) {
-    APRTimer li_timer(false);
 
-    li_timer.start_timer("subsample");
+    fine_grained_timer.start_timer("autoparameters: subsample buffers");
 
     std::vector<S> grad_subsampled;
     std::vector<T> lis_subsampled;
@@ -811,15 +812,15 @@ void APRConverter<ImageType>::autoParametersLiEntropy(const PixelData<T> &image,
             lis_subsampled[idx] = lis_foreground[idx*delta];
         }
     }
-    li_timer.stop_timer();
+    fine_grained_timer.stop_timer();
 
-    li_timer.start_timer("threshold_gradient");
+    fine_grained_timer.start_timer("autoparameters: compute gradient threshold");
     par.grad_th = threshold_li(grad_subsampled);
-    li_timer.stop_timer();
+    fine_grained_timer.stop_timer();
 
-    li_timer.start_timer("threshold_lis");
+    fine_grained_timer.start_timer("autoparameters: compute sigma threshold");
     par.sigma_th = threshold_li(lis_subsampled);
-    li_timer.stop_timer();
+    fine_grained_timer.stop_timer();
 
     std::cout << "Used parameters: " << std::endl;
     std::cout << "I_th: " << par.Ip_th << std::endl;
