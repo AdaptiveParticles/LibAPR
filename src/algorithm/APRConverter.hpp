@@ -465,6 +465,7 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
         method_timer.start_timer("autoParameters");
 //        autoParameters(local_scale_temp,grad_temp);
         autoParametersLiEntropy(local_scale_temp2, local_scale_temp, grad_temp);
+        aAPR.parameters = par;
         method_timer.stop_timer();
     }
 
@@ -800,7 +801,7 @@ void APRConverter<ImageType>::autoParametersLiEntropy(const PixelData<T> &image,
 
         /// Then we uniformly subsample these signals, as we typically don't need all elements to compute the thresholds
         const size_t num_elements = std::min((size_t)32*512*512, counter);
-        const size_t delta = grad_foreground.size() / num_elements;
+        const size_t delta = counter / num_elements;
         grad_subsampled.resize(num_elements);
         lis_subsampled.resize(num_elements);
 
