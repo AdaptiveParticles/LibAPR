@@ -324,7 +324,9 @@ bool APRFile::write_particles(const std::string particles_name,ParticleData<Data
     // Using this version allows for extension including sequential write for the compress. #TODO.
     Hdf5DataSet partsData;
     partsData.init(part_location,particles_name.c_str());
-    partsData.create(type,particles.size());
+    if(!data_exists(part_location,particles_name.c_str())) {
+        partsData.create(type, particles.size());
+    }
     partsData.open();
     partsData.write(particles.data.data(),0,particles.size());
     partsData.close();
