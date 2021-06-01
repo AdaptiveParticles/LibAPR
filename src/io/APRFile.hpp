@@ -326,8 +326,26 @@ bool APRFile::write_particles(const std::string particles_name,ParticleData<Data
     partsData.init(part_location,particles_name.c_str());
     if(!data_exists(part_location,particles_name.c_str())) {
         partsData.create(type, particles.size());
+        partsData.open();
+    } else {
+        // if dataset already exists, allow overwriting if the size and datatype match the input particles
+        partsData.open();
+
+        std::vector<uint64_t> new_dims = {particles.size()};
+        auto old_dims = partsData.get_dimensions();
+
+        if(new_dims != old_dims) {
+            std::cerr << "Failed to overwrite existing particle dataset '" << particles_name << "': input size does not match." << std::endl;
+            partsData.close();
+            return false;
+        }
+
+        if(!H5Tequal(type, partsData.get_type())) {
+            std::cerr << "Failed to overwrite existing particle dataset '" << particles_name << "': input datatype does not match." << std::endl;
+            partsData.close();
+            return false;
+        }
     }
-    partsData.open();
     partsData.write(particles.data.data(),0,particles.size());
     partsData.close();
 
