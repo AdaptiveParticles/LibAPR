@@ -42,6 +42,7 @@ public:
     template<typename DataType>
     bool read_particles(APR& apr,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
 
+    std::string get_particle_type(std::string particles_name, bool apr_or_tree=true, uint64_t t=0, std::string channel_name="t");
 
     //set helpers
     bool get_read_write_tree(){
@@ -638,6 +639,55 @@ bool APRFile::read_particles(APR& apr,ParticleData<DataType>& particles,bool apr
     }
 
     return read;
+}
+
+
+std::string APRFile::get_particle_type(std::string particles_name, bool apr_or_tree, uint64_t t, std::string channel_name) {
+
+    if(!fileStructure.isOpened()){
+        std::cerr << "File is not open!" << std::endl;
+        return "";
+    }
+
+    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+        return "";
+    }
+
+    hid_t part_location;
+
+    if(apr_or_tree){
+        part_location = fileStructure.objectId;
+    } else {
+        part_location = fileStructure.objectIdTree;
+    }
+
+    // Check that the dataset exists
+    std::string data_n = particles_name;
+    if(!data_exists(part_location,data_n.c_str())) {
+        std::cerr << "Error reading APR file: particle dataset '" << particles_name << "' doesn't exist" << std::endl;
+        return "";
+    }
+
+    // Check the datatype
+    Hdf5DataSet dataset;
+    dataset.init(part_location,particles_name.c_str());
+    dataset.open();
+    hid_t dtype = dataset.get_type();
+
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<uint16_t>::type()) ) { dataset.close(); return "uint16"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<float>::type()) ) { dataset.close(); return "float"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<uint8_t>::type()) ) { dataset.close(); return "uint8"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<uint32_t>::type()) ) { dataset.close(); return "uint32"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<uint64_t>::type()) ) { dataset.close(); return "uint64"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<double>::type()) ) { dataset.close(); return "double"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<int8_t>::type()) ) { dataset.close(); return "int8"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<int16_t>::type()) ) { dataset.close(); return "int16"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<int32_t>::type()) ) { dataset.close(); return "int32"; }
+    if( H5Tequal(dtype, APRWriter::Hdf5Type<int64_t>::type()) ) { dataset.close(); return "int64"; }
+
+    std::cerr << "Error: get_particle_type could not detect the data type (unsupported type)" << std::endl;
+    return "";
 }
 
 
