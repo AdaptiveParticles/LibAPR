@@ -364,23 +364,22 @@ bool APRFile::write_particles(const std::string particles_name,ParticleData<Data
 bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
 
-    if(fileStructure.isOpened()){
-    } else {
+    if(!fileStructure.isOpened()){
         std::cerr << "File is not open!" << std::endl; //#TODO: should check if it is readable, and other functions if writeable ect.
+        return false;
     }
 
-    bool tree_exists = fileStructure.open_time_point(t,with_tree_flag,channel_name);
+    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+        return false;
+    }
 
     hid_t meta_data = fileStructure.groupId;
 
     //check if old or new file, for location of the properties. (The metadata moved to the time point.)
-    bool old = attribute_exists(fileStructure.objectId,AprTypes::MaxLevelType.typeName);
-
-    if(old) {
+    if(attribute_exists(fileStructure.objectId,AprTypes::MaxLevelType.typeName)) {
         meta_data = fileStructure.objectId;
     }
-
-    if (!fileStructure.isOpened()) return false;
 
     std::string data_n = fileStructure.subGroup1 + "/map_level";
     bool stored_random = data_exists(fileStructure.fileId,data_n.c_str());
@@ -389,7 +388,8 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     bool stored_linear = data_exists(fileStructure.fileId,data_n.c_str());
 
     if(!stored_linear && !stored_random){
-        std::cerr << "An APR does not exist for that channel and time" << std::endl;
+        std::cerr << "Error reading APR file: data does not exist for channel '" <<
+                      channel_name << "' and time point t=" << t << std::endl;
         return false;
     }
 
@@ -397,10 +397,10 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     char string_out[100] = {0};
     hid_t attr_id = H5Aopen(meta_data,"name",H5P_DEFAULT);
     hid_t atype = H5Aget_type(attr_id);
-    hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
+    hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_DEFAULT);
     H5Aread(attr_id, atype_mem, string_out) ;
     H5Aclose(attr_id);
-    apr.name= string_out;
+    apr.name = string_out;
 
     //read in access information
     APRWriter::read_access_info(meta_data,apr.aprInfo);
@@ -412,13 +412,11 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
     timer.start_timer("read_apr_access");
 
-    if(!stored_random) {
-
-        //make this an automatic check to see what the file is.
+    if(stored_linear) {
+        //TODO: make this an automatic check to see what the file is.
         APRWriter::read_linear_access( fileStructure.objectId, apr.linearAccess,max_level_delta);
         apr.apr_initialized = true;
     } else {
-
         APRWriter::read_random_access(meta_data, fileStructure.objectId, apr.apr_access);
         apr.apr_initialized_random = true;
     }
@@ -435,13 +433,10 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         data_n = fileStructure.subGroupTree1 + "/y_vec";
         bool stored_linear_tree = data_exists(fileStructure.fileId,data_n.c_str());;
 
-        tree_exists = true;
-        if(!stored_random_tree && !stored_linear_tree){
-            tree_exists = false;
-        }
+        bool tree_exists = stored_linear_tree || stored_random_tree;
 
         if(!tree_exists){
-            //initializing it from the dataset.
+            // if tree access does not exist in file, initialize it from the APR access
             apr.initialize_tree_linear();
         } else {
 
