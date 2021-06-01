@@ -489,25 +489,26 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 template<typename DataType>
 bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t,std::string channel_name){
 
-    if(fileStructure.isOpened()){
-    } else {
+    if(!fileStructure.isOpened()){
         std::cerr << "File is not open!" << std::endl;
         return false;
     }
 
-    fileStructure.open_time_point(t,with_tree_flag,channel_name);
+    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+        return false;
+    }
 
     int max_read_level;
     uint64_t parts_start = 0;
     uint64_t parts_end = 0;
 
-    /*
-     * Check that the APR is initialized.
-     */
+
+     // Check that the APR is initialized.
     if(!apr.is_initialized()){
+        std::cerr << "Error reading particles: input APR is not initialized" << std::endl;
         return false;
     }
-
 
     //check if old or new file, for location of the properties. (The metadata moved to the time point.)
     hid_t part_location;
@@ -518,13 +519,10 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
         part_location = fileStructure.objectIdTree;
     }
 
-
-    /*
-     * Check the dataset exists
-     */
+    // Check that the dataset exists
     std::string data_n = particles_name;
-    if(!data_exists(part_location,data_n.c_str())){
-        std::cerr << "Particle dataset doesn't exist" << std::endl;
+    if(!data_exists(part_location,data_n.c_str())) {
+        std::cerr << "Error reading APR file: particle dataset '" << particles_name << "' doesn't exist" << std::endl;
         return false;
     }
 
@@ -543,36 +541,36 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
         parts_end = it_tree.total_number_particles(max_read_level);
     }
 
-
-    //backwards support
-    bool new_parts = attribute_exists(part_location,AprTypes::CompressionType.typeName);
-
     hid_t meta_data = part_location;
 
-    if(!new_parts) {
+    // for backwards compatibility
+    if(!attribute_exists(part_location,AprTypes::CompressionType.typeName)) {
         meta_data = fileStructure.groupId;
     }
 
-    /*
-     * Check the dataset and the APR align.
-     *
-     */
-
-    //HERE
     Hdf5DataSet dataset;
     dataset.init(part_location,particles_name.c_str());
     dataset.open();
 
+    // Check the size of the dataset
     std::vector<uint64_t> dims = dataset.get_dimensions();
-
     uint64_t number_particles_in_dataset = dims[0];
 
     if(number_particles_in_dataset < parts_end){
-        std::cerr << "Dataset is not correct size" << std::endl;
+        std::cerr << "Error reading particles: dataset is not correct size" << std::endl;
         dataset.close();
         return false;
     }
 
+    // Check the datatype
+    hid_t parts_type = APRWriter::Hdf5Type<DataType>::type();
+    hid_t dtype = dataset.get_type();
+
+    if(!H5Tequal(parts_type, dtype)) {
+        std::cerr << "Error reading particles: datatype does not match input particles" << std::endl;
+        dataset.close();
+        return false;
+    }
 
     timer.start_timer("Read intensities");
 
@@ -580,7 +578,6 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
     particles.data.resize(parts_end - parts_start);
     if (particles.data.size() > 0) {
         dataset.read(particles.data.data() + parts_start,parts_start,parts_end);
-
     }
 
     timer.stop_timer();
