@@ -823,12 +823,10 @@ void APRConverter<ImageType>::autoParametersLiEntropy(const PixelData<T> &image,
     par.sigma_th = threshold_li(lis_subsampled);
     fine_grained_timer.stop_timer();
 
-    std::cout << "Used parameters: " << std::endl;
-    std::cout << "I_th: " << par.Ip_th << std::endl;
-    std::cout << "sigma_th: " << par.sigma_th << std::endl;
-    std::cout << "grad_th: " << par.grad_th << std::endl;
-    std::cout << "relative error (E): " << par.rel_error << std::endl;
-    std::cout << "lambda: " << par.lambda << std::endl;
+    if(verbose) {
+        std::cout << "Automatic parameter tuning found sigma_th = " << par.sigma_th <<
+                     " and grad_th = " << par.grad_th << std::endl;
+    }
 }
 
 
