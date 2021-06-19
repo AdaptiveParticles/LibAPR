@@ -594,95 +594,6 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
     return true;
 }
 
-template<typename ImageType>
-template<typename T,typename S>
-void APRConverter<ImageType>::autoParameters(const PixelData<T> &localIntensityScale,const PixelData<S> &grad){
-    /*
-     *  Assumes a dark background. Please use the Python interactive parameter selection for more detailed approaches.
-     *
-     *  Finds the flatest (1% of the image) and estimates the noise level in the gradient and sets the grad threshold from that.
-     */
-
-
-    //need to select some pixels. we need some buffer room in the image.
-    const size_t total_required_pixels = std::min((size_t) 10*512*512,localIntensityScale.mesh.size()/2);
-    const size_t delta = localIntensityScale.mesh.size()/total_required_pixels - 1;
-
-    std::vector<T> lis_buffer(total_required_pixels);
-    std::vector<S> grad_buffer(total_required_pixels);
-
-    uint64_t counter = 0;
-    uint64_t counter_sampled = 0;
-
-    while((counter < localIntensityScale.mesh.size()) && (counter_sampled < total_required_pixels)){
-
-        lis_buffer[counter_sampled] = localIntensityScale.mesh[counter];
-        grad_buffer[counter_sampled] = grad.mesh[counter];
-
-        counter+=delta;
-        counter_sampled++;
-
-    }
-
-
-    //float min_lis = *std::min_element(lis_buffer.begin(),lis_buffer.end());
-    float max_lis = *std::max_element(lis_buffer.begin(),lis_buffer.end());
-
-    std::vector<uint64_t> hist_lis;
-    hist_lis.resize(std::ceil(max_lis)+1,0);
-
-    for (uint64_t i = 0; i < total_required_pixels; ++i) {
-        auto lis_val = std::floor(lis_buffer[i]);
-        hist_lis[lis_val]++;
-    }
-
-    //Then find 5% therhold, and take the grad values from that.
-    uint64_t prop_values = 0.05*total_required_pixels;
-
-    uint64_t cumsum = 0;
-    uint64_t freq_val=0;
-    while (cumsum < prop_values){
-        cumsum+= hist_lis[freq_val];
-        freq_val++;
-
-    }
-
-    std::vector<S> grad_hist;
-    float grad_max = *std::max_element(grad_buffer.begin(),grad_buffer.end());
-    //float grad_min = *std::max_element(grad_buffer.begin(),grad_buffer.end());
-
-    grad_hist.resize(std::ceil(grad_max));
-    uint64_t grad_counter = 0;
-
-    for (uint64_t i = 0; i < total_required_pixels; ++i) {
-        auto val = lis_buffer[i];
-
-        if(val <= freq_val){
-            auto grad_val = grad_buffer[i];
-            grad_hist[std::floor(grad_val)]++;
-            grad_counter++;
-        }
-    }
-
-    auto max_it = std::max_element(grad_hist.begin(),grad_hist.end());
-    uint64_t mode = std::distance(grad_hist.begin(),max_it);
-
-    float grad_th = std::round(4*mode); //magic numbers.
-
-    par.grad_th = grad_th;
-    par.sigma_th = freq_val;
-    par.sigma_th_max = 1;
-
-    std::cout << "Used parameters: " << std::endl;
-    std::cout << "I_th: " << par.Ip_th << std::endl;
-    std::cout << "sigma_th: " << par.sigma_th << std::endl;
-    std::cout << "grad_th: " << par.grad_th << std::endl;
-    std::cout << "relative error (E): " << par.rel_error << std::endl;
-    std::cout << "lambda: " << par.lambda << std::endl;
-
-}
-
-
 template<typename T>
 void compute_means(const std::vector<T>& data, float threshold, float& mean_back, float& mean_fore) {
     float sum_fore=0.f, sum_back=0.f;
@@ -796,12 +707,14 @@ void APRConverter<ImageType>::autoParametersLiEntropy(const PixelData<T> &image,
             }
         }
 
-        grad_foreground.resize(counter);
-        lis_foreground.resize(counter);
+        const size_t num_foreground_pixels = counter;
+
+        grad_foreground.resize(num_foreground_pixels); //setting size to non-zero elements.
+        lis_foreground.resize(num_foreground_pixels);
 
         /// Then we uniformly subsample these signals, as we typically don't need all elements to compute the thresholds
-        const size_t num_elements = std::min((size_t)32*512*512, counter);
-        const size_t delta = counter / num_elements;
+        const size_t num_elements = std::min((size_t)32*512*512, num_foreground_pixels); //arbitrary number.
+        const size_t delta = num_foreground_pixels / num_elements;
         grad_subsampled.resize(num_elements);
         lis_subsampled.resize(num_elements);
 

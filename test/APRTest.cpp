@@ -287,10 +287,18 @@ bool test_auto_parameters(TestData& test_data){
 
     aprConverter.get_apr(apr, test_data.img_original);
 
-    //This test doesn't do anything except check if it runs.
+    auto par = apr.get_apr_parameters();
+
+    //checks if run, and the values are positive
+    if(par.sigma_th <= 0){
+        success = false;
+    }
+
+    if(par.grad_th <= 0){
+        success = false;
+    }
 
     return success;
-
 
 }
 
