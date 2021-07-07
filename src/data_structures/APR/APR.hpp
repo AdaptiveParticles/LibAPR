@@ -23,6 +23,9 @@ class APR {
     friend class APRConverterBatch;
     friend class APRBenchHelper;
 
+    template<typename T>
+    friend class APRTimeIO;
+
 protected:
 
     //APR Tree function
@@ -172,24 +175,30 @@ public:
 
     //copy constructor
     APR(const APR& apr2copy){
-        //Note: GPU datastructures are not copied.
+      copy_from_APR(apr2copy);
+    }
 
-        //default
-        linearAccess.copy(apr2copy.linearAccess);
-        linearAccessTree.copy(apr2copy.linearAccessTree);
-        aprInfo = apr2copy.aprInfo;
-        treeInfo = apr2copy.treeInfo;
-        tree_initialized = apr2copy.tree_initialized;
-        apr_initialized = apr2copy.apr_initialized;
-        name = apr2copy.name;
+    void copy_from_APR(const APR& apr2copy)
+    {
+      //Note: GPU datastructures are not copied.
 
-        //old data structures
-        apr_access = apr2copy.apr_access;
-        tree_access = apr2copy.tree_access;
-        apr_initialized_random = apr2copy.apr_initialized_random;
-        tree_initialized_random = apr2copy.tree_initialized_random;
+      //default
+      linearAccess.copy(apr2copy.linearAccess);
+      linearAccessTree.copy(apr2copy.linearAccessTree);
+      aprInfo = apr2copy.aprInfo;
+      treeInfo = apr2copy.treeInfo;
+      tree_initialized = apr2copy.tree_initialized;
+      apr_initialized = apr2copy.apr_initialized;
+      name = apr2copy.name;
+
+      //old data structures
+      apr_access = apr2copy.apr_access;
+      tree_access = apr2copy.tree_access;
+      apr_initialized_random = apr2copy.apr_initialized_random;
+      tree_initialized_random = apr2copy.tree_initialized_random;
 
     }
+
 
 
 protected:

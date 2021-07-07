@@ -6,6 +6,12 @@
 #define APR_TIME_APRTIMEIO_HPP
 
 #include "data_structures/APR/APR.hpp"
+#include "data_structures/APR/particles/PartCellData.hpp"
+#include "data_structures/APR/particles/ParticleData.hpp"
+#include "io/APRWriter.hpp"
+#include "numerics/APRReconstruction.hpp"
+
+
 
 template<typename BuffType>
 struct Buffer{
@@ -24,13 +30,13 @@ struct Buffer{
 
 template<typename ImageType>
 struct TimeData{
-    ExtraPartCellData<ImageType>* add_fp;
-    ExtraPartCellData<ImageType>* update_fp;
-    ExtraPartCellData<ImageType>* remove_fp;
+    PartCellData<ImageType>* add_fp;
+    PartCellData<ImageType>* update_fp;
+    PartCellData<ImageType>* remove_fp;
 
-    ExtraPartCellData<ImageType>* add_y;
-    ExtraPartCellData<ImageType>* update_y;
-    ExtraPartCellData<ImageType>* remove_y;
+    PartCellData<ImageType>* add_y;
+    PartCellData<ImageType>* update_y;
+    PartCellData<ImageType>* remove_y;
 
     unsigned int l_max;
 
@@ -50,31 +56,31 @@ struct ChangeTable{
     std::vector<PixelData<uint64_t>> particle_sum;
 
     void init(RandomAccess& init_access){
-        add_b.resize(init_access.l_max+1);
-        add_e.resize(init_access.l_max+1);
-        remove_b.resize(init_access.l_max+1);
-        remove_e.resize(init_access.l_max+1);
+        add_b.resize(init_access.level_max()+1);
+        add_e.resize(init_access.level_max()+1);
+        remove_b.resize(init_access.level_max()+1);
+        remove_e.resize(init_access.level_max()+1);
 
-        update_b.resize(init_access.l_max+1);
-        update_e.resize(init_access.l_max+1);
+        update_b.resize(init_access.level_max()+1);
+        update_e.resize(init_access.level_max()+1);
 
-        particle_sum.resize(init_access.l_max+1);
+        particle_sum.resize(init_access.level_max()+1);
 
-        for (int i = init_access.l_min; i <= init_access.l_max; ++i) {
-            add_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
-            remove_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
+        for (int i = init_access.level_min(); i <= init_access.level_max(); ++i) {
+            add_b[i].init(init_access.x_num(i),init_access.z_num(i),1);
+            remove_b[i].init(init_access.x_num(i),init_access.z_num(i),1);
 
-            add_e[i].init(init_access.x_num[i],init_access.z_num[i],1);
-            remove_e[i].init(init_access.x_num[i],init_access.z_num[i],1);
+            add_e[i].init(init_access.x_num(i),init_access.z_num(i),1);
+            remove_e[i].init(init_access.x_num(i),init_access.z_num(i),1);
 
             particle_sum[i].initWithValue(init_access.gap_map.x_num[i],init_access.gap_map.z_num[i],1,0);
 
-            update_b[i].init(init_access.x_num[i],init_access.z_num[i],1);
-            update_e[i].init(init_access.x_num[i],init_access.z_num[i],1);
+            update_b[i].init(init_access.x_num(i),init_access.z_num(i),1);
+            update_e[i].init(init_access.x_num(i),init_access.z_num(i),1);
         }
     }
 
-    void max(){
+    void set_max(){
         for (int i = 0; i < add_b.size(); ++i) {
             std::fill(add_b[i].mesh.begin(),add_b[i].mesh.end(),UINT64_MAX);
             std::fill(add_e[i].mesh.begin(),add_e[i].mesh.end(),UINT64_MAX);
@@ -152,7 +158,8 @@ class APRTimeIO : public APRWriter{
     BufferPc add_buff;
     BufferPc remove_buff;
 
-    std::vector<APR<ImageType>> APR_buffer;
+    std::vector<APR> APR_buffer;
+    std::vector<ParticleData<ImageType>> part_buffer;
 
     ChangeTable changeTable;
 
@@ -160,7 +167,7 @@ class APRTimeIO : public APRWriter{
     std::vector<uint64_t> remove_global_index;
     std::vector<uint64_t> add_global_index;
 
-    ExtraParticleData<uint16_t> updated_t_prev;
+    ParticleData<uint16_t> updated_t_prev;
 
 
     bool current_direction = true;
@@ -197,12 +204,14 @@ public:
 
     bool calculate_time_updated = false;
 
-    APR<ImageType> prev_apr;
+    APR prev_apr;
+    ParticleData<ImageType> prev_parts;
 
-    ExtraPartCellData<ImageType> current_particles;
-    ExtraParticleData<uint16_t> updated_t;
+    PartCellData<ImageType> current_particles;
+    ParticleData<uint16_t> updated_t;
 
-    APR<ImageType>* current_APR;
+    APR* current_APR;
+    ParticleData<ImageType>* current_particles_flat;
 
     uint64_t number_time_steps=0;
 
@@ -222,8 +231,8 @@ public:
 
     }
 
-    template<typename R,typename S,typename T>
-    void copy_parts_to_pcd(APR<R>& apr,ExtraParticleData<S>& parts2copy,ExtraPartCellData<T>& parts_pcd){
+    template<typename S,typename T>
+    void copy_parts_to_pcd(APR& apr,ParticleData<S>& parts2copy,PartCellData<T>& parts_pcd){
 
         auto apr_iterator = apr.iterator();
         parts_pcd.initialize_structure_parts_empty(apr);
@@ -235,17 +244,17 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
 
-                    const uint64_t offset_pc_data = apr_iterator.spatial_index_x_max(level) * z + x;
+                    const uint64_t offset_pc_data = apr_iterator.x_num(level) * z + x;
 
-                    auto begin = apr_iterator.set_new_lzx(level, z, x);
+                    auto begin = apr_iterator.begin(level, z, x);
 
                     if(begin != UINT64_MAX) {
 
                         auto b = apr_iterator.global_index();
-                        auto e = apr_iterator.end_index;
+                        auto e = apr_iterator.end();
 
                         parts_pcd.data[level][offset_pc_data].resize(e - b);
 
@@ -261,8 +270,8 @@ public:
 
     }
 
-    template<typename R,typename S,typename T>
-    void copy_pcd_to_parts(APR<R>& apr,ExtraParticleData<S>& partsDest,ExtraPartCellData<T>& parts_pcd2copy){
+    template<typename S,typename T>
+    void copy_pcd_to_parts(APR& apr,ParticleData<S>& partsDest,PartCellData<T>& parts_pcd2copy){
 
         auto apr_iterator = apr.iterator();
         partsDest.data.resize(apr_iterator.total_number_particles());
@@ -276,17 +285,17 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
 #endif
-            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_iterator.z_num(level); z++) {
+                for (x = 0; x < apr_iterator.x_num(level); ++x) {
 
-                    const uint64_t offset_pc_data = apr_iterator.spatial_index_x_max(level) * z + x;
+                    const uint64_t offset_pc_data = apr_iterator.x_num(level) * z + x;
 
-                    auto begin = apr_iterator.set_new_lzx(level, z, x);
+                    auto begin = apr_iterator.begin(level, z, x);
 
                     if(begin != UINT64_MAX) {
 
                         auto b = apr_iterator.global_index();
-                        auto e = apr_iterator.end_index;
+                        auto e = apr_iterator.end();
 
                         auto sz = parts_pcd2copy.data[level][offset_pc_data];
 
@@ -304,7 +313,7 @@ public:
 
 
     template<typename R>
-    void transfer_particles_through_time(APR<ImageType>& apr_old,APR<ImageType>& apr_new,ExtraParticleData<R>& old_parts,ExtraParticleData<R>& new_parts,R set_value = 0){
+    void transfer_particles_through_time(APR& apr_old,APR& apr_new,ParticleData<R>& old_parts,ParticleData<R>& new_parts,R set_value = 0){
         //
         //  Propogates a set of particles from one APR to another where the particles exist in both
         //
@@ -322,14 +331,14 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(new_iterator,old_iterator)
 #endif
-            for (z = 0; z < new_iterator.spatial_index_z_max(level); z++) {
-                for (x = 0; x < new_iterator.spatial_index_x_max(level); ++x) {
-                    old_iterator.set_new_lzx(level, z, x);
-                    for (new_iterator.set_new_lzx(level, z, x); new_iterator.global_index() < new_iterator.end_index;
-                         new_iterator.set_iterator_to_particle_next_particle()) {
+            for (z = 0; z < new_iterator.z_num(level); z++) {
+                for (x = 0; x < new_iterator.x_num(level); ++x) {
+                    old_iterator.begin(level, z, x);
+                    for (new_iterator.begin(level, z, x); new_iterator.global_index() < new_iterator.end();
+                         new_iterator++) {
 
-                        while((old_iterator.y() < new_iterator.y()) && (old_iterator.global_index() < old_iterator.end_index)){
-                            old_iterator.set_iterator_to_particle_next_particle();
+                        while((old_iterator.y() < new_iterator.y()) && (old_iterator.global_index() < old_iterator.end())){
+                            old_iterator++;
                         }
 
                         if(new_iterator.y() == old_iterator.y()){
@@ -345,8 +354,8 @@ public:
 
     }
 
-    template<typename R,typename S,typename T,typename U>
-    void interp_particles_apr_to_apr(APR<R>& apr_from,APR<S>& apr_to,ExtraParticleData<T>& parts_from,ExtraParticleData<U>& parts_to) {
+    template<typename T,typename U>
+    void interp_particles_apr_to_apr(APR& apr_from,APR& apr_to,ParticleData<T>& parts_from,ParticleData<U>& parts_to) {
         //
         //  APR-> APR interpolation using piecewise constant
         //
@@ -355,38 +364,41 @@ public:
         //  This is done by first direct assignment from {P_from,T_from} -> {P_to,T_to} then followed by upsample(T_to) -> {P_to}
         //
 
-        APRTree<R> tree_from;
-        APRTree<S> tree_to;
+//        APRTree tree_from;
+//        APRTree tree_to;
 
         // Initilize the two trees
-        tree_from.init(apr_from); // access for T_from
-        tree_to.init(apr_to); // access for T_to
+//        tree_from.init(apr_from); // access for T_from
+//        tree_to.init(apr_to); // access for T_to
 
         //  Down-sample the original particles
 
-        ExtraParticleData<float> parts_from_tree;
-        ExtraParticleData<U> parts_to_tree;
 
-        parts_from_tree.data.resize(tree_from.total_number_parent_cells());
+        // Now PC interp {P_from,T_from} -> {P_to,T_to}
+        auto tree_to_it = apr_to.tree_iterator();
+        auto tree_from_it = apr_from.tree_iterator();
+
+        auto apr_to_it = apr_to.iterator();
+        auto apr_from_it = apr_from.iterator();
+
+
+        ParticleData<float> parts_from_tree;
+        ParticleData<U> parts_to_tree;
+
+        parts_from_tree.data.resize(tree_from_it.total_number_particles());
         std::fill(parts_from_tree.data.begin(),parts_from_tree.data.end(),0);
 
         // {P_from} ->(ds) {T_from}
-        tree_from.fill_tree_mean(apr_from,tree_from,parts_from,parts_from_tree);
+        fill_tree_mean(apr_from,parts_from,parts_from_tree);
 
         // Init the target particles
         const U init_val = 0;
         parts_to.data.resize(apr_to.total_number_particles());
         std::fill(parts_to.data.begin(),parts_to.data.end(),init_val);
 
-        parts_to_tree.data.resize(tree_to.total_number_parent_cells());
+        parts_to_tree.data.resize(tree_to_it.total_number_particles());
         std::fill(parts_to_tree.data.begin(),parts_to_tree.data.end(),init_val);
 
-        // Now PC interp {P_from,T_from} -> {P_to,T_to}
-        auto tree_to_it = tree_to.tree_iterator();
-        auto tree_from_it = tree_from.tree_iterator();
-
-        auto apr_to_it = apr_to.iterator();
-        auto apr_from_it = apr_from.iterator();
 
         // First {P_from} -> {P_to,T_to}
         for (unsigned int level = apr_from_it.level_min(); level <= apr_from_it.level_max(); ++level) {
@@ -398,23 +410,23 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_from_it,apr_to_it,tree_to_it)
 #endif
-            for (z = 0; z < apr_from_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_from_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_from_it.z_num(level); z++) {
+                for (x = 0; x < apr_from_it.x_num(level); ++x) {
 
                     // Tree Particles
                     if(!max_level){
-                        tree_to_it.set_new_lzx(level, z, x);
+                        tree_to_it.begin(level, z, x);
                     }
 
                     // Particles
-                    apr_to_it.set_new_lzx(level, z, x);
+                    apr_to_it.begin(level, z, x);
 
-                    for (apr_from_it.set_new_lzx(level, z, x); apr_from_it.global_index() < apr_from_it.end_index;
-                         apr_from_it.set_iterator_to_particle_next_particle()) {
+                    for (apr_from_it.begin(level, z, x); apr_from_it.global_index() < apr_from_it.end();
+                         apr_from_it++) {
 
-                        while ((apr_to_it.y() < apr_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end_index)) {
+                        while ((apr_to_it.y() < apr_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end())) {
                             // {P_f->P_t}
-                            apr_to_it.set_iterator_to_particle_next_particle();
+                            apr_to_it++;
 
                         }
 
@@ -425,8 +437,8 @@ public:
                         if(!max_level){
                             // {P_f->T_t}
 
-                            while ((tree_to_it.y() < apr_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end_index)) {
-                                tree_to_it.set_iterator_to_particle_next_particle();
+                            while ((tree_to_it.y() < apr_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end())) {
+                                tree_to_it++;
                             }
 
                             if((tree_to_it.y() == apr_from_it.y()) ){
@@ -447,21 +459,21 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(tree_from_it,apr_to_it,tree_to_it)
 #endif
-            for (z = 0; z < apr_from_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_from_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_from_it.z_num(level); z++) {
+                for (x = 0; x < apr_from_it.x_num(level); ++x) {
 
                     // Particles
-                    apr_to_it.set_new_lzx(level, z, x);
+                    apr_to_it.begin(level, z, x);
 
                     // Tree Particles
-                    tree_to_it.set_new_lzx(level, z, x);
+                    tree_to_it.begin(level, z, x);
 
-                    for (tree_from_it.set_new_lzx(level, z, x); tree_from_it.global_index() < tree_from_it.end_index;
-                         tree_from_it.set_iterator_to_particle_next_particle()) {
+                    for (tree_from_it.begin(level, z, x); tree_from_it.global_index() < tree_from_it.end();
+                         tree_from_it++) {
 
                         // {P_f->P_t}
-                        while ((apr_to_it.y() < tree_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end_index)) {
-                            apr_to_it.set_iterator_to_particle_next_particle();
+                        while ((apr_to_it.y() < tree_from_it.y()) && (apr_to_it.global_index() < apr_to_it.end())) {
+                            apr_to_it++;
                         }
 
                         if(apr_to_it.y() == tree_from_it.y()){
@@ -470,8 +482,8 @@ public:
 
 
                         // {P_f->T_t}
-                        while ((tree_to_it.y() < tree_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end_index)) {
-                            tree_to_it.set_iterator_to_particle_next_particle();
+                        while ((tree_to_it.y() < tree_from_it.y()) && (tree_to_it.global_index() < tree_to_it.end())) {
+                            tree_to_it++;
                         }
                         if(tree_to_it.y() == tree_from_it.y()){
                             parts_to_tree[tree_to_it] = parts_from_tree[tree_from_it];
@@ -483,7 +495,7 @@ public:
         }
 
         //require additional iterator here for parent.
-        auto tree_to_parent_it = tree_to.tree_iterator();
+        auto tree_to_parent_it = apr_to.tree_iterator();
 
         // Final step, for those still empty do {T_to} (us)-> {T_to}
         for (unsigned int level = (tree_to_it.level_min()+1); level <= tree_to_it.level_max(); ++level) {
@@ -495,18 +507,18 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(tree_to_parent_it, tree_to_it)
 #endif
-            for (z = 0; z < tree_to_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < tree_to_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < tree_to_it.z_num(level); z++) {
+                for (x = 0; x < tree_to_it.x_num(level); ++x) {
 
                     // Parent Tree Particles
-                    tree_to_parent_it.set_new_lzx(level-1, z/2, x/2);
+                    tree_to_parent_it.begin(level-1, z/2, x/2);
 
-                    for (tree_to_it.set_new_lzx(level, z, x); tree_to_it.global_index() < tree_to_it.end_index;
-                         tree_to_it.set_iterator_to_particle_next_particle()) {
+                    for (tree_to_it.begin(level, z, x); tree_to_it.global_index() < tree_to_it.end();
+                         tree_to_it++) {
 
-                        while ((tree_to_parent_it.y() < (tree_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end_index)) {
+                        while ((tree_to_parent_it.y() < (tree_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end())) {
                             // {T_t(us)->T_t}
-                            tree_to_parent_it.set_iterator_to_particle_next_particle();
+                            tree_to_parent_it++;
                         }
 
                         if((tree_to_parent_it.y() == (tree_to_it.y()/2))){
@@ -531,18 +543,18 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_to_it, tree_to_parent_it)
 #endif
-            for (z = 0; z < apr_to_it.spatial_index_z_max(level); z++) {
-                for (x = 0; x < apr_to_it.spatial_index_x_max(level); ++x) {
+            for (z = 0; z < apr_to_it.z_num(level); z++) {
+                for (x = 0; x < apr_to_it.x_num(level); ++x) {
 
                     // Tree Parent Particles
-                    tree_to_parent_it.set_new_lzx(level-1, z/2, x/2);
+                    tree_to_parent_it.begin(level-1, z/2, x/2);
 
-                    for (apr_to_it.set_new_lzx(level, z, x); apr_to_it.global_index() < apr_to_it.end_index;
-                         apr_to_it.set_iterator_to_particle_next_particle()) {
+                    for (apr_to_it.begin(level, z, x); apr_to_it.global_index() < apr_to_it.end();
+                         apr_to_it++) {
 
-                        while ((tree_to_parent_it.y() < (apr_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end_index)) {
+                        while ((tree_to_parent_it.y() < (apr_to_it.y()/2)) && (tree_to_parent_it.global_index() < tree_to_parent_it.end())) {
                             // {T_t(us)->P_t}
-                            tree_to_parent_it.set_iterator_to_particle_next_particle();
+                            tree_to_parent_it++;
                         }
 
                         if(tree_to_parent_it.y() == (apr_to_it.y()/2)){
@@ -562,8 +574,8 @@ public:
 
 
 
-    template<typename R,typename S>
-    void add_particles(APR<R>& apr,ExtraPartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& add_b,std::vector<PixelData<uint64_t>>& add_e,BufferPc& buff,std::vector<S>& buff_f){
+    template<typename S>
+    void add_particles(APR& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& add_b,std::vector<PixelData<uint64_t>>& add_e,BufferPc& buff,std::vector<S>& buff_f){
 
         /*
          *
@@ -580,17 +592,17 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
-            auto y_num_ = (unsigned int) access.y_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
+            auto y_num_ = (unsigned int) access.y_num(level);
 
             const bool max_level = (access.level_max() == level);
 
-            const auto y_num_max = (unsigned int) access.y_num[level];
-            const auto x_num_max = (unsigned int) access.x_num[level];
-            const auto z_num_max = (unsigned int) access.z_num[level];
+            const auto y_num_max = (unsigned int) access.y_num(level);
+            const auto x_num_max = (unsigned int) access.x_num(level);
+            const auto z_num_max = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 
 #ifdef HAVE_OPENMP
@@ -606,7 +618,7 @@ public:
 
                     if(add_b[level].at(x_a,z_a,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
 
@@ -654,8 +666,8 @@ public:
 
 
 
-    template<typename R,typename S>
-    void remove_particles(APR<R>& apr,ExtraPartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& remove_b,std::vector<PixelData<uint64_t>>& remove_e,BufferPc& buff){
+    template<typename S>
+    void remove_particles(APR& apr,PartCellData<S>& parts_pcd,std::vector<PixelData<uint64_t>>& remove_b,std::vector<PixelData<uint64_t>>& remove_e,BufferPc& buff){
         //
         //  Removes the aprticles between timesteps
         //
@@ -672,17 +684,17 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
-            auto y_num_ = (unsigned int) access.y_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
+            auto y_num_ = (unsigned int) access.y_num(level);
 
             const bool max_level = (access.level_max() == level);
 
-            const auto y_num_max = (unsigned int) access.y_num[level];
-            const auto x_num_max = (unsigned int) access.x_num[level];
-            const auto z_num_max = (unsigned int) access.z_num[level];
+            const auto y_num_max = (unsigned int) access.y_num(level);
+            const auto x_num_max = (unsigned int) access.x_num(level);
+            const auto z_num_max = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_, z_) firstprivate(it)
@@ -697,7 +709,7 @@ public:
 
                     if(remove_b[level].at(x_a,z_a,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
 
@@ -737,8 +749,8 @@ public:
         }
     }
 
-    template<typename R,typename S>
-    void update_particles_val(APR<R>& apr,ExtraParticleData<S>& particles,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const S update_val){
+    template<typename S>
+    void update_particles_val(APR& apr,ParticleData<S>& particles,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const S update_val){
         //
         //  Updates particles from the buffer (make more general) //do the change outside the function
         //
@@ -750,10 +762,10 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_, z_) firstprivate(it)
@@ -763,7 +775,7 @@ public:
 
                     if(update_b[level].at(x_,z_,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
                         auto pc = it.get_current_particle_cell();
@@ -787,8 +799,8 @@ public:
     }
 
 
-    template<typename R,typename S>
-    void update_particles(APR<R>& apr,ExtraPartCellData<S>& parts_pcd,std::vector<S>& f_data,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const bool forward){
+    template<typename S>
+    void update_particles(APR& apr,PartCellData<S>& parts_pcd,std::vector<S>& f_data,std::vector<PixelData<uint64_t>>& update_b,std::vector<PixelData<uint64_t>>& update_e,BufferPc& buff_pc,const bool forward){
         //
         //  Updates particles from the buffer (make more general) //do the change outside the function
         //
@@ -801,10 +813,10 @@ public:
 
         for (uint64_t level = (access.level_min()); level <= access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) access.x_num[level];
-            auto z_num_ = (unsigned int) access.z_num[level];
+            auto x_num_ = (unsigned int) access.x_num(level);
+            auto z_num_ = (unsigned int) access.z_num(level);
 
-            auto it = apr.iterator();
+            auto it = apr.random_iterator();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(x_, z_) firstprivate(it)
@@ -814,7 +826,7 @@ public:
 
                     if(update_b[level].at(x_,z_,0)!=UINT64_MAX){
 
-                        it.set_new_lzx(level,z_,x_);
+                        it.begin(level,z_,x_);
 
                         auto mit = it.get_current_gap();
                         auto pcd_key = it.get_pcd_key();
@@ -874,11 +886,11 @@ public:
     void read_apr_init(const std::string &input_file_name){
         file_name = input_file_name;
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
-        op = AprFile::Operation::READ;
+        op = FileStructure::Operation::READ;
 
-        AprFile f(file_name, op, 0);
+        FileStructure f(file_name, op, 0);
 
         uint64_t num_key_frames = get_dims(f.groupId,"keyframe_indices");
         key_frame_index_vector.resize(num_key_frames);
@@ -912,11 +924,11 @@ public:
 
             timer.start_timer("init");
 
-            AprFile::Operation op;
+            FileStructure::Operation op;
 
-            op = AprFile::Operation::READ;
+            op = FileStructure::Operation::READ;
 
-            AprFile f(file_name, op, key_frame, "dt");
+            FileStructure f(file_name, op, key_frame, "dt");
 
             hid_t meta_data = f.objectId;
 
@@ -984,7 +996,7 @@ public:
         APRTimer timer;
         timer.verbose_flag = false;
 
-        APR<ImageType> temp_apr;
+        APR temp_apr;
 
         read_apr(temp_apr, file_name, false, 0, key_frame);
         current_time_step = key_frame_index_vector[key_frame];
@@ -1008,8 +1020,8 @@ public:
         //Need to initialize the change table.
         for (uint64_t level = (init_access.level_min()); level <= init_access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) init_access.x_num[level];
-            auto z_num_ = (unsigned int) init_access.z_num[level];
+            auto x_num_ = (unsigned int) init_access.x_num(level);
+            auto z_num_ = (unsigned int) init_access.z_num(level);
 
             const bool max_level = (init_access.level_max() == level);
 
@@ -1213,26 +1225,28 @@ public:
         uint64_t z_;
         uint64_t x_;
 
-        const bool odd_end = (new_access.y_num.back()%2) != 0; //odd y-num;
+        auto level_max = new_access.level_max();
+
+        const bool odd_end = (new_access.y_num(level_max)%2) != 0; //odd y-num;
 
         for (uint64_t level = (new_access.level_min()); level <= new_access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) new_access.x_num[level];
-            auto z_num_ = (unsigned int) new_access.z_num[level];
-            auto y_num_ = (unsigned int) new_access.y_num[level];
+            auto x_num_ = (unsigned int) new_access.x_num(level);
+            auto z_num_ = (unsigned int) new_access.z_num(level);
+            auto y_num_ = (unsigned int) new_access.y_num(level);
 
             const bool max_level = (new_access.level_max() ==level );
 
             if (max_level) {
                 //account for the APR, where the maximum level is down-sampled one
-                x_num_ = (unsigned int) new_access.x_num[level - 1];
-                z_num_ = (unsigned int) new_access.z_num[level - 1];
-                y_num_ = (unsigned int) new_access.y_num[level - 1];
+                x_num_ = (unsigned int) new_access.x_num(level - 1);
+                z_num_ = (unsigned int) new_access.z_num(level - 1);
+                y_num_ = (unsigned int) new_access.y_num(level - 1);
             }
 
-            const auto y_num_max = (unsigned int) new_access.y_num[level];
-            const auto x_num_max = (unsigned int) new_access.x_num[level];
-            const auto z_num_max = (unsigned int) new_access.z_num[level];
+            const auto y_num_max = (unsigned int) new_access.y_num(level);
+            const auto x_num_max = (unsigned int) new_access.x_num(level);
+            const auto z_num_max = (unsigned int) new_access.z_num(level);
 
             std::vector<uint8_t> y_temp;
             y_temp.resize(y_num_,0);
@@ -1434,15 +1448,15 @@ public:
 
         for (uint64_t level = (new_access.level_min()); level <= new_access.level_max(); level++) {
 
-            auto x_num_ = (unsigned int) new_access.x_num[level];
-            auto z_num_ = (unsigned int) new_access.z_num[level];
+            auto x_num_ = (unsigned int) new_access.x_num(level);
+            auto z_num_ = (unsigned int) new_access.z_num(level);
 
             const bool max_level = (new_access.level_max() == level);
 
             if (max_level) {
                 //account for the APR, where the maximum level is down-sampled one
-                x_num_ = (unsigned int) new_access.x_num[level - 1];
-                z_num_ = (unsigned int) new_access.z_num[level - 1];
+                x_num_ = (unsigned int) new_access.x_num(level - 1);
+                z_num_ = (unsigned int) new_access.z_num(level - 1);
             }
 
             new_access.global_index_by_level_and_zx_end[level].resize(z_num_ * x_num_);
@@ -1462,7 +1476,7 @@ public:
         }
 
         //update the total number of particles
-        new_access.total_number_particles = new_access.global_index_by_level_and_zx_end[new_access.l_max].back();
+        new_access.genInfo->total_number_particles = new_access.global_index_by_level_and_zx_end[new_access.level_max()].back();
 
     }
 
@@ -1533,7 +1547,7 @@ public:
         remove_global_index.resize(remove_f_end - remove_f_begin);
         add_global_index.resize(add_f_end - add_f_begin);
 
-        changeTable.max();
+        changeTable.set_max();
 
         for (auto j = add_begin; j < add_end; ++j) {
 
@@ -1760,21 +1774,22 @@ public:
 
         if(key_frame_loaded || direct_updated == (UINT64_MAX)) {
 
-            APR<ImageType> temp_apr;
+            APR temp_apr;
 
             read_apr(temp_apr, file_name, false, 0, current_key_frame);
 
-            temp_apr.interp_img(pixelImg, temp_apr.particles_intensities);
+            APRReconstruction::reconstruct_constant(temp_apr,pixelImg,temp_apr.particles_intensities);
+//            temp_apr.interp_img(pixelImg, temp_apr.particles_intensities);
 
             direct_updated = key_frame_index_vector[current_key_frame];
         }
 
 
         if (pixelImg.mesh.size() !=
-            (initial_access_info.org_dims[0] * initial_access_info.org_dims[1] * initial_access_info.org_dims[2])) {
+            (initial_access_info.org_dims(0) * initial_access_info.org_dims(1) * initial_access_info.org_dims(2))) {
             //check if the img needs to be initialized
-            pixelImg.init(initial_access_info.org_dims[0], initial_access_info.org_dims[1],
-                          initial_access_info.org_dims[2]);
+            pixelImg.init(initial_access_info.org_dims(0), initial_access_info.org_dims(1),
+                          initial_access_info.org_dims(2));
         }
 
         //updates
@@ -1817,7 +1832,7 @@ public:
 
 
     template<typename T>
-    void flatten_pcd(ExtraPartCellData<T>& partCellData,std::vector<T>& flatData){
+    void flatten_pcd(PartCellData<T>& partCellData,std::vector<T>& flatData){
         //
         //  Copy the data from partCellData to a contiguous array
         //
@@ -1855,7 +1870,7 @@ public:
     }
 
     template<typename T,typename R>
-    void flatten_pcd_gen_spatial_info(ExtraPartCellData<T>& partCellData,std::vector<R>& flatData,std::string pc_property) {
+    void flatten_pcd_gen_spatial_info(PartCellData<T>& partCellData,std::vector<R>& flatData,std::string pc_property) {
         //
         //  Copy the data from partCellData to a contiguous array
         //
@@ -1898,10 +1913,10 @@ public:
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(dynamic) private(z)
 #endif
-            for (z = 0; z < partCellData.z_num[i]; ++z) {
-                for (int x = 0; x < partCellData.x_num[i]; ++x) {
+            for (z = 0; z < partCellData.z_num(i); ++z) {
+                for (int x = 0; x < partCellData.x_num(i); ++x) {
 
-                    auto j = z * partCellData.x_num[i] + x;
+                    auto j = z * partCellData.x_num(i) + x;
 
                     auto idx_b = indx[i][j];
                     auto idx_e = indx[i][j] + partCellData.data[i][j].size();
@@ -2001,8 +2016,8 @@ public:
 
     }
 
-    FileSizeInfo write_key_frame(APR<ImageType>& apr, const std::string &save_loc, const std::string &file_name,uint64_t key_frame_num,uint64_t global_index) {
-        APRCompress<ImageType> apr_compressor;
+    FileSizeInfo write_key_frame(APR& apr, const std::string &save_loc, const std::string &file_name,uint64_t key_frame_num,uint64_t global_index) {
+        APRCompress apr_compressor;
         apr_compressor.set_compression_type(0);
         delta_num = 0;
         key_frame=key_frame_num;
@@ -2010,10 +2025,10 @@ public:
 
         FileSizeInfo fileSizeInfo = write_apr(apr, save_loc, file_name, apr_compressor,BLOSC_ZSTD,4,1,false,true);
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
         std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
-        op = APRWriter::AprFile::Operation::WRITE_APPEND;
-        APRWriter::AprFile f(hdf5_file_name, op, 0);
+        op = FileStructure::Operation::WRITE_APPEND;
+        FileStructure f(hdf5_file_name, op, 0);
 
         //append value.
         std::vector<uint64_t> sz={key_frame_index};
@@ -2032,23 +2047,23 @@ public:
         std::string hdf5_file_name = save_loc + file_name + "_apr.h5";
 
 
-        AprFile::Operation op;
+        FileStructure::Operation op;
 
         if (write_tree) {
-            op = APRWriter::AprFile::Operation::WRITE_WITH_TREE;
+            op = FileStructure::Operation::WRITE_WITH_TREE;
         } else {
-            op = APRWriter::AprFile::Operation::WRITE;
+            op = FileStructure::Operation::WRITE;
         }
 
         unsigned int t = delta_num;
 
         if(t>=1){
-            op = APRWriter::AprFile::Operation::WRITE_APPEND;
+            op = FileStructure::Operation::WRITE_APPEND;
         } else {
 
         }
 
-        APRWriter::AprFile f(hdf5_file_name, op, key_frame,"dt");
+        FileStructure f(hdf5_file_name, op, key_frame,"dt");
 
 
         delta_num++;
