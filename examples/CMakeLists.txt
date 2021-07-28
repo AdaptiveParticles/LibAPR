@@ -1,6 +1,6 @@
 macro(buildTarget TARGET)
     add_executable(${TARGET} ${TARGET}.cpp)
-    target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${APR_BUILD_LIBRARY} Threads::Threads)
+    target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${APR_BUILD_LIBRARY} Threads::Threads ${OPENMP_LINK})
 endmacro(buildTarget)
 
 buildTarget(Example_get_apr)

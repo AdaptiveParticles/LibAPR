@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
     //writes the piece-wise constant reconstruction of the APR to file for comparison
     if(options.output_tiff) {
         PixelData<uint16_t> img;
-        APRReconstruction::interp_img(apr,img, parts);
+        APRReconstruction::reconstruct_constant(apr,img, parts);
         std::string output = options.directory + name + "_compressed.tif";
         TiffUtils::saveMeshAsTiff(output, img);
     }

@@ -7,37 +7,45 @@ APR_BUILD_SHARED_LIB=OFF
 APR_INSTALL=ON
 (all other configuration possibilities are now in the top of CMakeLists.txt file)
 
-so full command line would look like:
+## OSX / UNIX Installation
+
+so full command line would look like: (-DCMAKE_INSTALL_PREFIX=/tmp/APR can be used for a non-default location)
 
 ```
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=/tmp/APR -DAPR_INSTALL=ON -DAPR_BUILD_STATIC_LIB=ON -DAPR_BUILD_SHARED_LIB=OFF ..
+cmake -DAPR_INSTALL=ON -DAPR_BUILD_STATIC_LIB=ON -DAPR_BUILD_SHARED_LIB=OFF ..
 make
 make install
 ```
 
-To use APR the minimalistic CMakeLists.txt file would look like:
+You may need file-permissions (sudo for the install)
 
-```
-cmake_minimum_required(VERSION 3.2)
-project(myAprProject)
-set(CMAKE_CXX_STANDARD 14)
+## Windows Installation Clang
 
-#external libraries needed for APR
-find_package(HDF5 REQUIRED)
-find_package(TIFF REQUIRED)
-include_directories(${HDF5_INCLUDE_DIRS} ${TIFF_INCLUDE_DIR} )
+``
+cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_TOOLCHAIN_FILE="PATH_TO_VCPKG\vcpkg\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -T ClangCL -DAPR_BUILD_STATIC_LIB=ON -DAPR_BUILD_SHARED_LIB=OFF -DAPR_INSTALL=ON ..
+cmake --build . --config Release
+``
 
-find_package(APR REQUIRED)
+Need to be in a console running as administrator. 
 
-add_executable(HelloAPR helloWorld.cpp)
-target_link_libraries(HelloAPR  ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} apr::staticLib)
-```
+``
+cmake --install .
+``
 
-if shared version is preferred then apr::sharedLib should be used (and of course APR_BUILD_SHARED_LIB=ON during lib build step).
+## Minimal example CMAKE
 
-NOTICE: if APR is isntalled in not standard directory then some hint for cmake must be provided by adding install dir to CMAKE_PREFIX_PATH like for above example:
+To use APR the minimalistic CMakeLists.txt file can be found here: https://github.com/AdaptiveParticles/APR_cpp_project_example
+
+##
+
+APR::staticLib (Note, tested across Windows, Linux, and Mac)
+APR::sharedLib (Note, not tested)
+
+If shared version is preferred then APR::sharedLib should be used (and of course APR_BUILD_SHARED_LIB=ON during lib build step).
+
+NOTICE: if APR is installed in not standard directory then some hint for cmake must be provided by adding install dir to CMAKE_PREFIX_PATH like for above example:
 
 ```
 export CMAKE_PREFIX_PATH=/tmp/APR:$CMAKE_PREFIX_PATH

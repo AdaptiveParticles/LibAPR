@@ -5,7 +5,7 @@
 #ifndef PARTPLAY_LOCAL_PARTICLE_SET_HPP
 #define PARTPLAY_LOCAL_PARTICLE_SET_HPP
 
-#ifdef _MSC_VER
+#ifdef WIN_VS
 #include <intrin.h>
 
 // from https://github.com/llvm-mirror/libcxx/blob/9dcbb46826fd4d29b1485f25e8986d36019a6dca/include/support/win32/support.h#L106-L182

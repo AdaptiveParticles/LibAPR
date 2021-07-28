@@ -22,17 +22,14 @@
 #include "data_structures/APR/particles/ParticleData.hpp"
 
 #include "data_structures/APR/APR.hpp"
-#include "numerics/APRRaycaster.cpp"
-#include "vis/Camera.cpp"
-#include "vis/Object.cpp"
-#include "vis/RaytracedObject.cpp"
 
 #include "numerics/APRReconstruction.hpp"
-
+#include "vis/RaycastUtils.h"
 
 class APRRaycaster {
 
 public:
+    bool verbose = false;
 
     int direction = 0;
 
@@ -58,8 +55,7 @@ public:
     std::string name = "raycast";
 
     template<typename S, typename V, class BinaryOperation>
-    void
-    perform_raycast(APR &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
+    void perform_raycast(APR &apr, ParticleData<S> &particle_data, PixelData<V> &cast_views, BinaryOperation op);
 
     template<typename S, typename V, typename T, class BinaryOperation>
     void perform_raycast_patch(APR &apr, ParticleData<S> &particle_data,
@@ -71,15 +67,7 @@ public:
 
     // Stuff below is hiding implementation so eventually glm header files do not
     // have to be delivered with libAPR
-    struct GlmObjectsContainer;
     GlmObjectsContainer *glmObjects;
-
-    void initObjects(int imageWidth, int imageHeight, float radius, float theta, float x0, float y0, float z0,
-                     float x0f, float y0f, float z0f,float phi_ = 0);
-
-    void killObjects();
-
-    void getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, int x_num, int y_num);
 
 private:
 
@@ -87,45 +75,6 @@ private:
 
 
 };
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-// Implementation of glm related stuff. Main reason is to avoid necessity to have glm header files installed
-// to use libAPR.
-
-struct APRRaycaster::GlmObjectsContainer {
-    RaytracedObject raytracedObject;
-    glm::mat4 mvp;
-};
-
-void APRRaycaster::initObjects(int imageWidth, int imageHeight, float radius, float theta, float x0, float y0,
-                               float z0, float x0f, float y0f, float z0f, float phi_) {
-    Camera cam = Camera(glm::vec3(x0 + radius*sin(phi), y0 + radius * sin(theta)*cos(phi_s), z0 + radius * cos(theta)*cos(phi_s)),
-                        glm::fquat(1.0f, 0.0f, 0.0f, 0.0f));
-    cam.setTargeted(glm::vec3(x0f, y0f, z0f));
-    cam.setPerspectiveCamera((float) imageWidth / (float) imageHeight, (float) (60.0f / 180.0f * M_PI), 0.5f, 70.0f);
-    glmObjects = new GlmObjectsContainer{
-            RaytracedObject(glm::vec3(0.0f, 0.0f, 0.0f), glm::fquat(1.0f, 0.0f, 0.0f, 0.0f)),
-            glm::mat4((*cam.getProjection()) * (*cam.getView()))
-    };
-}
-
-void APRRaycaster::killObjects() {
-    delete glmObjects;
-    glmObjects = nullptr;
-}
-
-void
-APRRaycaster::getPos(int &dim1, int &dim2, float x_actual, float y_actual, float z_actual, int x_num, int y_num) {
-    glm::vec2 pos = glmObjects->raytracedObject.worldToScreen(glmObjects->mvp, glm::vec3(x_actual, y_actual, z_actual),
-                                                              x_num, y_num);
-
-    dim1 = round(-pos.y);
-    dim2 = round(-pos.x);
-}
-
 
 template<typename S, typename V, typename T, class BinaryOperation>
 void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_data,
@@ -232,10 +181,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
     float init_val = 0;
 
 
-    APRTimer timer;
-
-    timer.verbose_flag = true;
-
+    APRTimer timer(verbose);
     timer.start_timer("Compute APR maximum projection raycast");
 
     /////////////////////////////////////
@@ -325,7 +271,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         /// Set up the new camera views
         ///
         //////////////////////////////
-        initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f,phi);
+        initObjects(glmObjects, imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f, phi, phi_s);
 
         ///////////////////////////////////////////
         ///
@@ -385,7 +331,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
                             int dim1 = 0;
                             int dim2 = 0;
-                            getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
+                            getPos(glmObjects,dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
                                    depth_slice[level].y_num);
 
                             //dim1 = dim1*scale_down;
@@ -462,7 +408,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
 
                             int dim1 = 0;
                             int dim2 = 0;
-                            getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
+                            getPos(glmObjects, dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
                                    depth_slice[level].y_num);
 
                            // dim1 = dim1*scale_down;
@@ -491,7 +437,7 @@ void APRRaycaster::perform_raycast_patch(APR &apr, ParticleData<S> &particle_dat
         }
 
 
-        killObjects();
+        killObjects(glmObjects);
 
 
         //////////////////////////////////////////////
@@ -612,9 +558,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
     int view_count = 0;
     float init_val = 0;
 
-    APRTimer timer;
-
-    timer.verbose_flag = true;
+    APRTimer timer(verbose);
 
     timer.start_timer("Compute APR maximum projection raycast");
 
@@ -696,7 +640,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
         /// Set up the new camera views
         ///
         //////////////////////////////
-        initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f);
+        initObjects(glmObjects, imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f, phi, phi_s);
 
         ///////////////////////////////////////////
         ///
@@ -738,7 +682,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
 
                         int dim1 = 0;
                         int dim2 = 0;
-                        getPos(dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
+                        getPos(glmObjects,dim1, dim2, x_actual, y_actual, z_actual, depth_slice[level].x_num,
                                depth_slice[level].y_num);
 
                         if ((dim1 > 0) & (dim2 > 0) &
@@ -757,7 +701,7 @@ void APRRaycaster::perform_raycast(APR &apr, ParticleData<S> &particle_data, Pix
                 }
             }
         }
-        killObjects();
+        killObjects(glmObjects);
 
         //////////////////////////////////////////////
         ///
@@ -868,16 +812,14 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
 
     cast_views.initWithValue(imageHeight, imageWidth, num_views, 0);
 
-    APRTimer timer;
-
-    timer.verbose_flag = true;
+    APRTimer timer(verbose);
 
     int view_count = 0;
 
     timer.start_timer("ray cast mesh prospective");
 
     for (float theta = theta_0; theta <= theta_f; theta += theta_delta) {
-        initObjects(imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f);
+        initObjects(glmObjects, imageWidth, imageHeight, radius, theta, x0, y0, z0, x0f, y0f, z0f, phi, phi_s);
 
         PixelData<S> proj_img;
         proj_img.initWithValue(imageHeight, imageWidth, 1, 0);
@@ -901,7 +843,7 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
                     const S temp_int = image.mesh[j_ + x_ * image.y_num + z_ * image.x_num * image.y_num];
                     int dim1 = 0;
                     int dim2 = 0;
-                    getPos(dim1, dim2, (float) x_ * this->scale_x, (float) j_ * this->scale_y,
+                    getPos(glmObjects, dim1, dim2, (float) x_ * this->scale_x, (float) j_ * this->scale_y,
                            (float) z_ * this->scale_z, imageWidth, imageHeight);
 
                     if ((dim1 > 0) & (dim2 > 0) &
@@ -914,7 +856,7 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
                 }
             }
         }
-        killObjects();
+        killObjects(glmObjects);
         std::copy(proj_img.mesh.begin(), proj_img.mesh.end(),
                   cast_views.mesh.begin() + view_count * imageHeight * imageWidth);
 
@@ -930,5 +872,6 @@ float APRRaycaster::perpsective_mesh_raycast(PixelData<S> &image, PixelData<U> &
 
     return elapsed_seconds;
 }
+
 
 #endif

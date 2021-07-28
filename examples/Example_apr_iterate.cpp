@@ -117,8 +117,6 @@ int main(int argc, char **argv) {
     timer.stop_timer();
 
 
-
-
     ////////////////////////////
     ///
     /// OpenMP Parallel loop iteration (For use with neighbour access see Example_apr_neighbour_access)
@@ -184,9 +182,8 @@ int main(int argc, char **argv) {
             for (x = 0; x < it.x_num(level); ++x) {
                 for (it.begin(level, z, x); it < it.end();
                      it++) {
-
+                    calc_ex[it] = pow(calc_ex[it], 2.0f);
                 }
-                calc_ex[it] = pow(calc_ex[it], 2.0f);
             }
         }
     }

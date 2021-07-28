@@ -122,7 +122,7 @@ int runAPR(cmdLineOptions options) {
         if(aprConverter.par.output_steps){
             particle_intensities.fill_with_levels(apr);
             PixelData<uint16_t> level_img;
-            APRReconstruction::interp_img(apr,level_img,particle_intensities);
+            APRReconstruction::reconstruct_constant(apr,level_img,particle_intensities);
             TiffUtils::saveMeshAsTiff(options.output_dir + "level_image.tif",level_img);
         }
 
