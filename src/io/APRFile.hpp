@@ -135,6 +135,8 @@ private:
     //Advanced Parameters.
     int max_level_delta = 0;
 
+    hid_t open_dataset_location(std::string& particles_name, bool apr_or_tree, uint64_t t, std::string& channel_name);
+
 
 };
 
@@ -284,6 +286,7 @@ bool APRFile::write_apr_append(APR &apr){
    */
 template<typename DataType>
 bool APRFile::write_particles(const std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t,std::string channel_name){
+
 
     if(fileStructure.isOpened()){
     } else {
@@ -493,13 +496,9 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 template<typename DataType>
 bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t,std::string channel_name){
 
-    if(!fileStructure.isOpened()){
-        std::cerr << "File is not open!" << std::endl;
-        return false;
-    }
+    hid_t part_location = open_dataset_location(particles_name, apr_or_tree,t,channel_name);
 
-    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
-        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+    if(part_location == 0){
         return false;
     }
 
@@ -511,22 +510,6 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
      // Check that the APR is initialized.
     if(!apr.is_initialized()){
         std::cerr << "Error reading particles: input APR is not initialized" << std::endl;
-        return false;
-    }
-
-    //check if old or new file, for location of the properties. (The metadata moved to the time point.)
-    hid_t part_location;
-
-    if(apr_or_tree){
-        part_location = fileStructure.objectId;
-    } else {
-        part_location = fileStructure.objectIdTree;
-    }
-
-    // Check that the dataset exists
-    std::string data_n = particles_name;
-    if(!data_exists(part_location,data_n.c_str())) {
-        std::cerr << "Error reading APR file: particle dataset '" << particles_name << "' doesn't exist" << std::endl;
         return false;
     }
 
@@ -644,22 +627,22 @@ bool APRFile::read_particles(APR& apr,ParticleData<DataType>& particles,bool apr
     return read;
 }
 
+hid_t APRFile::open_dataset_location(std::string& particles_name, bool apr_or_tree, uint64_t t, std::string& channel_name) {
 
-std::string APRFile::get_particle_type(std::string particles_name, bool apr_or_tree, uint64_t t, std::string channel_name) {
-
-    if(!fileStructure.isOpened()){
+    if (!fileStructure.isOpened()) {
         std::cerr << "File is not open!" << std::endl;
-        return "";
+        return 0;
     }
 
-    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
-        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
-        return "";
+    if (!fileStructure.open_time_point(t, with_tree_flag, channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name
+                  << "'" << std::endl;
+        return 0;
     }
 
     hid_t part_location;
 
-    if(apr_or_tree){
+    if (apr_or_tree) {
         part_location = fileStructure.objectId;
     } else {
         part_location = fileStructure.objectIdTree;
@@ -667,8 +650,19 @@ std::string APRFile::get_particle_type(std::string particles_name, bool apr_or_t
 
     // Check that the dataset exists
     std::string data_n = particles_name;
-    if(!data_exists(part_location,data_n.c_str())) {
+    if (!data_exists(part_location, data_n.c_str())) {
         std::cerr << "Error reading APR file: particle dataset '" << particles_name << "' doesn't exist" << std::endl;
+        return 0;
+    }
+
+    return part_location;
+}
+
+std::string APRFile::get_particle_type(std::string particles_name, bool apr_or_tree, uint64_t t, std::string channel_name) {
+
+    hid_t part_location = open_dataset_location(particles_name, apr_or_tree,t,channel_name);
+
+    if(part_location == 0){
         return "";
     }
 
