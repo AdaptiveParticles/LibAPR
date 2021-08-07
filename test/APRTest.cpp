@@ -50,6 +50,7 @@ protected:
 
 };
 
+
 class CreateSmallSphereTest : public CreateAPRTest
 {
 public:
@@ -1489,6 +1490,67 @@ bool test_apr_tree(TestData& test_data) {
 
     return success;
 }
+
+template<typename T>
+bool check_particle_type(std::string& type_check){
+
+    //Test Basic IO
+    std::string file_name = "read_write_test.apr";
+
+    //First write a file
+    APRFile writeFile;
+    writeFile.open(file_name,"WRITE");
+
+    const size_t parts_num = 10;
+
+    ParticleData<T> part_write;
+    part_write.init(parts_num);
+
+    writeFile.write_particles("part_write",part_write);
+
+    writeFile.close();
+
+    //First read a file
+    APRFile readFile;
+
+    bool success = true;
+
+    readFile.open(file_name,"READ");
+
+    std::string read_type = readFile.get_particle_type("part_write");
+
+    readFile.close();
+
+    if(type_check != read_type){
+        success = false;
+    }
+
+    return success;
+
+}
+
+
+
+bool test_apr_file_particle_type(){
+
+    std::vector<std::string> type_list = {"uint16", "float", "uint8", "uint32", "uint64", "double", "int8", "int16", "int32", "int64"};
+
+    bool success = true;
+
+    success = success & check_particle_type<uint16_t>(type_list[0]);
+    success = success & check_particle_type<float>(type_list[1]);
+    success = success & check_particle_type<uint8_t>(type_list[2]);
+    success = success & check_particle_type<uint32_t>(type_list[3]);
+    success = success & check_particle_type<uint64_t>(type_list[4]);
+    success = success & check_particle_type<double>(type_list[5]);
+    success = success & check_particle_type<int8_t>(type_list[6]);
+    success = success & check_particle_type<int16_t>(type_list[7]);
+    success = success & check_particle_type<int32_t>(type_list[8]);
+    success = success & check_particle_type<int64_t>(type_list[9]);
+
+    return success;
+}
+
 
 bool test_apr_file(TestData& test_data){
 
@@ -4220,7 +4282,9 @@ TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 1, 13}));
 }
 
-
+TEST_F(CreateAPRTest, READ_PARTICLE_TYPE){
+    ASSERT_TRUE(test_apr_file_particle_type());
+}
 
 int main(int argc, char **argv) {
 
