@@ -20,6 +20,7 @@ matrix:
           - cmake
           - llvm
           - libomp
+        update: true
   - os: windows
     language: cpp
 
