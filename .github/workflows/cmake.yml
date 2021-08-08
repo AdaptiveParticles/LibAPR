@@ -42,8 +42,9 @@ jobs:
           setupOnly: true
           vcpkgTriplet: '${{ matrix.triplet }}'
           vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
           appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
+          additionalCachedPaths: ${{ env.buildDir }}
           
       - name: dir
         run: find $RUNNER_WORKSPACE
