@@ -59,8 +59,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake"
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake"
             -DAPR_BUILD_STATIC_LIB=ON \
             -DAPR_BUILD_SHARED_LIB=ON \
             -DAPR_BUILD_EXAMPLES=ON \
