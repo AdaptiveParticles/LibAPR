@@ -17,17 +17,10 @@ jobs:
         include:
           - os: windows-latest
             triplet: x64-windows
-            vcpkgCommitId: '57bd7102d9fd880daa1b0958692294c4a125f6d8'
-            vcpkgPackages: 'hdf5'
           - os: ubuntu-latest
             triplet: x64-linux
-            vcpkgCommitId: '57bd7102d9fd880daa1b0958692294c4a125f6d8'
-            vcpkgPackages: >
-              hdf5 blosc gtest tiff szip 
           - os: macos-latest
             triplet: x64-osx
-            vcpkgCommitId: '57bd7102d9fd880daa1b0958692294c4a125f6d8'
-            vcpkgPackages: 'hdf5'
 
     steps:
       - uses: actions/checkout@v1
@@ -43,10 +36,10 @@ jobs:
         uses: lukka/run-vcpkg@main
         id: runvcpkg
         with:
-          vcpkgArguments: '${{ matrix.vcpkgPackages }}'
-          vcpkgTriplet: '${{ matrix.triplet }}'
-          vcpkgDirectory: '${{ runner.workspace }}/vcpkg'
-          vcpkgGitCommitId: '${{ matrix.vcpkgCommitId }}'
+          setupOnly: true
+          vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
           
       - name: dir
         run: find $RUNNER_WORKSPACE
@@ -55,16 +48,24 @@ jobs:
       - name: Prints outputs of run-vcpkg task
         run: echo "'${{ steps.runvcpkg.outputs.RUNVCPKG_VCPKG_ROOT_OUT }}' '${{  steps.runvcpkg.outputs.RUNVCPKG_VCPKG_TRIPLET_OUT }}' "
         
-      - name: Configure CMake Ubuntu
-        run: |
-          mkdir -p build
-          cd build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake"
-            -DAPR_BUILD_STATIC_LIB=ON \
-            -DAPR_BUILD_SHARED_LIB=ON \
-            -DAPR_BUILD_EXAMPLES=ON \
-            -DAPR_TESTS=ON \
-            -DAPR_USE_CUDA=OFF \
-            -DAPR_PREFER_EXTERNAL_BLOSC=ON \
+#      - name: Configure CMake Ubuntu
+#        run: |
+#          mkdir -p build
+#          cd build
+#          cmake .. -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake"
+#            -DAPR_BUILD_STATIC_LIB=ON \
+#            -DAPR_BUILD_SHARED_LIB=ON \
+#            -DAPR_BUILD_EXAMPLES=ON \
+#            -DAPR_TESTS=ON \
+#            -DAPR_USE_CUDA=OFF \
+#            -DAPR_PREFER_EXTERNAL_BLOSC=ON \
+
+      - name: Build with CMake
+        uses: lukka/run-cmake@main
+        with:
+          useVcpkgToolchainFile: true
+          buildDirectory: ${{ runner.workspace }}/build
+          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+          cmakeAppendedArgs: '--DCMAKE_BUILD_TYPE="${{ matrix.buildtype }}" -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_DEFAULT_TRIPLET }} '
  
 

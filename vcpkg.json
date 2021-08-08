@@ -1,0 +1,11 @@
+{
+  "name": "LibAPR",
+  "version-string": "0.0.1",
+  "dependencies": [
+    "blosc",
+    "hdf5",
+    "szip",
+    "gtest",
+    "tiff"
+  ]
+}
