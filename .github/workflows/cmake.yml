@@ -18,13 +18,15 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             extblosc: ON
+            openmp: OFF
           - os: ubuntu-latest
             triplet: x64-linux
             extblosc: OFF
+            openmp: ON
           - os: macos-latest
             triplet: x64-osx
             extblosc: OFF
-
+            openmp: OFF
     env:
       # Indicates the CMake build directory where project files and binaries are being produced.
       CMAKE_BUILD_DIR: ${{ github.workspace }}/builddir/
@@ -66,7 +68,7 @@ jobs:
       # Run CMake to generate Ninja project files, using the vcpkg's toolchain file to resolve and install the dependencies as specified in vcpkg.json.
       - name: Install dependencies and generate project files
         run: |
-          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DAPR_BUILD_STATIC_LIB=OFF -DAPR_BUILD_SHARED_LIB=ON -DAPR_BUILD_EXAMPLES=ON -DAPR_TESTS=ON -DAPR_USE_CUDA=OFF -DAPR_PREFER_EXTERNAL_BLOSC=${{ matrix.extblosc }}
+          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DAPR_BUILD_STATIC_LIB=OFF -DAPR_BUILD_SHARED_LIB=ON -DAPR_BUILD_EXAMPLES=ON -DAPR_TESTS=ON -DAPR_USE_CUDA=OFF -DAPR_PREFER_EXTERNAL_BLOSC=${{ matrix.extblosc }} -DAPR_PREFER_EXTERNAL_BLOSC=${{ matrix.extblosc }} -DAPR_USE_OPENMP${{ matrix.openmp }}
 
       # Build the whole project with Ninja (which is spawn by CMake).
       - name: Build
