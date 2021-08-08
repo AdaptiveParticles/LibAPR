@@ -38,6 +38,7 @@ jobs:
       - name: dir
         run: find $RUNNER_WORKSPACE
         shell: bash
+        
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
         uses: lukka/run-vcpkg@main
         id: runvcpkg
@@ -46,18 +47,22 @@ jobs:
           vcpkgTriplet: '${{ matrix.triplet }}'
           vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
           vcpkgGitCommitId: '${{ matrix.vcpkgCommitId }}'
+          
       - name: dir
         run: find $RUNNER_WORKSPACE
         shell: bash
+        
       - name: Prints outputs of run-vcpkg task
         run: echo "'${{ steps.runvcpkg.outputs.RUNVCPKG_VCPKG_ROOT_OUT }}' '${{  steps.runvcpkg.outputs.RUNVCPKG_VCPKG_TRIPLET_OUT }}' "
-      - name: Configure CMake
+        
+      - name: Configure CMake Ubuntu
+        if: contains(matrix.name, 'ubuntu')
         run: |
           mkdir -p build
           cd build
           cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-            -DVCPKG_TARGET_TRIPLET="${{ matrix.triplet }}"
+            -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DVCPKG_TARGET_TRIPLET=x64-linux
             -DAPR_BUILD_STATIC_LIB=ON \
             -DAPR_BUILD_SHARED_LIB=ON \
             -DAPR_BUILD_EXAMPLES=ON \
