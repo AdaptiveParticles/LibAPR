@@ -18,7 +18,7 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             extblosc: ON
-            openmp: OFF
+            openmp: ON
             buildargs: -A x64 -T ClangCL
           - os: ubuntu-latest
             triplet: x64-linux
@@ -40,6 +40,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+
+#      - name: Cache Chocolatey Dependencies
+#        uses: actions/cache@v1
+#        with:
+#          path: C:\ProgramData\chocolatey\lib
+#          key: choco-cache-${{ hashFiles('**/dependencies.config') }}
+#          restore-keys: |
+#            choco-cache-
 
       # Setup the build machine with the most recent versions of CMake and Ninja. Both are cached if not already: on subsequent runs both will be quickly restored from GitHub cache service.
       - uses: lukka/get-cmake@latest
