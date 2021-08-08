@@ -66,6 +66,6 @@ jobs:
           useVcpkgToolchainFile: true
           buildDirectory: ${{ runner.workspace }}/build
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-          cmakeAppendedArgs: '-DCMAKE_BUILD_TYPE="${{ matrix.buildtype }}" -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_DEFAULT_TRIPLET }} '
+          cmakeAppendedArgs: '-DCMAKE_BUILD_TYPE="${{ matrix.buildtype }}" -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} '
  
 
