@@ -22,7 +22,8 @@ jobs:
           - os: ubuntu-latest
             triplet: x64-linux
             vcpkgCommitId: '57bd7102d9fd880daa1b0958692294c4a125f6d8'
-            vcpkgPackages: 'hdf5, blosc'
+            vcpkgPackages: >
+              hdf5 blosc
           - os: macos-latest
             triplet: x64-osx
             vcpkgCommitId: '57bd7102d9fd880daa1b0958692294c4a125f6d8'
