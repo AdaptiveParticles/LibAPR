@@ -45,7 +45,7 @@ jobs:
         with:
           vcpkgArguments: '${{ matrix.vcpkgPackages }}'
           vcpkgTriplet: '${{ matrix.triplet }}'
-          vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
+          vcpkgDirectory: '${{ runner.workspace }}/vcpkg'
           vcpkgGitCommitId: '${{ matrix.vcpkgCommitId }}'
           
       - name: dir
