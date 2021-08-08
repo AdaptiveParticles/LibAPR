@@ -17,10 +17,13 @@ jobs:
         include:
           - os: windows-latest
             triplet: x64-windows
+            buildtype: Release
           - os: ubuntu-latest
             triplet: x64-linux
+            buildtype: Release
           - os: macos-latest
             triplet: x64-osx
+            buildtype: Release
 
     steps:
       - uses: actions/checkout@v1
@@ -37,6 +40,7 @@ jobs:
         id: runvcpkg
         with:
           setupOnly: true
+          vcpkgTriplet: '${{ matrix.triplet }}'
           vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
           appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}

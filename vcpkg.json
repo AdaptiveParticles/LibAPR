@@ -1,5 +1,5 @@
 {
-  "name": "LibAPR",
+  "name": "libapr",
   "version-string": "0.0.1",
   "dependencies": [
     "blosc",
