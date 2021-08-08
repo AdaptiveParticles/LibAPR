@@ -66,7 +66,7 @@ jobs:
       # Run CMake to generate Ninja project files, using the vcpkg's toolchain file to resolve and install the dependencies as specified in vcpkg.json.
       - name: Install dependencies and generate project files
         run: |
-          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DAPR_BUILD_STATIC_LIB=OFF -DAPR_BUILD_SHARED_LIB=ON -DAPR_BUILD_EXAMPLES=ON -DAPR_TESTS=ON -DAPR_USE_CUDA=OFF -DAPR_PREFER_EXTERNAL_BLOSC="${{ matrix.extblosc }}"
+          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DAPR_BUILD_STATIC_LIB=OFF -DAPR_BUILD_SHARED_LIB=ON -DAPR_BUILD_EXAMPLES=ON -DAPR_TESTS=ON -DAPR_USE_CUDA=OFF -DAPR_PREFER_EXTERNAL_BLOSC=${{ matrix.extblosc }}
 
       # Build the whole project with Ninja (which is spawn by CMake).
       - name: Build
@@ -77,7 +77,7 @@ jobs:
       - name: tests
         run: |
 
-          CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir "${{ env.CMAKE_BUILD_DIR }}" -V
+          CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir "${{ env.CMAKE_BUILD_DIR }}"
           
       - name: Show content of workspace at its completion
         run: find $RUNNER_WORKSPACE
