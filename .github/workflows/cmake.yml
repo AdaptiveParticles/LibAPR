@@ -8,7 +8,7 @@ on:
 
 jobs:
   job:
-    name: ${{ matrix.os }}-hosted-basic
+    name: ${{ matrix.os }}-build-and-test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -17,13 +17,10 @@ jobs:
         include:
           - os: windows-latest
             triplet: x64-windows
-            buildtype: Release
           - os: ubuntu-latest
             triplet: x64-linux
-            buildtype: Release
           - os: macos-latest
             triplet: x64-osx
-            buildtype: Release
 
     env:
       # Indicates the CMake build directory where project files and binaries are being produced.
@@ -66,12 +63,23 @@ jobs:
       # Run CMake to generate Ninja project files, using the vcpkg's toolchain file to resolve and install the dependencies as specified in vcpkg.json.
       - name: Install dependencies and generate project files
         run: |
-          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -GNinja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-          
+          cmake -S "${{ github.workspace }}" -B "${{ env.CMAKE_BUILD_DIR }}" -GNinja -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+          -DAPR_BUILD_STATIC_LIB=ON \
+          -DAPR_BUILD_SHARED_LIB=ON \
+          -DAPR_BUILD_EXAMPLES=ON \
+          -DAPR_TESTS=ON \
+          -DAPR_USE_CUDA=OFF \
+          -DAPR_PREFER_EXTERNAL_BLOSC=ON \
+
       # Build the whole project with Ninja (which is spawn by CMake).
       - name: Build
         run: |
           cmake --build "${{ env.CMAKE_BUILD_DIR }}"
+
+      # Run tests
+      - name: tests
+        run: |
+          CTEST_OUTPUT_ON_FAILURE=1 ctest -V
           
       - name: Show content of workspace at its completion
         run: find $RUNNER_WORKSPACE
