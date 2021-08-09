@@ -41,14 +41,6 @@ jobs:
         with:
           submodules: true
 
-#      - name: Cache Chocolatey Dependencies
-#        uses: actions/cache@v1
-#        with:
-#          path: C:\ProgramData\chocolatey\lib
-#          key: choco-cache-${{ hashFiles('**/dependencies.config') }}
-#          restore-keys: |
-#            choco-cache-
-
       # Setup the build machine with the most recent versions of CMake and Ninja. Both are cached if not already: on subsequent runs both will be quickly restored from GitHub cache service.
       - uses: lukka/get-cmake@latest
       # Restore both vcpkg and its artifacts from the GitHub cache service.
