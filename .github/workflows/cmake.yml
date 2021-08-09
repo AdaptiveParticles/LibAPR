@@ -84,7 +84,7 @@ jobs:
       # Build the whole project with Ninja (which is spawn by CMake).
       - name: Build
         run: |
-          cmake --build "${{ env.CMAKE_BUILD_DIR }}"
+          cmake --build "${{ env.CMAKE_BUILD_DIR }}" --parallel 4
 
       # Run tests
       - name: tests
