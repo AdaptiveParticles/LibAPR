@@ -61,7 +61,13 @@ jobs:
           # Note: given a key, the cache content is immutable. If a cache entry has been created improperly, in order the recreate the right content the key must be changed as well, and it must be brand new (i.e. not existing already).
           key: |
             ${{ hashFiles( 'vcpkg_manifest/vcpkg.json' ) }}-${{ hashFiles( '.git/modules/vcpkg/HEAD' )}}-${{ matrix.triplet }}-invalidate
-            
+
+      - name: Install OpenMP dependencies with brew for OSX
+        if: contains(matrix.os,'macos')
+        run: |
+          - brew install llvm
+          - brew install libomp
+
       - name: Show content of workspace after cache has been restored
         run: find $RUNNER_WORKSPACE
         shell: bash
