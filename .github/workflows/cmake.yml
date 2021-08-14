@@ -18,12 +18,12 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             extblosc: ON
-            openmp: ON
+            openmp: OFF
             buildargs: -A x64 -T ClangCL
           - os: ubuntu-latest
             triplet: x64-linux
             extblosc: OFF
-            openmp: ON
+            openmp: OFF
             buildargs:
           - os: macos-latest
             triplet: x64-osx
