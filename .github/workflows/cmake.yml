@@ -18,17 +18,17 @@ jobs:
           - os: windows-latest
             triplet: x64-windows
             extblosc: ON
-            openmp: OFF
+            openmp: ON
             buildargs: -A x64 -T ClangCL
           - os: ubuntu-latest
             triplet: x64-linux
             extblosc: OFF
-            openmp: OFF
+            openmp: ON
             buildargs:
           - os: macos-latest
             triplet: x64-osx
             extblosc: OFF
-            openmp: OFF
+            openmp: ON
             buildargs:
     env:
       # Indicates the CMake build directory where project files and binaries are being produced.
