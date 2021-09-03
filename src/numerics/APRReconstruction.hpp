@@ -14,6 +14,9 @@
 #include "data_structures/APR/particles/PartCellData.hpp"
 #include "numerics/APRTreeNumerics.hpp"
 
+#include "data_structures/APR/particles/LazyData.hpp"
+#include "data_structures/APR/iterators/LazyIterator.hpp"
+
 struct ReconPatch{
     int x_begin=0;
     int x_end=-1;
@@ -33,9 +36,17 @@ struct ReconPatch{
      * @param apr
      */
     bool check_limits(APR& apr) {
-        int max_img_y = std::ceil(apr.org_dims(0)*pow(2.f, level_delta));
-        int max_img_x = std::ceil(apr.org_dims(1)*pow(2.f, level_delta));
-        int max_img_z = std::ceil(apr.org_dims(2)*pow(2.f, level_delta));
+        return check_limits(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+    }
+
+    bool check_limits(GenAccess& access) {
+        return check_limits(access.org_dims(0), access.org_dims(1), access.org_dims(2));
+    }
+
+    inline bool check_limits(const int y_num, const int x_num, const int z_num) {
+        int max_img_y = std::ceil(y_num*pow(2.f, level_delta));
+        int max_img_x = std::ceil(x_num*pow(2.f, level_delta));
+        int max_img_z = std::ceil(z_num*pow(2.f, level_delta));
 
         y_begin = std::max(0, y_begin);
         x_begin = std::max(0, x_begin);
@@ -51,6 +62,7 @@ struct ReconPatch{
         }
         return true;
     }
+
 };
 
 
@@ -226,6 +238,14 @@ namespace APRReconstruction {
      */
     template<typename U,typename V>
     void interp_img_us_smooth(APR& apr, PixelData<U>& img, ParticleData<V>& parts, bool smooth, int delta = 0);
+
+
+    template<typename S, typename T, typename U>
+    void reconstruct_constant_lazy(LazyIterator& apr_it, LazyIterator& tree_it, PixelData<S>& img,
+                                   LazyData<T>& parts, LazyData<U>& tree_parts, ReconPatch& patch);
+
+    template<typename S, typename T>
+    void reconstruct_constant_lazy(LazyIterator& apr_it, PixelData<S>& img, LazyData<T>& parts);
 }
 
 
@@ -922,6 +942,118 @@ void APRReconstruction::interp_img_us_smooth(APR& apr, PixelData<U>& img, Partic
 
     temp_imgs[apr.level_max()+delta].swap(img);
 
+}
+
+
+template<typename S, typename T>
+void APRReconstruction::reconstruct_constant_lazy(LazyIterator& apr_it, PixelData<S>& img, LazyData<T>& parts) {
+    LazyIterator tree_it;
+    LazyData<T> tree_parts;
+    ReconPatch patch;
+    reconstruct_constant_lazy(apr_it, tree_it, img, parts, tree_parts, patch);
+}
+
+
+template<typename S, typename T, typename U>
+void APRReconstruction::reconstruct_constant_lazy(LazyIterator& apr_it, LazyIterator& tree_it, PixelData<S>& img,
+                                                  LazyData<T>& parts, LazyData<U>& tree_parts, ReconPatch& patch) {
+
+    if (!patch.check_limits(*apr_it.lazyAccess)) {
+        std::cerr << "APRReconstruction::reconstruct_constant_lazy: invalid patch size - exiting" << std::endl;
+        return;
+    }
+
+    const int y_begin = patch.y_begin;
+    const int y_end = patch.y_end;
+    const int x_begin = patch.x_begin;
+    const int x_end = patch.x_end;
+    const int z_begin = patch.z_begin;
+    const int z_end = patch.z_end;
+
+    img.initWithResize(y_end - y_begin, x_end - x_begin, z_end - z_begin);
+    const int max_level = apr_it.level_max() + patch.level_delta;
+
+
+    // expand lazy data buffers to the maximum slice size
+    const auto xy_num = apr_it.org_dims(0) * apr_it.org_dims(1);
+    parts.set_buffer_size(xy_num);
+    apr_it.set_buffer_size(xy_num);
+
+    for(int level = std::min(max_level, apr_it.level_max()); level >= apr_it.level_min(); --level) {
+        const float step_size = std::pow(2.f, max_level - level);
+
+        const int z_begin_l = std::floor(z_begin/step_size);
+        const int x_begin_l = std::floor(x_begin/step_size);
+        const int y_begin_l = std::floor(y_begin/step_size);
+        const int z_end_l = std::min((int)std::ceil(z_end/step_size), apr_it.z_num(level));
+        const int x_end_l = std::min((int)std::ceil(x_end/step_size), apr_it.x_num(level));
+        const int y_end_l = std::min((int)std::ceil(y_end/step_size), apr_it.y_num(level));
+
+        for (int z = z_begin_l; z < z_end_l; ++z) {
+            auto slice_range = apr_it.get_slice_range(level, z);
+            apr_it.load_range(slice_range.begin, slice_range.end);
+            parts.load_range(slice_range.begin, slice_range.end);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(apr_it) if(level > 4)
+#endif
+            for(int x = x_begin_l; x < x_end_l; ++x) {
+
+                // find start of y region
+                apr_it.begin(level, z, x);
+                while (apr_it.y() < y_begin_l && apr_it < apr_it.end()) { ++apr_it; }
+
+                for (; (apr_it < apr_it.end()) && (apr_it.y() < y_end_l); ++apr_it) {
+                    const auto y = apr_it.y();
+                    const auto p = parts[apr_it];
+
+                    for (int uz = std::max(int(z*step_size), z_begin); uz < std::min(int((z + 1)*step_size), z_end); ++uz) {
+                        for (int ux = std::max(int(x*step_size), x_begin); ux < std::min(int((x + 1)*step_size), x_end); ++ux) {
+                            for (int uy = std::max(int(y*step_size), y_begin); uy < std::min(int((y + 1)*step_size), y_end); ++uy) {
+                                img.at(uy-y_begin, ux-x_begin, uz-z_begin) = p;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // if reconstructing at a coarse resolution, downsampled values are taken from the interior tree particles
+    if(max_level < apr_it.level_max()) {
+
+        if (tree_parts.dataset_size() != tree_it.total_number_particles()) {
+            std::cerr << "APRReconstruction::reconstruct_constant_lazy - size discrepancy between tree particles (" <<
+                          tree_parts.dataset_size() << ") and tree iterator (" << tree_it.total_number_particles() << ")" << std::endl;
+        }
+
+        const int level = max_level;
+
+        // expand lazy data buffers to the maximum slice size
+        const auto max_size = tree_it.x_num(level) * tree_it.y_num(level);
+        tree_parts.set_buffer_size(max_size);
+        tree_it.set_buffer_size(max_size);
+
+        for (int z = z_begin; z < z_end; ++z) {
+            auto slice_range = tree_it.get_slice_range(level, z);
+            tree_it.load_range(slice_range.begin, slice_range.end);
+            tree_parts.load_range(slice_range.begin, slice_range.end);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(tree_it) if(level > 4)
+#endif
+            for(int x = x_begin; x < x_end; ++x) {
+
+                // find start of y region
+                tree_it.begin(level, z, x);
+                while (tree_it < tree_it.end() && tree_it.y() < y_begin) { ++tree_it; }
+
+                for (; (tree_it < tree_it.end()) && (tree_it.y() < y_end); ++tree_it) {
+                    img.at(tree_it.y() - y_begin, x - x_begin, z - z_begin) = tree_parts[tree_it];
+                }
+            }
+        }
+    }
 }
 
 

@@ -4406,6 +4406,98 @@ TEST_F(CreateDiffDimsSphereTest, TEST_LAZY_ITERATOR) {
 }
 
 
+bool test_reconstruct_lazy(TestData& test_data, ReconPatch& patch) {
+
+    // fill interior tree
+    ParticleData<uint16_t> tree_data;
+    APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data);
+
+    // write APR and tree data to file
+    APRFile aprFile;
+    std::string file_name = "lazy_recon_test.apr";
+    aprFile.set_read_write_tree(true);
+    aprFile.open(file_name, "WRITE");
+    aprFile.write_apr(test_data.apr);
+    aprFile.write_particles("particles", test_data.particles_intensities, true);
+    aprFile.write_particles("particles", tree_data, false);
+    aprFile.close();
+
+    // open file
+    aprFile.open(file_name, "READ");
+
+    // initialize lazy access and iterator for APR
+    LazyAccess access;
+    access.init(aprFile);
+    access.open();
+    LazyIterator apr_it(access);
+
+    // intialize lazy access and iterator for tree
+    LazyAccess tree_access;
+    tree_access.init_tree(aprFile);
+    tree_access.open();
+    LazyIterator tree_it(tree_access);
+
+    LazyData<uint16_t> lazy_parts;
+    lazy_parts.init_file(aprFile, "particles", true);
+    lazy_parts.open();
+
+    LazyData<uint16_t> lazy_tree_parts;
+    lazy_tree_parts.init_file(aprFile, "particles", false);
+    lazy_tree_parts.open();
+
+    PixelData<uint16_t> lazy_recon;
+    APRReconstruction::reconstruct_constant_lazy(apr_it, tree_it, lazy_recon, lazy_parts, lazy_tree_parts, patch);
+
+    // close files
+    lazy_parts.close();
+    lazy_tree_parts.close();
+    access.close();
+    tree_access.close();
+    aprFile.close();
+
+    /// ground truth
+    PixelData<uint16_t> gt_recon;
+    APRReconstruction::reconstruct_constant(test_data.apr, gt_recon, test_data.particles_intensities, tree_data, patch);
+
+    return compareMeshes(gt_recon, lazy_recon) == 0;
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_RECONSTRUCT_LAZY) {
+
+    ReconPatch patch;
+
+    // upsampled full reconstruction
+    patch.level_delta = 1;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // full reconstruction at original resolution
+    patch.level_delta = 0;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // downsampled full reconstruction
+    patch.level_delta = -2;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // arbitrarily set patch region
+    patch.z_begin = 17; patch.z_end = 118;
+    patch.x_begin = 19; patch.x_end = 63;
+    patch.y_begin = 3; patch.y_end = 111;
+
+    // upsampled patch reconstruction
+    patch.level_delta = 2;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // patch reconstruction at original resolution
+    patch.level_delta = 0;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // downsampled patch reconstruction
+    patch.level_delta = -1;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+}
+
+
 int main(int argc, char **argv) {
 
     testing::InitGoogleTest(&argc, argv);
