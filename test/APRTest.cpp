@@ -19,6 +19,10 @@
 
 #include "io/APRFile.hpp"
 
+#include "data_structures/APR/access/LazyAccess.hpp"
+#include "data_structures/APR/iterators/LazyIterator.hpp"
+
+
 struct TestData{
 
     APR apr;
@@ -4293,6 +4297,114 @@ TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
 TEST_F(CreateAPRTest, READ_PARTICLE_TYPE){
     ASSERT_TRUE(test_apr_file_particle_type());
 }
+
+
+bool compare_lazy_iterator(LazyIterator& lazy_it, LinearIterator& apr_it) {
+
+    if(lazy_it.level_min() != apr_it.level_min()) { return false; }
+    if(lazy_it.level_max() != apr_it.level_max()) { return false; }
+    if(lazy_it.total_number_particles() != apr_it.total_number_particles()) { return false; }
+
+    for(int level = lazy_it.level_min(); level <= lazy_it.level_max(); ++level) {
+        if(lazy_it.z_num(level) != apr_it.z_num(level)) { return false; }
+        if(lazy_it.x_num(level) != apr_it.x_num(level)) { return false; }
+        if(lazy_it.y_num(level) != apr_it.y_num(level)) { return false; }
+    }
+
+    // loading rows of data
+    lazy_it.set_buffer_size(lazy_it.y_num(lazy_it.level_max()));
+    uint64_t counter = 0;
+    for(int level = apr_it.level_max(); level >= apr_it.level_min(); --level) {
+        for(int z = 0; z < apr_it.z_num(level); ++z) {
+            for(int x = 0; x < apr_it.x_num(level); ++x) {
+                lazy_it.load_row(level, z, x);
+                if(lazy_it.begin(level, z, x) != apr_it.begin(level, z, x)) { return false; }
+                if(lazy_it.end() != apr_it.end()) { return false; }
+
+                for(; lazy_it < lazy_it.end(); ++lazy_it, ++apr_it) {
+                    if(lazy_it.y() != apr_it.y()) { return false; }
+                    counter++;
+                }
+            }
+        }
+    }
+    if(counter != apr_it.total_number_particles()) { return false; }
+
+    // loading slices of data
+    lazy_it.set_buffer_size(lazy_it.x_num(lazy_it.level_max()) * lazy_it.y_num(lazy_it.level_max()));
+    counter = 0;
+    for(int level = lazy_it.level_max(); level >= lazy_it.level_min(); --level) {
+        for(int z = 0; z < lazy_it.z_num(level); ++z) {
+            lazy_it.load_slice(level, z);
+            for(int x = 0; x < lazy_it.x_num(level); ++x) {
+                if(lazy_it.begin(level, z, x) != apr_it.begin(level, z, x)) { return false; }
+                if(lazy_it.end() != apr_it.end()) { return false; }
+
+                for(; lazy_it < lazy_it.end(); ++lazy_it, ++apr_it) {
+                    if(lazy_it.y() != apr_it.y()) { return false; }
+                    counter++;
+                }
+            }
+        }
+    }
+    if(counter != lazy_it.total_number_particles()) { return false; }
+
+    return true;
+}
+
+
+bool test_lazy_iterators(TestData& test_data) {
+    // write APR to file using new format (required by LazyAccess) #TODO: update the test files
+    APRFile aprFile;
+    aprFile.set_read_write_tree(true);
+    std::string file_name = "lazy_access_test.apr";
+    aprFile.open(file_name,"WRITE");
+    aprFile.write_apr(test_data.apr);
+    aprFile.write_particles("particles",test_data.particles_intensities);
+    aprFile.close();
+
+    // open file
+    aprFile.open(file_name, "READ");
+
+    // initialize LazyAccess and LazyIterator
+    LazyAccess access;
+    access.init(aprFile);
+    access.open();
+    LazyIterator lazy_it(access);
+
+    // linear iterator
+    auto apr_it = test_data.apr.iterator();
+
+    // compare lazy and linear iterators
+    bool success_apr = compare_lazy_iterator(lazy_it, apr_it);
+
+    // initialize LazyAccess and LazyIterator for tree data
+    LazyAccess tree_access;
+    tree_access.init_tree(aprFile);
+    tree_access.open();
+    LazyIterator lazy_tree_it(tree_access);
+
+    // linear iterator
+    auto tree_it = test_data.apr.tree_iterator();
+
+    // compare lazy and linear iterators
+    bool success_tree = compare_lazy_iterator(lazy_tree_it, tree_it);
+
+    access.close();
+    tree_access.close();
+    aprFile.close();
+
+    return success_apr && success_tree;
+}
+
+TEST_F(CreateSmallSphereTest, TEST_LAZY_ITERATOR) {
+    ASSERT_TRUE(test_lazy_iterators(test_data));
+}
+
+TEST_F(CreateDiffDimsSphereTest, TEST_LAZY_ITERATOR) {
+    ASSERT_TRUE(test_lazy_iterators(test_data));
+}
+
 
 int main(int argc, char **argv) {
 
