@@ -13,6 +13,8 @@
 template<typename DataType>
 class LazyData {
 
+    friend class LazyIterator;
+
     uint64_t current_offset;
 
     VectorData<DataType> data;
@@ -28,12 +30,12 @@ public:
 
     APRCompress compressor;
 
-    void init_file(APRFile& parts_file,std::string name,bool apr_or_tree_){
+    void init_file(APRFile& parts_file, std::string name, bool apr_or_tree_) {
 
-        parts_name = name;
+        parts_name = std::move(name);
         apr_or_tree = apr_or_tree_;
         fileStructure = parts_file.get_fileStructure();
-        fileStructure->create_time_point(0,apr_or_tree_,"t");
+        fileStructure->create_time_point(0, parts_file.get_read_write_tree(), "t");
 
         if(apr_or_tree) {
             group_id = fileStructure->objectId;
@@ -41,25 +43,35 @@ public:
             group_id = fileStructure->objectIdTree;
         }
 
-        set_hdf5_cache();
+//        set_hdf5_cache();
 
         dataSet.init(group_id,parts_name.c_str());
+    }
 
+    void set_buffer_size(const uint64_t num_elements) {
+        data.resize(num_elements);
     }
 
     void open(){
         dataSet.open();
     }
 
-    void create_file(uint64_t size){
-
-        hid_t type = APRWriter::Hdf5Type<DataType>::type();
-
-        dataSet.create(type,size);
-
+    void close(){
+        dataSet.close();
     }
 
-    void load_row(int level,int z,int x,LinearIterator& it){
+    void create_file(uint64_t size){
+        hid_t type = APRWriter::Hdf5Type<DataType>::type();
+        dataSet.create(type,size);
+    }
+
+    void load_range(const uint64_t begin, const uint64_t end) {
+        parts_start = begin;
+        parts_end = end;
+        load_current_range();
+    }
+
+    void load_row(int level, int z, int x, LinearIterator& it){
 
         it.begin(level,z,x);
         parts_start = it.begin_index;
@@ -67,18 +79,16 @@ public:
 
         if ((parts_end - parts_start) > 0) {
             data.resize(parts_end - parts_start);
-
-            read_data(data.data(),parts_start,parts_end);
-
+            read_data(data.data(), parts_start, parts_end);
         }
 
         // ------------ decompress if needed ---------------------
         if (this->compressor.get_compression_type() > 0) {
-            this->compressor.decompress( data,parts_start);
+            this->compressor.decompress(data, parts_start);
         }
     }
 
-    void load_slice(int level,int z,LinearIterator& it){
+    void load_slice(int level, int z, LinearIterator& it){
 
         it.begin(level,z,0); //begining of slice
         parts_start = it.begin_index;
@@ -87,10 +97,8 @@ public:
 
         if ((parts_end - parts_start) > 0) {
             data.resize(parts_end - parts_start);
-            read_data(data.data(),parts_start,parts_end);
-
+            read_data(data.data(), parts_start, parts_end);
         }
-
 
         // ------------ decompress if needed ---------------------
         if (this->compressor.get_compression_type() > 0) {
@@ -98,7 +106,7 @@ public:
         }
     }
 
-    void write_slice(int level,int z,LinearIterator& it){
+    void write_slice(int level, int z, LinearIterator& it){
 
         it.begin(level,z,0); //begining of slice
         parts_start = it.begin_index;
@@ -110,31 +118,21 @@ public:
             if (this->compressor.get_compression_type() > 0){
                 this->compressor.compress(data);
             }
-
             write_data(data.data(),parts_start,parts_end);
-
         }
-
     }
-
 
     inline DataType& operator[](const LinearIterator& it) {
         return data[it.current_index - parts_start];
     }
 
-    uint64_t dataset_size(){
-
-        std::vector<uint64_t> dims = dataSet.get_dimensions();
-
-        return dims[0];
-
+    inline DataType& operator[](const uint64_t index) {
+        return data[index - parts_start];
     }
 
-    LazyData(){};
-
-    void close(){
-        dataSet.close();
-
+    uint64_t dataset_size(){
+        std::vector<uint64_t> dims = dataSet.get_dimensions();
+        return dims[0];
     }
 
 private:
@@ -165,20 +163,25 @@ private:
         (void) status;
     }
 
+    void load_current_range() {
+        if((parts_end - parts_start) > 0) {
+            data.resize(parts_end - parts_start);
+            read_data(data.data(), parts_start, parts_end);
 
-    void read_data( void* buff,uint64_t elements_start,uint64_t elements_end) {
+            // ------------ decompress if needed ---------------------
+            if (this->compressor.get_compression_type() > 0) {
+                this->compressor.decompress(data, parts_start);
+            }
+        }
+    }
 
+    void read_data(void* buff,uint64_t elements_start,uint64_t elements_end) {
         dataSet.read(buff, elements_start, elements_end);
-
     }
 
-    void write_data( void* buff,uint64_t elements_start,uint64_t elements_end) {
-
+    void write_data(void* buff,uint64_t elements_start,uint64_t elements_end) {
         dataSet.write(buff,elements_start,elements_end);
-
     }
-
 };
-
 
 #endif //LIBAPR_LAZYDATA_HPP

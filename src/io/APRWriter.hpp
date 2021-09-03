@@ -236,6 +236,8 @@ class APRWriter {
     template<typename T>
     friend class LazyData;
 
+    friend class LazyAccess;
+
 protected:
     unsigned int current_t = 0;
 
@@ -397,6 +399,7 @@ public:
 
     }
 
+
     template<typename T>
     static void read_linear_y(hid_t objectId,  T &aContainer,uint64_t begin, uint64_t end){
 
@@ -550,20 +553,28 @@ public:
     }
 
 
-    static void read_access_info(hid_t dataset_id,GenInfo& aprInfo){
+    static void read_access_info(hid_t dataset_id, GenInfo& aprInfo){
         //
         //  Reads in from hdf5 access information
         //
 
         readAttr(AprTypes::TotalNumberOfParticlesType, dataset_id, &aprInfo.total_number_particles);
 
-
         readAttr(AprTypes::NumberOfYType, dataset_id, &aprInfo.org_dims[0]);
         readAttr(AprTypes::NumberOfXType, dataset_id, &aprInfo.org_dims[1]);
         readAttr(AprTypes::NumberOfZType,dataset_id, &aprInfo.org_dims[2]);
 
         aprInfo.init(aprInfo.org_dims[0],aprInfo.org_dims[1],aprInfo.org_dims[2]);
+    }
 
+    static void read_dims(hid_t dataset_id, GenInfo& aprInfo) {
+        readAttr(AprTypes::NumberOfYType, dataset_id, &aprInfo.org_dims[0]);
+        readAttr(AprTypes::NumberOfXType, dataset_id, &aprInfo.org_dims[1]);
+        readAttr(AprTypes::NumberOfZType,dataset_id, &aprInfo.org_dims[2]);
+    }
+
+    static void read_access_info_tree(hid_t dataset_id, GenInfo& aprInfo){
+        readAttr(AprTypes::TotalNumberOfParticlesType, dataset_id, &aprInfo.total_number_particles);
     }
 
 
@@ -1191,9 +1202,7 @@ public:
             //first close existing time point
             close_time_point();
 
-            if(t==0){
-                //do nothing
-            } else{
+            if(t != 0){
                 t_string = t_string + std::to_string(t);
             }
 
@@ -1209,27 +1218,19 @@ public:
                 return false;
             }
 
-            if(tree){
-                // open group
-                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+            // open group
+            objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
 
-                bool tree_exists = group_exists(fileId,subGroupTree);
-                if(tree_exists) {
-                    // open tree group
-                    objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
-                    return true;
-                } else {
-                    //tree group doesn't exist
+            if(tree){
+                if(!group_exists(fileId,subGroupTree)) {
+                    // tree group does not exist
                     return false;
                 }
 
-            } else {
-                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
-                return true;
+                // open tree group
+                objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
             }
-
-
-
+            return true;
         }
 
 
@@ -1238,36 +1239,27 @@ public:
 
             close_time_point();
 
-            if(t==0){
-                //do nothing
-            } else{
+            if(t != 0) {
                 t_string = t_string + std::to_string(t);
             }
 
             subGroup1 = ("ParticleRepr/" + t_string);
             subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
-
             const char * const subGroup  = subGroup1.c_str();
             const char * const subGroupTree  = subGroupTree1.c_str();
 
+            if(!group_exists(fileId,subGroup)) {
+                objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            } else {
+                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+            }
 
             if(tree){
-                if(!group_exists(fileId,subGroup)) {
-                    objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                } else {
-                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
-                }
                 if(!group_exists(fileId,subGroupTree)) {
                     objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                 } else {
                     objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
-                }
-            } else {
-                if(!group_exists(fileId,subGroup)) {
-                    objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                } else {
-                    objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
                 }
             }
 
