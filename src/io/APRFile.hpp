@@ -639,7 +639,7 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
 template<typename DataType>
 bool APRFile::read_particles(APR& apr,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t ,std::string channel_name){
 
-    std::vector<std::string> file_names = this->get_particles_names();
+    std::vector<std::string> file_names = this->get_particles_names(apr_or_tree, t, channel_name);
     std::string particles_name = file_names[0]; //by default it takes the first set of particles.
 
     bool read =  this->read_particles(apr,particles_name,particles,apr_or_tree,t,channel_name);

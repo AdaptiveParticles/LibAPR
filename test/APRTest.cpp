@@ -1627,6 +1627,53 @@ bool test_apr_file(TestData& test_data){
 
     success = compare_two_iterators(apr_iterator,apr_iterator_read,success);
 
+    //test apr iterator with channel
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(test_data.apr, 0, "channel_0");
+    writeFile.write_apr(test_data.apr, 55, "channel_0");
+
+    writeFile.write_particles("parts", test_data.particles_intensities, true, 0, "channel_0");
+    writeFile.write_particles("parts", test_data.particles_intensities, true, 55, "channel_0");
+
+    writeFile.close();
+
+    writeFile.open(file_name, "READ");
+
+    APR apr_channel_0;
+    ParticleData<uint16_t> parts_channel_0;
+
+    APR apr_channel_0_55;
+    ParticleData<uint16_t> parts_channel_0_55;
+
+    writeFile.read_apr(apr_channel_0, 0, "channel_0");
+
+    if(!writeFile.read_particles("parts", parts_channel_0, true, 0, "channel_0")){
+        success = false;
+    }
+
+    //without name
+    if(!writeFile.read_particles(apr_channel_0, parts_channel_0, true, 0, "channel_0")){
+        success = false;
+    }
+
+    writeFile.read_apr(apr_channel_0_55, 55, "channel_0");
+
+    if(!writeFile.read_particles("parts", parts_channel_0_55, true, 55, "channel_0")){
+        success = false;
+    }
+
+    writeFile.close();
+
+    auto it1 = apr_channel_0.iterator();
+    auto it2 = test_data.apr.iterator();
+    success = compare_two_iterators(it1,it2,success);
+
+    it1 = apr_channel_0_55.iterator();
+    it2 = test_data.apr.iterator();
+    success = compare_two_iterators(it1,it2,success);
+
+
 
     //Test Tree IO and RW and channel
     APRFile TreeFile;
