@@ -1648,6 +1648,11 @@ bool test_apr_file(TestData& test_data){
         success = false;
     }
 
+    //without name
+    if(!writeFile.read_particles(apr_channel_0, parts_channel_0, true, 0, "channel_0")){
+        success = false;
+    }
+
     writeFile.read_apr(apr_channel_0_55, 55, "channel_0");
 
     if(!writeFile.read_particles("parts", parts_channel_0_55, true, 55, "channel_0")){
