@@ -4492,8 +4492,14 @@ bool test_reconstruct_lazy(TestData& test_data, ReconPatch& patch) {
     lazy_tree_parts.init_file(aprFile, "particles", false);
     lazy_tree_parts.open();
 
-    PixelData<uint16_t> lazy_recon;
-    APRReconstruction::reconstruct_constant_lazy(apr_it, tree_it, lazy_recon, lazy_parts, lazy_tree_parts, patch);
+    PixelData<uint16_t> lazy_constant;
+    APRReconstruction::reconstruct_constant_lazy(apr_it, tree_it, lazy_constant, lazy_parts, lazy_tree_parts, patch);
+
+    PixelData<uint16_t> lazy_level;
+    APRReconstruction::reconstruct_level_lazy(apr_it, tree_it, lazy_level, patch);
+
+    PixelData<uint16_t> lazy_smooth;
+    APRReconstruction::reconstruct_smooth_lazy(apr_it, tree_it, lazy_smooth, lazy_parts, lazy_tree_parts, patch);
 
     // close files
     lazy_parts.close();
@@ -4503,10 +4509,18 @@ bool test_reconstruct_lazy(TestData& test_data, ReconPatch& patch) {
     aprFile.close();
 
     /// ground truth
-    PixelData<uint16_t> gt_recon;
-    APRReconstruction::reconstruct_constant(test_data.apr, gt_recon, test_data.particles_intensities, tree_data, patch);
+    PixelData<uint16_t> gt_constant;
+    APRReconstruction::reconstruct_constant(test_data.apr, gt_constant, test_data.particles_intensities, tree_data, patch);
 
-    return compareMeshes(gt_recon, lazy_recon) == 0;
+    PixelData<uint16_t> gt_level;
+    APRReconstruction::reconstruct_level(test_data.apr, gt_level, patch);
+
+    PixelData<uint16_t> gt_smooth;
+    APRReconstruction::reconstruct_smooth(test_data.apr, gt_smooth, test_data.particles_intensities, tree_data, patch);
+
+    return (compareMeshes(gt_constant, lazy_constant) +
+            compareMeshes(gt_level, lazy_level) +
+            compareMeshes(gt_smooth, lazy_smooth)) == 0;
 }
 
 
