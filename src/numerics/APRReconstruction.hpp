@@ -246,6 +246,23 @@ namespace APRReconstruction {
 
     template<typename S, typename T>
     void reconstruct_constant_lazy(LazyIterator& apr_it, PixelData<S>& img, LazyData<T>& parts);
+
+
+    template<typename S>
+    void reconstruct_level_lazy(LazyIterator& apr_it, LazyIterator& tree_it, PixelData<S>& img, ReconPatch& patch);
+
+    template<typename S>
+    void reconstruct_level_lazy(LazyIterator& apr_it, PixelData<S>& img);
+
+    template<typename S, typename T, typename U>
+    void reconstruct_smooth_lazy(LazyIterator& apr_it, LazyIterator& tree_it, PixelData<S>& img, LazyData<T>& parts,
+                                 LazyData<U>& tree_parts, ReconPatch& patch, const std::vector<float>& scale_d = {2, 2, 2});
+
+    template<typename S, typename T>
+    void reconstruct_smooth_lazy(LazyIterator& apr_it,
+                                 PixelData<S>& img,
+                                 LazyData<T>& parts,
+                                 const std::vector<float>& scale_d = {2, 2, 2});
 }
 
 
@@ -975,7 +992,8 @@ void APRReconstruction::reconstruct_constant_lazy(LazyIterator& apr_it, LazyIter
 
 
     // expand lazy data buffers to the maximum slice size
-    const auto xy_num = apr_it.org_dims(0) * apr_it.org_dims(1);
+    const auto xy_num = apr_it.y_num(std::min(max_level, apr_it.level_max())) *
+                        apr_it.x_num(std::min(max_level, apr_it.level_max()));
     parts.set_buffer_size(xy_num);
     apr_it.set_buffer_size(xy_num);
 
@@ -1053,6 +1071,153 @@ void APRReconstruction::reconstruct_constant_lazy(LazyIterator& apr_it, LazyIter
                 }
             }
         }
+    }
+}
+
+
+template<typename S>
+void APRReconstruction::reconstruct_level_lazy(LazyIterator& apr_it, PixelData<S>& img) {
+    LazyIterator tree_it;
+    ReconPatch patch;
+    reconstruct_level_lazy(apr_it, tree_it, img, patch);
+}
+
+
+template<typename S>
+void APRReconstruction::reconstruct_level_lazy(LazyIterator& apr_it, LazyIterator& tree_it, PixelData<S>& img, ReconPatch& patch) {
+
+    if (!patch.check_limits(*apr_it.lazyAccess)) {
+        std::cerr << "APRReconstruction::reconstruct_constant_lazy: invalid patch size - exiting" << std::endl;
+        return;
+    }
+
+    const int y_begin = patch.y_begin;
+    const int y_end = patch.y_end;
+    const int x_begin = patch.x_begin;
+    const int x_end = patch.x_end;
+    const int z_begin = patch.z_begin;
+    const int z_end = patch.z_end;
+
+    img.initWithResize(y_end - y_begin, x_end - x_begin, z_end - z_begin);
+    const int max_level = apr_it.level_max() + patch.level_delta;
+
+    // expand lazy data buffers to the maximum slice size
+    const auto xy_num = apr_it.y_num(std::min(max_level, apr_it.level_max())) *
+                        apr_it.x_num(std::min(max_level, apr_it.level_max()));
+    apr_it.set_buffer_size(xy_num);
+
+    for(int level = std::min(max_level, apr_it.level_max()); level >= apr_it.level_min(); --level) {
+        const float step_size = std::pow(2.f, max_level - level);
+
+        const int z_begin_l = std::floor(z_begin/step_size);
+        const int x_begin_l = std::floor(x_begin/step_size);
+        const int y_begin_l = std::floor(y_begin/step_size);
+        const int z_end_l = std::min((int)std::ceil(z_end/step_size), apr_it.z_num(level));
+        const int x_end_l = std::min((int)std::ceil(x_end/step_size), apr_it.x_num(level));
+        const int y_end_l = std::min((int)std::ceil(y_end/step_size), apr_it.y_num(level));
+
+        for (int z = z_begin_l; z < z_end_l; ++z) {
+            apr_it.load_slice(level, z);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(apr_it) if(level > 6)
+#endif
+            for(int x = x_begin_l; x < x_end_l; ++x) {
+
+                // find start of y region
+                apr_it.begin(level, z, x);
+                while (apr_it.y() < y_begin_l && apr_it < apr_it.end()) { ++apr_it; }
+
+                for (; (apr_it < apr_it.end()) && (apr_it.y() < y_end_l); ++apr_it) {
+                    const auto y = apr_it.y();
+
+                    for (int uz = std::max(int(z*step_size), z_begin); uz < std::min(int((z + 1)*step_size), z_end); ++uz) {
+                        for (int ux = std::max(int(x*step_size), x_begin); ux < std::min(int((x + 1)*step_size), x_end); ++ux) {
+                            for (int uy = std::max(int(y*step_size), y_begin); uy < std::min(int((y + 1)*step_size), y_end); ++uy) {
+                                img.at(uy-y_begin, ux-x_begin, uz-z_begin) = level;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // if reconstructing at a coarse resolution, downsampled values are taken from the interior tree particles
+    if(max_level < apr_it.level_max()) {
+
+        const int level = max_level;
+
+        // expand lazy data buffers to the maximum slice size
+        const auto max_size = tree_it.x_num(level) * tree_it.y_num(level);
+        tree_it.set_buffer_size(max_size);
+
+        for (int z = z_begin; z < z_end; ++z) {
+            tree_it.load_slice(level, z);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic) firstprivate(tree_it) if(level > 4)
+#endif
+            for(int x = x_begin; x < x_end; ++x) {
+
+                // find start of y region
+                tree_it.begin(level, z, x);
+                while (tree_it < tree_it.end() && tree_it.y() < y_begin) { ++tree_it; }
+
+                for (; (tree_it < tree_it.end()) && (tree_it.y() < y_end); ++tree_it) {
+                    img.at(tree_it.y() - y_begin, x - x_begin, z - z_begin) = level;
+                }
+            }
+        }
+    }
+}
+
+
+template<typename S, typename T>
+void APRReconstruction::reconstruct_smooth_lazy(LazyIterator& apr_it,
+                                                PixelData<S>& img,
+                                                LazyData<T>& parts,
+                                                const std::vector<float>& scale_d) {
+    LazyIterator tree_it;
+    LazyData<T> tree_parts;
+    ReconPatch patch;
+    reconstruct_smooth_lazy(apr_it, tree_it, img, parts, tree_parts, patch, scale_d);
+}
+
+
+template<typename S, typename T, typename U>
+void APRReconstruction::reconstruct_smooth_lazy(LazyIterator& apr_it,
+                                                LazyIterator& tree_it,
+                                                PixelData<S>& img,
+                                                LazyData<T>& parts,
+                                                LazyData<U>& tree_parts,
+                                                ReconPatch& patch,
+                                                const std::vector<float>& scale_d) {
+
+    if (!patch.check_limits(*apr_it.lazyAccess)) {
+        std::cerr << "APRReconstruction::reconstruct_smooth_lazy: invalid patch size - exiting" << std::endl;
+        return;
+    }
+
+    PixelData<uint8_t> k_img;
+
+    int offset_max = 10;
+
+    reconstruct_constant_lazy(apr_it, tree_it, img, parts, tree_parts, patch);
+    reconstruct_level_lazy(apr_it, tree_it, k_img, patch);
+
+    const int max_level = apr_it.level_max() + patch.level_delta;
+
+    if(img.y_num > 1) {
+        calc_sat_adaptive_y(img, k_img, scale_d[0], offset_max, max_level);
+    }
+
+    if(img.x_num > 1) {
+        calc_sat_adaptive_x(img, k_img, scale_d[1], offset_max, max_level);
+    }
+
+    if(img.z_num > 1) {
+        calc_sat_adaptive_z(img, k_img, scale_d[2], offset_max, max_level);
     }
 }
 
