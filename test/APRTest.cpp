@@ -1383,7 +1383,7 @@ bool test_apr_tree(TestData& test_data) {
 
     std::vector<PixelData<float>> downsampled_img;
     //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(pc_image, downsampled_img, test_data.apr.level_max(), test_data.apr.level_min()-1);
+    downsamplePyramid(pc_image, downsampled_img, test_data.apr.level_max(), test_data.apr.level_min() - 1);
 
 
     auto tree_it_random = test_data.apr.random_tree_iterator();
@@ -3140,7 +3140,7 @@ bool test_reconstruct_patch(TestData &test_data, const int level_delta = 0) {
     if (level_delta < 0) {
         std::vector<PixelData<float>> img_pyramid;
         const int level = test_data.apr.level_max() + patch.level_delta;
-        downsamplePyrmaid(recon_full, img_pyramid, test_data.apr.level_max(), level);
+        downsamplePyramid(recon_full, img_pyramid, test_data.apr.level_max(), level);
         recon_full.swap(img_pyramid[level]);
     }
 

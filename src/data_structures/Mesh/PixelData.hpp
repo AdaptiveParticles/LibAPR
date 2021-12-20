@@ -996,7 +996,7 @@ void const_upsample_img(PixelData<T>& input_us, PixelData<T>& input){
 
 
 template<typename T>
-void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
+void downsamplePyramid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
     downsampled.resize(l_max + 1); // each level is kept at same index
     downsampled.back().swap(original_image); // put original image at l_max index
 

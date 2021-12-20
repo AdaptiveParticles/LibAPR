@@ -160,7 +160,7 @@ void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,Pixe
 
     std::vector<PixelData<ImageType>> downsampled_img;
     //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
+    downsamplePyramid(input_image, downsampled_img, apr.level_max(), apr.level_min());
 
     //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
     sample_parts_from_img_downsampled_gen(apr,parts,downsampled_img);
@@ -263,7 +263,7 @@ void sample_parts_from_img_downsampled_patch(APR& apr, ParticleDataType& parts, 
     auto it = apr.iterator();
     //Down-sample the image for particle intensity estimation at coarser resolutions
     std::vector<PixelData<ImageType>> img_by_level;
-    downsamplePyrmaid(input_image, img_by_level, apr.level_max(), apr.level_min());
+    downsamplePyramid(input_image, img_by_level, apr.level_max(), apr.level_min());
 
     for(int level = it.level_min(); level <= it.level_max(); ++level) {
 //        const int level_factor = std::pow(2,(int)it.level_max()-level);
