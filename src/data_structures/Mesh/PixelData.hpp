@@ -993,20 +993,30 @@ void const_upsample_img(PixelData<T>& input_us, PixelData<T>& input){
 }
 
 
+template<typename T, typename BinaryOperator, typename UnaryOperator>
+void downsamplePyramid(PixelData<T> &original_image,
+                       std::vector<PixelData<T>> &downsampled,
+                       size_t l_max,
+                       size_t l_min,
+                       BinaryOperator reduction_operator,
+                       UnaryOperator constant_operator) {
+    downsampled.resize(l_max + 1); // each level is kept at same index
+    downsampled.back().swap(original_image); // put original image at l_max index
+
+    for (size_t level = l_max; level > l_min; --level) {
+        downsample(downsampled[level], downsampled[level - 1], reduction_operator, constant_operator, true);
+    }
+}
 
 
 template<typename T>
 void downsamplePyramid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
-    downsampled.resize(l_max + 1); // each level is kept at same index
-    downsampled.back().swap(original_image); // put original image at l_max index
-
-    // calculate downsampled in range (l_max, l_min]
     auto sum = [](const float x, const float y) -> float { return x + y; };
     auto divide_by_8 = [](const float x) -> float { return x/8.0f; };
-    for (size_t level = l_max; level > l_min; --level) {
-        downsample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
-    }
+
+    downsamplePyramid(original_image, downsampled, l_max, l_min, sum, divide_by_8);
 }
+
 
 /**
  * Padds an array performing reflection, first y,x,z - reflecting around the edge pixel.
