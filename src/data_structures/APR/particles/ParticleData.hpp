@@ -111,9 +111,21 @@ public:
     }
 
     template<typename imageType>
-    void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
-        sample_parts_from_img_downsampled_gen(apr,*this,img);
+    void sample_parts_from_img_downsampled(APR& apr, PixelData<imageType>& img){
+        auto sum = [](const float x, const float y) -> float { return x + y; };
+        auto divide_by_8 = [](const float x) -> float { return x/8.0f; };
+        sample_parts_from_img_downsampled_gen(apr, *this, img, sum, divide_by_8);
     }
+
+    template<typename ImageType, typename BinaryOperator, typename UnaryOperator>
+    void sample_parts_from_img_downsampled(APR& apr,
+                                           PixelData<ImageType>& img,
+                                           BinaryOperator reduction_operator,
+                                           UnaryOperator constant_operator) {
+
+        sample_parts_from_img_downsampled_gen(apr, *this, img, reduction_operator, constant_operator);
+    }
+
 
     void sample_parts_from_img_blocked(APR& apr, const std::string& aFileName, const int z_block_size = 256, const int ghost_z = 32) {
         sample_parts_from_img_blocked_gen(apr, *this, aFileName, z_block_size, ghost_z);
@@ -155,18 +167,24 @@ public:
 };
 
 
-template<typename ImageType,typename ParticleDataType>
-void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,PixelData<ImageType>& input_image) {
+template<typename ImageType, typename ParticleDataType, typename BinaryOperator, typename UnaryOperator>
+void sample_parts_from_img_downsampled_gen(APR& apr,
+                                           ParticleDataType& parts,
+                                           PixelData<ImageType>& input_image,
+                                           BinaryOperator reduction_operator,
+                                           UnaryOperator constant_operator) {
 
-    std::vector<PixelData<ImageType>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyramid(input_image, downsampled_img, apr.level_max(), apr.level_min());
+    // Construct a dense image pyramid by average downsampling
+    std::vector<PixelData<ImageType>> image_pyramid;
+    downsamplePyramid(input_image, image_pyramid, apr.level_max(), apr.level_min(), reduction_operator, constant_operator);
 
-    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-    sample_parts_from_img_downsampled_gen(apr,parts,downsampled_img);
+    // Sample values from the pyramid onto the particles
+    sample_parts_from_img_downsampled_gen(apr, parts, image_pyramid);
 
-    std::swap(input_image, downsampled_img.back());
+    // swap back the input_image from the finest pyramid level
+    std::swap(input_image, image_pyramid.back());
 }
+
 
 /**
 * Samples particles from an image using an image tree (img_by_level is a vector of images)
