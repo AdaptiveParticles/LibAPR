@@ -11,7 +11,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/Mesh/ImagePatch.hpp"
 #include "io/TiffUtils.hpp"
-
+#include <numerics/MeshNumerics.hpp>
 #include "GenData.hpp"
 
 #include <algorithm>
@@ -130,6 +130,47 @@ public:
     void sample_parts_from_img_blocked(APR& apr, const std::string& aFileName, const int z_block_size = 256, const int ghost_z = 32) {
         sample_parts_from_img_blocked_gen(apr, *this, aFileName, z_block_size, ghost_z);
     }
+
+    template<typename LabelType>
+    void sample_labels_with_boundary(APR& apr,
+                                     PixelData<LabelType>& label_image,
+                                     ParticleData<DataType>& label_boundaries,
+                                     const int dilation = 0,
+                                     const bool retain_object_labels = true) {
+
+        auto const_op = [](uint16_t a) -> uint16_t { return a; };
+        auto reduce = [](uint16_t a, uint16_t b) -> uint16_t { return std::max(a, b); };
+
+        // sample label image on 'this'
+        sample_parts_from_img_downsampled_gen(apr, *this, label_image, reduce, const_op);
+
+        // find boundaries in label image
+        PixelData<LabelType> label_boundaries_image;
+        MeshNumerics::find_boundary(label_image, label_boundaries_image);
+
+        // dilate boundaries
+        for(int i = 0; i < dilation; ++i) {
+            PixelData<LabelType> tmp;
+            MeshNumerics::dilate(label_boundaries_image, tmp);
+            label_boundaries_image.swap(tmp);
+        }
+
+        // sample dilated boundaries
+        sample_parts_from_img_downsampled_gen(apr, label_boundaries, label_boundaries_image, reduce, const_op);
+
+        // subtract (dilated) boundary labels from particle labels
+        auto cond_diff = [](DataType a, DataType b) { return a == b ? 0 : a; };
+        this->binary_map(label_boundaries, *this, cond_diff);
+
+        // re-label object interior as 1 and boundary as 2
+        if(!retain_object_labels) {
+            auto ge0_l = [](DataType a) { return a > 0; };
+            auto ge0_b = [](DataType a) { return 2 * (a > 0); };
+            this->unary_map(*this, ge0_l);
+            label_boundaries.unary_map(label_boundaries, ge0_b);
+        }
+    }
+
 
     template<typename S>
     void copy(const ParticleData<S>& partsToCopy) {
