@@ -609,7 +609,7 @@ bool test_symmetry_pipeline(){
             aprConverter.get_apr(apr, img);
 
             ParticleData<uint16_t> parts;
-            parts.sample_parts_from_img_downsampled(apr, img);
+            parts.sample_image(apr, img);
 
             // get grad/scale/level/final level/final image. --> All should be symmetric!!! //could be nice to have a more elagant method for this.
             PixelData<float> scale = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
@@ -748,7 +748,7 @@ bool test_pipeline_different_sizes(TestData& test_data){
 
                 ParticleData<uint16_t> parts;
 
-                parts.sample_parts_from_img_downsampled(apr,input_data);
+                parts.sample_image(apr, input_data);
 
                 APRFile aprFile;
                 aprFile.open("test_small.apr","WRITE");
@@ -912,11 +912,11 @@ bool test_linear_access_create(TestData& test_data) {
 
     aprConverter.get_apr(apr,test_data.img_original);
 
-    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+    particles_intensities.sample_image(apr, test_data.img_original);
 
     //test the partcell data structures
     PartCellData<uint16_t> partCellData_intensities;
-    partCellData_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+    partCellData_intensities.sample_image(apr, test_data.img_original);
 
     auto it = apr.iterator();
 
@@ -2887,7 +2887,7 @@ bool test_pipeline_u16(TestData& test_data){
 
     ParticleData<uint16_t> particles_intensities;
 
-    particles_intensities.sample_parts_from_img_downsampled(apr_c,test_data.img_original);
+    particles_intensities.sample_image(apr_c, test_data.img_original);
 
     //test the particles
     for (size_t j = 0; j < particles_intensities.size(); ++j) {
@@ -2951,7 +2951,7 @@ bool test_pipeline_u16_blocked(TestData& test_data) {
     ParticleData<uint16_t> parts;
     ParticleData<uint16_t> partsBatch;
 
-    parts.sample_parts_from_img_downsampled(apr, test_data.img_original);
+    parts.sample_image(apr, test_data.img_original);
     partsBatch.sample_parts_from_img_blocked(aprBatch, test_data.filename, z_block_size, z_ghost);
 
     for(size_t i = 0; i < apr.total_number_particles(); ++i) {
@@ -2998,7 +2998,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 
     aprConverter.get_apr(apr,test_data.img_original);
 
-    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+    particles_intensities.sample_image(apr, test_data.img_original);
 
     PixelData<uint16_t> pc_recon;
     APRReconstruction::reconstruct_constant(apr,pc_recon,particles_intensities);
