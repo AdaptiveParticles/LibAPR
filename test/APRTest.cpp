@@ -1111,7 +1111,7 @@ bool test_lazy_particles(TestData& test_data){
 
     LazyData<uint16_t> parts_lazy;
 
-    parts_lazy.init_file(writeFile,"parts",true);
+    parts_lazy.init(writeFile, "parts");
 
     parts_lazy.open();
 
@@ -1184,7 +1184,7 @@ bool test_lazy_particles(TestData& test_data){
     writeFile.open(file_name,"READWRITE");
 
     LazyData<uint16_t> parts_lazy_create;
-    parts_lazy_create.init_file(writeFile,"parts_create",true);
+    parts_lazy_create.init(writeFile, "parts_create");
 
     parts_lazy_create.create_file(test_data.particles_intensities.size());
 
@@ -4485,11 +4485,11 @@ bool test_reconstruct_lazy(TestData& test_data, ReconPatch& patch) {
     LazyIterator tree_it(tree_access);
 
     LazyData<uint16_t> lazy_parts;
-    lazy_parts.init_file(aprFile, "particles", true);
+    lazy_parts.init(aprFile, "particles");
     lazy_parts.open();
 
     LazyData<uint16_t> lazy_tree_parts;
-    lazy_tree_parts.init_file(aprFile, "particles", false);
+    lazy_tree_parts.init_tree(aprFile, "particles");
     lazy_tree_parts.open();
 
     PixelData<uint16_t> lazy_constant;

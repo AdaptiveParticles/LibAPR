@@ -35,7 +35,7 @@ public:
         auto objectId = aprFile.get_fileStructure()->objectId;
         APRWriter::readData("xz_end_vec", objectId, xz_end_vec.data(), begin_index, end_index);
 
-        y_vec.init_file(aprFile, "y_vec", true);
+        y_vec.init(aprFile, "y_vec");
     }
 
 
@@ -50,7 +50,7 @@ public:
         auto objectId = aprFile.get_fileStructure()->objectIdTree;
         APRWriter::readData("xz_end_vec", objectId, xz_end_vec.data(), begin_index, end_index);
 
-        y_vec.init_file(aprFile, "y_vec", false);
+        y_vec.init_tree(aprFile, "y_vec");
     }
 
 

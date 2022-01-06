@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
 
     // initialize lazy particle data
     LazyData<uint16_t> lazy_parts;
-    lazy_parts.init_file(aprFile, "particles", true);
+    lazy_parts.init(aprFile);
     lazy_parts.open();
 
     timer.stop_timer();

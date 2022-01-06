@@ -15,13 +15,10 @@ class LazyData {
 
     friend class LazyIterator;
 
-    uint64_t current_offset;
-
     VectorData<DataType> data;
 
     APRWriter::FileStructure* fileStructure;
     std::string parts_name;
-    bool apr_or_tree;
     uint64_t parts_start;
     uint64_t parts_end;
     hid_t group_id;
@@ -30,23 +27,14 @@ public:
 
     APRCompress compressor;
 
-    void init_file(APRFile& parts_file, std::string name, bool apr_or_tree_) {
-
-        parts_name = std::move(name);
-        apr_or_tree = apr_or_tree_;
-        fileStructure = parts_file.get_fileStructure();
-        fileStructure->create_time_point(0, parts_file.get_read_write_tree(), "t");
-
-        if(apr_or_tree) {
-            group_id = fileStructure->objectId;
-        } else {
-            group_id = fileStructure->objectIdTree;
-        }
-
-//        set_hdf5_cache();
-
-        dataSet.init(group_id,parts_name.c_str());
+    void init(APRFile& file, std::string particles_name = "", uint64_t t = 0, std::string channel_name = "t") {
+        init_file(file, particles_name, true, t, channel_name);
     }
+
+    void init_tree(APRFile& file, std::string particles_name = "", uint64_t t = 0, std::string channel_name = "t") {
+        init_file(file, particles_name, false, t, channel_name);
+    }
+
 
     void set_buffer_size(const uint64_t num_elements) {
         data.resize(num_elements);
@@ -161,6 +149,26 @@ private:
                                rdcc_nbytes, rdcc_w0);
 
         (void) status;
+    }
+
+    void init_file(APRFile& file, std::string particles_name = "", bool apr_or_tree = true, uint64_t t = 0, std::string channel_name = "t") {
+        if(particles_name.empty()) {
+            // if no name provided, get existing names and use the first
+            auto particle_names = file.get_particles_names(apr_or_tree, t, channel_name);
+            parts_name = std::move(particle_names[0]);
+        } else {
+            parts_name = std::move(particles_name);
+        }
+        fileStructure = file.get_fileStructure();
+        fileStructure->create_time_point(0, file.get_read_write_tree(), channel_name);
+
+        if(apr_or_tree) {
+            group_id = fileStructure->objectId;
+        } else {
+            group_id = fileStructure->objectIdTree;
+        }
+
+        dataSet.init(group_id,parts_name.c_str());
     }
 
     void load_current_range() {
