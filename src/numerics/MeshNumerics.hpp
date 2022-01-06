@@ -616,14 +616,27 @@ public:
     }
 };
 
+
 template<typename T>
-inline T find_neighbor(PixelData<T>& input, const int y, const int x, const int z, const T comp_val = 0) {
-    if(y > 0 && (input.at(y-1, x, z) != comp_val)) return input.at(y-1, x, z);
-    if(y < input.y_num-1 && (input.at(y+1, x, z) != comp_val)) return input.at(y+1, x, z);
-    if(x > 0 && (input.at(y, x-1, z) != comp_val)) return input.at(y, x-1, z);
-    if(x < input.x_num-1 && (input.at(y, x+1, z) != comp_val)) return input.at(y, x+1, z);
-    if(z > 0 && (input.at(y, x, z-1) != comp_val)) return input.at(y, x, z-1);
-    if(z < input.z_num-1 && (input.at(y, x, z+1) != comp_val)) return input.at(y, x, z+1);
+inline T find_neighbor(const PixelData<T>& input, const int y, const int x, const int z, const T comp_val = 0) {
+    if(y > 0 && (input.at(y-1, x, z) != comp_val)) {
+        return input.at(y-1, x, z);
+    }
+    if(y < input.y_num-1 && (input.at(y+1, x, z) != comp_val)) {
+        return input.at(y+1, x, z);
+    }
+    if(x > 0 && (input.at(y, x-1, z) != comp_val)) {
+        return input.at(y, x-1, z);
+    }
+    if(x < input.x_num-1 && (input.at(y, x+1, z) != comp_val)) {
+        return input.at(y, x+1, z);
+    }
+    if(z > 0 && (input.at(y, x, z-1) != comp_val)) {
+        return input.at(y, x, z-1);
+    }
+    if(z < input.z_num-1 && (input.at(y, x, z+1) != comp_val)) {
+        return input.at(y, x, z+1);
+    }
     return comp_val;
 }
 
