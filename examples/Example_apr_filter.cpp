@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     APRFile aprFile;
     aprFile.open(file_name,"READ");
     aprFile.read_apr(apr);
-    aprFile.read_particles(apr,"particles",parts);
+    aprFile.read_particles(apr, parts);
 
     timer.stop_timer();
 
