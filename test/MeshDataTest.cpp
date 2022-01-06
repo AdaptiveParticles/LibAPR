@@ -483,7 +483,7 @@ namespace {
         for (size_t i = 0; i < m.mesh.size(); ++i) m.mesh[i] = i + 1;
 
         std::vector<PixelData<float>> ds;
-        downsamplePyrmaid(m, ds, 3, 1);
+        downsamplePyramid(m, ds, 3, 1);
 
         ASSERT_EQ(ds.size(), 4);
         ASSERT_EQ(ds[3].mesh.size(), 4 * 4 * 4); // original input

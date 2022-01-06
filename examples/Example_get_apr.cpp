@@ -79,7 +79,7 @@ int runAPR(cmdLineOptions options) {
     if(aprConverter.get_apr(apr, input_img)){
 
         ParticleData<uint16_t> particle_intensities;
-        particle_intensities.sample_parts_from_img_downsampled(apr,input_img); // sample your particles from your image
+        particle_intensities.sample_image(apr, input_img); // sample your particles from your image
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 
         //output

@@ -98,7 +98,7 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
 
         timer_steps.start_timer("sample_parts");
 
-        part_vec[r].sample_parts_from_img_downsampled(apr_vec[r],pipelineImage);
+        part_vec[r].sample_image(apr_vec[r], pipelineImage);
 
         timer_steps.stop_timer();
 

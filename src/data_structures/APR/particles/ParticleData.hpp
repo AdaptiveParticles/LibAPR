@@ -11,7 +11,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/Mesh/ImagePatch.hpp"
 #include "io/TiffUtils.hpp"
-
+#include <numerics/MeshNumerics.hpp>
 #include "GenData.hpp"
 
 #include <algorithm>
@@ -110,14 +110,77 @@ public:
         general_fill_level(apr,*this,true);
     }
 
-    template<typename imageType>
-    void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
-        sample_parts_from_img_downsampled_gen(apr,*this,img);
+
+    // kept for backward compatibility
+    template<typename ImageType>
+    [[deprecated("use ParticleData<DataType>::sample_image instead")]]
+    void sample_parts_from_img_downsampled(APR& apr, PixelData<ImageType>& img){
+        sample_image(apr, img);
     }
+
+
+    template<typename ImageType>
+    void sample_image(APR& apr, PixelData<ImageType>& img){
+        auto sum = [](const float x, const float y) -> float { return x + y; };
+        auto divide_by_8 = [](const float x) -> float { return x/8.0f; };
+        sample_parts_from_img_downsampled_gen(apr, *this, img, sum, divide_by_8);
+    }
+
+
+    template<typename ImageType, typename BinaryOperator, typename UnaryOperator>
+    void sample_image(APR& apr,
+                      PixelData<ImageType>& img,
+                      BinaryOperator reduction_operator,
+                      UnaryOperator constant_operator) {
+
+        sample_parts_from_img_downsampled_gen(apr, *this, img, reduction_operator, constant_operator);
+    }
+
 
     void sample_parts_from_img_blocked(APR& apr, const std::string& aFileName, const int z_block_size = 256, const int ghost_z = 32) {
         sample_parts_from_img_blocked_gen(apr, *this, aFileName, z_block_size, ghost_z);
     }
+
+    template<typename LabelType>
+    void sample_labels_with_boundary(APR& apr,
+                                     PixelData<LabelType>& label_image,
+                                     ParticleData<DataType>& label_boundaries,
+                                     const int dilation = 0,
+                                     const bool retain_object_labels = true) {
+
+        auto const_op = [](uint16_t a) -> uint16_t { return a; };
+        auto reduce = [](uint16_t a, uint16_t b) -> uint16_t { return std::max(a, b); };
+
+        // sample label image on 'this'
+        sample_parts_from_img_downsampled_gen(apr, *this, label_image, reduce, const_op);
+
+        // find boundaries in label image
+        PixelData<LabelType> label_boundaries_image;
+        MeshNumerics::find_boundary(label_image, label_boundaries_image);
+
+        // dilate boundaries
+        for(int i = 0; i < dilation; ++i) {
+            PixelData<LabelType> tmp;
+            MeshNumerics::dilate(label_boundaries_image, tmp);
+            label_boundaries_image.swap(tmp);
+        }
+
+        // sample dilated boundaries
+        sample_parts_from_img_downsampled_gen(apr, label_boundaries, label_boundaries_image, reduce, const_op);
+
+        // subtract (dilated) boundary labels from particle labels
+        auto cond_diff = [](DataType a, DataType b) { return a == b ? 0 : a; };
+        this->binary_map(label_boundaries, *this, cond_diff);
+
+        // re-label object interior as 1 and boundary as 2
+        if(!retain_object_labels) {
+            auto ge0_l = [](DataType a) { return a > 0; };
+            auto ge0_b = [](DataType a) { return 2 * (a > 0); };
+            this->unary_map(*this, ge0_l);
+            label_boundaries.unary_map(label_boundaries, ge0_b);
+        }
+    }
+
 
     template<typename S>
     void copy(const ParticleData<S>& partsToCopy) {
@@ -155,18 +218,24 @@ public:
 };
 
 
-template<typename ImageType,typename ParticleDataType>
-void sample_parts_from_img_downsampled_gen(APR& apr,ParticleDataType& parts,PixelData<ImageType>& input_image) {
+template<typename ImageType, typename ParticleDataType, typename BinaryOperator, typename UnaryOperator>
+void sample_parts_from_img_downsampled_gen(APR& apr,
+                                           ParticleDataType& parts,
+                                           PixelData<ImageType>& input_image,
+                                           BinaryOperator reduction_operator,
+                                           UnaryOperator constant_operator) {
 
-    std::vector<PixelData<ImageType>> downsampled_img;
-    //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(input_image, downsampled_img, apr.level_max(), apr.level_min());
+    // Construct a dense image pyramid by average downsampling
+    std::vector<PixelData<ImageType>> image_pyramid;
+    downsamplePyramid(input_image, image_pyramid, apr.level_max(), apr.level_min(), reduction_operator, constant_operator);
 
-    //aAPR.get_parts_from_img_alt(input_image,aAPR.particles_intensities);
-    sample_parts_from_img_downsampled_gen(apr,parts,downsampled_img);
+    // Sample values from the pyramid onto the particles
+    sample_parts_from_img_downsampled_gen(apr, parts, image_pyramid);
 
-    std::swap(input_image, downsampled_img.back());
+    // swap back the input_image from the finest pyramid level
+    std::swap(input_image, image_pyramid.back());
 }
+
 
 /**
 * Samples particles from an image using an image tree (img_by_level is a vector of images)
@@ -263,7 +332,7 @@ void sample_parts_from_img_downsampled_patch(APR& apr, ParticleDataType& parts, 
     auto it = apr.iterator();
     //Down-sample the image for particle intensity estimation at coarser resolutions
     std::vector<PixelData<ImageType>> img_by_level;
-    downsamplePyrmaid(input_image, img_by_level, apr.level_max(), apr.level_min());
+    downsamplePyramid(input_image, img_by_level, apr.level_max(), apr.level_min());
 
     for(int level = it.level_min(); level <= it.level_max(); ++level) {
 //        const int level_factor = std::pow(2,(int)it.level_max()-level);

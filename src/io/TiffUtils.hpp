@@ -72,9 +72,9 @@ namespace TiffUtils {
         TiffType iType = TiffType::TIFF_INVALID;
         TIFF *iFile = nullptr;
         std::string iFileName = "";
-        uint32 iImgWidth = 0;
-        uint32 iImgHeight = 0;
-        uint32 iNumberOfDirectories = 0;
+        uint32_t iImgWidth = 0;
+        uint32_t iImgHeight = 0;
+        uint32_t iNumberOfDirectories = 0;
         unsigned short iSamplesPerPixel = 0;
         unsigned short iBitsPerSample = 0;
         unsigned short iSampleFormat = 0;
