@@ -36,6 +36,11 @@ public:
 
     // read
     bool read_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
+
+    bool read_metadata(GenInfo& aprInfo, uint64_t t = 0, std::string channel_name = "t");
+
+    bool read_metadata_tree(GenInfo& treeInfo, uint64_t t = 0, std::string channel_name = "t");
+
     template<typename DataType>
     bool read_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
 
@@ -148,28 +153,16 @@ private:
    */
 bool APRFile::open(std::string file_name_,std::string read_write_append){
 
-
     if(read_write_append == "WRITE"){
-
         return fileStructure.init(file_name_, APRWriter::FileStructure::Operation::WRITE);
-
     } else if(read_write_append == "READ") {
-
         return fileStructure.init(file_name_, APRWriter::FileStructure::Operation::READ);
-
     } else if(read_write_append == "READWRITE") {
-
         return fileStructure.init(file_name_, APRWriter::FileStructure::Operation::WRITE_APPEND);
-
     } else {
         std::cerr << "Files should either be opened as READ or WRITE, or READWRITE" << std::endl;
         return false;
     }
-
-    file_name = file_name_;
-
-    return true;
-
 }
 
 /**
@@ -189,9 +182,9 @@ bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     current_t = t;
 
-    if(fileStructure.isOpened()){
-    } else {
+    if(!fileStructure.isOpened()){
         std::cerr << "File is not open!" << std::endl;
+        return false;
     }
 
     timer.start_timer("setup");
@@ -477,11 +470,42 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
     timer.stop_timer();
 
     return true;
-
-
 }
 
 
+bool APRFile::read_metadata(GenInfo& aprInfo, uint64_t t, std::string channel_name){
+
+    if(!fileStructure.isOpened()){
+        std::cerr << "File is not open!" << std::endl;
+        return false;
+    }
+
+    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+        return false;
+    }
+
+    APRWriter::read_access_info(fileStructure.objectId, aprInfo);
+    return true;
+}
+
+
+bool APRFile::read_metadata_tree(GenInfo& treeInfo, uint64_t t, std::string channel_name) {
+    if(!fileStructure.isOpened()){
+        std::cerr << "File is not open!" << std::endl;
+        return false;
+    }
+
+    if(!fileStructure.open_time_point(t, true,channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+        return false;
+    }
+
+    APRWriter::read_dims(fileStructure.objectId, treeInfo);
+    APRWriter::read_access_info_tree(fileStructure.objectIdTree, treeInfo);
+    treeInfo.init_tree(treeInfo.org_dims[0], treeInfo.org_dims[1], treeInfo.org_dims[2]);
+    return true;
+}
 
 
 

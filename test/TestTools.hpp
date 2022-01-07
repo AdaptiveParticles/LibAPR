@@ -68,8 +68,7 @@ template <typename T>
 inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
     int cnt = 0;
     for (size_t i = 0; i < expected.mesh.size(); ++i) {
-        if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
-            std::isnan(tested.mesh[i])) {
+        if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
                 std::cout << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
             }

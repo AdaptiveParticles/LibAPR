@@ -19,6 +19,10 @@
 
 #include "io/APRFile.hpp"
 
+#include "data_structures/APR/access/LazyAccess.hpp"
+#include "data_structures/APR/iterators/LazyIterator.hpp"
+
+
 struct TestData{
 
     APR apr;
@@ -1107,7 +1111,7 @@ bool test_lazy_particles(TestData& test_data){
 
     LazyData<uint16_t> parts_lazy;
 
-    parts_lazy.init_file(writeFile,"parts",true);
+    parts_lazy.init(writeFile, "parts");
 
     parts_lazy.open();
 
@@ -1180,7 +1184,7 @@ bool test_lazy_particles(TestData& test_data){
     writeFile.open(file_name,"READWRITE");
 
     LazyData<uint16_t> parts_lazy_create;
-    parts_lazy_create.init_file(writeFile,"parts_create",true);
+    parts_lazy_create.init(writeFile, "parts_create");
 
     parts_lazy_create.create_file(test_data.particles_intensities.size());
 
@@ -4340,6 +4344,220 @@ TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
 TEST_F(CreateAPRTest, READ_PARTICLE_TYPE){
     ASSERT_TRUE(test_apr_file_particle_type());
 }
+
+
+bool compare_lazy_iterator(LazyIterator& lazy_it, LinearIterator& apr_it) {
+
+    if(lazy_it.level_min() != apr_it.level_min()) { return false; }
+    if(lazy_it.level_max() != apr_it.level_max()) { return false; }
+    if(lazy_it.total_number_particles() != apr_it.total_number_particles()) { return false; }
+
+    for(int level = lazy_it.level_min(); level <= lazy_it.level_max(); ++level) {
+        if(lazy_it.z_num(level) != apr_it.z_num(level)) { return false; }
+        if(lazy_it.x_num(level) != apr_it.x_num(level)) { return false; }
+        if(lazy_it.y_num(level) != apr_it.y_num(level)) { return false; }
+    }
+
+    // loading rows of data
+    lazy_it.set_buffer_size(lazy_it.y_num(lazy_it.level_max()));
+    uint64_t counter = 0;
+    for(int level = apr_it.level_max(); level >= apr_it.level_min(); --level) {
+        for(int z = 0; z < apr_it.z_num(level); ++z) {
+            for(int x = 0; x < apr_it.x_num(level); ++x) {
+                lazy_it.load_row(level, z, x);
+                if(lazy_it.begin(level, z, x) != apr_it.begin(level, z, x)) { return false; }
+                if(lazy_it.end() != apr_it.end()) { return false; }
+
+                for(; lazy_it < lazy_it.end(); ++lazy_it, ++apr_it) {
+                    if(lazy_it.y() != apr_it.y()) { return false; }
+                    counter++;
+                }
+            }
+        }
+    }
+    if(counter != apr_it.total_number_particles()) { return false; }
+
+    // loading slices of data
+    lazy_it.set_buffer_size(lazy_it.x_num(lazy_it.level_max()) * lazy_it.y_num(lazy_it.level_max()));
+    counter = 0;
+    for(int level = lazy_it.level_max(); level >= lazy_it.level_min(); --level) {
+        for(int z = 0; z < lazy_it.z_num(level); ++z) {
+            lazy_it.load_slice(level, z);
+            for(int x = 0; x < lazy_it.x_num(level); ++x) {
+                if(lazy_it.begin(level, z, x) != apr_it.begin(level, z, x)) { return false; }
+                if(lazy_it.end() != apr_it.end()) { return false; }
+
+                for(; lazy_it < lazy_it.end(); ++lazy_it, ++apr_it) {
+                    if(lazy_it.y() != apr_it.y()) { return false; }
+                    counter++;
+                }
+            }
+        }
+    }
+    if(counter != lazy_it.total_number_particles()) { return false; }
+
+    return true;
+}
+
+
+bool test_lazy_iterators(TestData& test_data) {
+    // write APR to file using new format (required by LazyAccess) #TODO: update the test files
+    APRFile aprFile;
+    aprFile.set_read_write_tree(true);
+    std::string file_name = "lazy_access_test.apr";
+    aprFile.open(file_name,"WRITE");
+    aprFile.write_apr(test_data.apr);
+    aprFile.write_particles("particles",test_data.particles_intensities);
+    aprFile.close();
+
+    // open file
+    aprFile.open(file_name, "READ");
+
+    // initialize LazyAccess and LazyIterator
+    LazyAccess access;
+    access.init(aprFile);
+    access.open();
+    LazyIterator lazy_it(access);
+
+    // linear iterator
+    auto apr_it = test_data.apr.iterator();
+
+    // compare lazy and linear iterators
+    bool success_apr = compare_lazy_iterator(lazy_it, apr_it);
+
+    // initialize LazyAccess and LazyIterator for tree data
+    LazyAccess tree_access;
+    tree_access.init_tree(aprFile);
+    tree_access.open();
+    LazyIterator lazy_tree_it(tree_access);
+
+    // linear iterator
+    auto tree_it = test_data.apr.tree_iterator();
+
+    // compare lazy and linear iterators
+    bool success_tree = compare_lazy_iterator(lazy_tree_it, tree_it);
+
+    access.close();
+    tree_access.close();
+    aprFile.close();
+
+    return success_apr && success_tree;
+}
+
+TEST_F(CreateSmallSphereTest, TEST_LAZY_ITERATOR) {
+    ASSERT_TRUE(test_lazy_iterators(test_data));
+}
+
+TEST_F(CreateDiffDimsSphereTest, TEST_LAZY_ITERATOR) {
+    ASSERT_TRUE(test_lazy_iterators(test_data));
+}
+
+
+bool test_reconstruct_lazy(TestData& test_data, ReconPatch& patch) {
+
+    // fill interior tree
+    ParticleData<uint16_t> tree_data;
+    APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data);
+
+    // write APR and tree data to file
+    APRFile aprFile;
+    std::string file_name = "lazy_recon_test.apr";
+    aprFile.set_read_write_tree(true);
+    aprFile.open(file_name, "WRITE");
+    aprFile.write_apr(test_data.apr);
+    aprFile.write_particles("particles", test_data.particles_intensities, true);
+    aprFile.write_particles("particles", tree_data, false);
+    aprFile.close();
+
+    // open file
+    aprFile.open(file_name, "READ");
+
+    // initialize lazy access and iterator for APR
+    LazyAccess access;
+    access.init(aprFile);
+    access.open();
+    LazyIterator apr_it(access);
+
+    // intialize lazy access and iterator for tree
+    LazyAccess tree_access;
+    tree_access.init_tree(aprFile);
+    tree_access.open();
+    LazyIterator tree_it(tree_access);
+
+    LazyData<uint16_t> lazy_parts;
+    lazy_parts.init(aprFile, "particles");
+    lazy_parts.open();
+
+    LazyData<uint16_t> lazy_tree_parts;
+    lazy_tree_parts.init_tree(aprFile, "particles");
+    lazy_tree_parts.open();
+
+    PixelData<uint16_t> lazy_constant;
+    APRReconstruction::reconstruct_constant_lazy(apr_it, tree_it, lazy_constant, lazy_parts, lazy_tree_parts, patch);
+
+    PixelData<uint16_t> lazy_level;
+    APRReconstruction::reconstruct_level_lazy(apr_it, tree_it, lazy_level, patch);
+
+    PixelData<uint16_t> lazy_smooth;
+    APRReconstruction::reconstruct_smooth_lazy(apr_it, tree_it, lazy_smooth, lazy_parts, lazy_tree_parts, patch);
+
+    // close files
+    lazy_parts.close();
+    lazy_tree_parts.close();
+    access.close();
+    tree_access.close();
+    aprFile.close();
+
+    /// ground truth
+    PixelData<uint16_t> gt_constant;
+    APRReconstruction::reconstruct_constant(test_data.apr, gt_constant, test_data.particles_intensities, tree_data, patch);
+
+    PixelData<uint16_t> gt_level;
+    APRReconstruction::reconstruct_level(test_data.apr, gt_level, patch);
+
+    PixelData<uint16_t> gt_smooth;
+    APRReconstruction::reconstruct_smooth(test_data.apr, gt_smooth, test_data.particles_intensities, tree_data, patch);
+
+    return (compareMeshes(gt_constant, lazy_constant) +
+            compareMeshes(gt_level, lazy_level) +
+            compareMeshes(gt_smooth, lazy_smooth)) == 0;
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_RECONSTRUCT_LAZY) {
+
+    ReconPatch patch;
+
+    // upsampled full reconstruction
+    patch.level_delta = 1;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // full reconstruction at original resolution
+    patch.level_delta = 0;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // downsampled full reconstruction
+    patch.level_delta = -2;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // arbitrarily set patch region
+    patch.z_begin = 17; patch.z_end = 118;
+    patch.x_begin = 19; patch.x_end = 63;
+    patch.y_begin = 3; patch.y_end = 111;
+
+    // upsampled patch reconstruction
+    patch.level_delta = 2;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // patch reconstruction at original resolution
+    patch.level_delta = 0;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // downsampled patch reconstruction
+    patch.level_delta = -1;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+}
+
 
 int main(int argc, char **argv) {
 
