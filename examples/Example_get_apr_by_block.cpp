@@ -103,9 +103,8 @@ int runAPR(cmdLineOptions options) {
         timer.start_timer("write output to file");
         APRFile aprFile;
         aprFile.open(save_loc + file_name + ".apr");
-        aprFile.set_read_write_tree(options.store_tree);
 
-        aprFile.write_apr(apr);
+        aprFile.write_apr(apr, 0, "t", options.store_tree);
         aprFile.write_particles("particles", parts);
         timer.stop_timer();
 

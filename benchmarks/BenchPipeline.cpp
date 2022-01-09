@@ -86,8 +86,6 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
 
     aprFile.open("file_name","WRITE");
 
-    aprFile.set_read_write_tree(false);
-
     for (int r = 0; r < num_rep; ++r) {
 
         timer_steps.start_timer("get_apr");
@@ -104,7 +102,7 @@ inline void bench_apr_pipeline(APR& apr,ParticleData<partsType>& parts,int num_r
 
         timer_steps.start_timer("write_apr");
 
-        aprFile.write_apr(apr_vec[r],r);
+        aprFile.write_apr(apr_vec[r], r, "t", false);
 
         timer_steps.stop_timer();
 

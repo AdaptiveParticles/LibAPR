@@ -28,7 +28,6 @@ int main(int argc, char **argv) {
 
     // open APR file for reading
     APRFile aprFile;
-    aprFile.set_read_write_tree(false);
     aprFile.open(file_name, "READ");
 
     // initialize lazy access and iterator for spatial information
