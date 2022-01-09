@@ -29,7 +29,7 @@ public:
     void close();
 
     // write
-    bool write_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
+    bool write_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t", bool write_tree = true);
     bool write_apr_append(APR& apr);
     template<typename DataType>
     bool write_particles(std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
@@ -52,16 +52,13 @@ public:
     template<typename DataType>
     bool read_particles(std::string particles_name, ParticleData<DataType>& particles, bool apr_or_tree=true, uint64_t t=0, std::string channel_name="t");
 
-    //set helpers
+
+    [[deprecated("this now controlled via arguments to affected methods")]]
     bool get_read_write_tree(){
         return with_tree_flag;
     }
 
-    //set helperslts
-    /**
-   * Set whether the internal APR Tree internal access should also be written and read.
-   * @param write_with_tree_flag_ indicate whether the APRTree should be written and read. (True = save both APR and APR Tree)
-   */
+    [[deprecated("this now controlled via arguments to affected methods")]]
     void set_read_write_tree(bool with_tree_flag_){
         with_tree_flag = with_tree_flag_;
     }
@@ -121,7 +118,7 @@ private:
 
     //Basic Properties.
     uint64_t current_t=0;
-    bool with_tree_flag = true;
+    bool with_tree_flag = true; //usage is deprecated, keeping for backward compatibility
     std::string file_name = "noname";
     APRWriter::FileStructure fileStructure;
 
@@ -178,7 +175,7 @@ void APRFile::close(){
    * @param APR to be written
    * @param t the time point to be written (default will be to append to the end of the file, starting with 0)
    */
-bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
+bool APRFile::write_apr(APR &apr, uint64_t t, std::string channel_name, bool write_tree){
 
     current_t = t;
 
@@ -189,7 +186,7 @@ bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     timer.start_timer("setup");
 
-    fileStructure.create_time_point(t,with_tree_flag,channel_name);
+    fileStructure.create_time_point(t, write_tree, channel_name);
 
     hid_t meta_location = fileStructure.objectId;
 
@@ -228,7 +225,7 @@ bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     }
 
 
-    if(with_tree_flag){
+    if(write_tree){
 
         if(write_linear_tree) {
 
@@ -286,11 +283,8 @@ bool APRFile::write_particles(const std::string particles_name,ParticleData<Data
         std::cerr << "File is not open!" << std::endl;
     }
 
-    bool open_success = fileStructure.open_time_point(t, !apr_or_tree, channel_name);
-
-    if(!open_success){
-        fileStructure.create_time_point(t,with_tree_flag,channel_name);
-    }
+    // opens dataset if it exists, otherwise it is created
+    fileStructure.create_time_point(t, !apr_or_tree, channel_name);
 
     hid_t part_location;
 
