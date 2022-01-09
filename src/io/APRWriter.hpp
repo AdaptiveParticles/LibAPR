@@ -652,7 +652,7 @@ public:
 
 
 
-        void create_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+        void create_time_point(const unsigned int t, bool with_tree, std::string t_string = "t"){
 
             close_time_point();
 
@@ -663,23 +663,22 @@ public:
             subGroup1 = ("ParticleRepr/" + t_string);
             subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
-            const char * const subGroup  = subGroup1.c_str();
-            const char * const subGroupTree  = subGroupTree1.c_str();
+            const char * const subGroup = subGroup1.c_str();
+            const char * const subGroupTree = subGroupTree1.c_str();
 
-            if(!group_exists(fileId,subGroup)) {
+            if(!group_exists(fileId, subGroup)) {
                 objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
             } else {
                 objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
             }
 
-            if(tree){
-                if(!group_exists(fileId,subGroupTree)) {
+            if(with_tree){
+                if(!group_exists(fileId, subGroupTree)) {
                     objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                 } else {
                     objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
                 }
             }
-
         }
 
         bool init(const std::string &aFileName, const Operation aOp){
