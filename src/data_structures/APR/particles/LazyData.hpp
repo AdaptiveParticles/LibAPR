@@ -160,7 +160,7 @@ private:
             parts_name = std::move(particles_name);
         }
         fileStructure = file.get_fileStructure();
-        fileStructure->create_time_point(0, file.get_read_write_tree(), channel_name);
+        fileStructure->create_time_point(0, !apr_or_tree, channel_name);
 
         if(apr_or_tree) {
             group_id = fileStructure->objectId;
