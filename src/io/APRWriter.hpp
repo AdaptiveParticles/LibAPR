@@ -610,9 +610,9 @@ public:
         }
 
 
-        bool open_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+        bool open_time_point(const unsigned int t, bool require_tree, std::string t_string = "t") {
 
-            //first close existing time point
+            // first close existing time point
             close_time_point();
 
             if(t != 0){
@@ -622,27 +622,31 @@ public:
             subGroup1 = ("ParticleRepr/" + t_string);
             subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
-            const char * const subGroup  = subGroup1.c_str();
-            const char * const subGroupTree  = subGroupTree1.c_str();
+            const char * const subGroup = subGroup1.c_str();
+            const char * const subGroupTree = subGroupTree1.c_str();
 
-            //need to check if the tree exists
-            if(!group_exists(fileId,subGroup)){
-                //group does not exist
+            // check if APR data exists
+            if(!group_exists(fileId, subGroup)){
+                std::cerr << "Error reading APR file: could not open time point t=" << t << std::endl;
                 return false;
             }
 
             // open group
             objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
 
-            if(tree){
-                if(!group_exists(fileId,subGroupTree)) {
-                    // tree group does not exist
-                    return false;
-                }
+            // check if tree data exists
+            const bool tree_exists = group_exists(fileId, subGroupTree);
 
-                // open tree group
+            if(require_tree && !tree_exists) {
+                std::cerr << "Error reading APR file: requested tree data does not exist" << std::endl;
+                return false;
+            }
+
+            // open tree group if it exists
+            if(tree_exists) {
                 objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
             }
+
             return true;
         }
 

@@ -286,7 +286,7 @@ bool APRFile::write_particles(const std::string particles_name,ParticleData<Data
         std::cerr << "File is not open!" << std::endl;
     }
 
-    bool open_success = fileStructure.open_time_point(t,with_tree_flag,channel_name);
+    bool open_success = fileStructure.open_time_point(t, !apr_or_tree, channel_name);
 
     if(!open_success){
         fileStructure.create_time_point(t,with_tree_flag,channel_name);
@@ -369,7 +369,7 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         return false;
     }
 
-    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+    if(!fileStructure.open_time_point(t, false, channel_name)) {
         std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
         return false;
     }
@@ -425,46 +425,41 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
     timer.start_timer("read_tree_access");
 
-    if(with_tree_flag) {
+    data_n = fileStructure.subGroupTree1 + "/map_level";
+    bool stored_random_tree = data_exists(fileStructure.fileId,data_n.c_str());
 
-        data_n = fileStructure.subGroupTree1 + "/map_level";
-        bool stored_random_tree = data_exists(fileStructure.fileId,data_n.c_str());
+    data_n = fileStructure.subGroupTree1 + "/y_vec";
+    bool stored_linear_tree = data_exists(fileStructure.fileId,data_n.c_str());;
 
-        data_n = fileStructure.subGroupTree1 + "/y_vec";
-        bool stored_linear_tree = data_exists(fileStructure.fileId,data_n.c_str());;
+    bool tree_exists = stored_linear_tree || stored_random_tree;
 
-        bool tree_exists = stored_linear_tree || stored_random_tree;
+    if(!tree_exists){
+        // if tree access does not exist in file, initialize it from the APR access
+        apr.initialize_tree_linear();
+    } else {
 
-        if(!tree_exists){
-            // if tree access does not exist in file, initialize it from the APR access
-            apr.initialize_tree_linear();
+        APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
+                            &apr.treeInfo.total_number_particles);
+
+        apr.treeInfo.init_tree(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+        apr.tree_access.genInfo = &apr.treeInfo;
+        apr.linearAccessTree.genInfo = &apr.treeInfo;
+
+        if(!stored_linear_tree) {
+            //Older data structures are saved.
+            APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
+                                               apr.tree_access, apr.apr_access);
+            apr.tree_initialized_random = true;
+
         } else {
+            apr.tree_initialized = true;
+            int max_level_delta_tree=0;
 
-            APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
-                                &apr.treeInfo.total_number_particles);
-
-            apr.treeInfo.init_tree(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
-            apr.tree_access.genInfo = &apr.treeInfo;
-            apr.linearAccessTree.genInfo = &apr.treeInfo;
-
-            if(!stored_linear_tree) {
-                //Older data structures are saved.
-                APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
-                                                   apr.tree_access, apr.apr_access);
-                apr.tree_initialized_random = true;
-
-            } else {
-                apr.tree_initialized = true;
-                int max_level_delta_tree=0;
-
-                if(max_level_delta > 0){
-                    max_level_delta_tree = max_level_delta - 1;
-                }
-                APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree,max_level_delta_tree);
+            if(max_level_delta > 0){
+                max_level_delta_tree = max_level_delta - 1;
             }
-
+            APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree,max_level_delta_tree);
         }
-
     }
 
     timer.stop_timer();
@@ -480,7 +475,7 @@ bool APRFile::read_metadata(GenInfo& aprInfo, uint64_t t, std::string channel_na
         return false;
     }
 
-    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+    if(!fileStructure.open_time_point(t, false, channel_name)) {
         std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
         return false;
     }
@@ -518,9 +513,14 @@ bool APRFile::read_metadata_tree(GenInfo& treeInfo, uint64_t t, std::string chan
    * @param apr_or_tree (Default = True (APR), false = APR Tree)
    */
 template<typename DataType>
-bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t,std::string channel_name){
+bool APRFile::read_particles(APR &apr,
+                             std::string particles_name,
+                             ParticleData<DataType>& particles,
+                             bool apr_or_tree,
+                             uint64_t t,
+                             std::string channel_name){
 
-    hid_t part_location = open_dataset_location(particles_name, apr_or_tree,t,channel_name);
+    hid_t part_location = open_dataset_location(particles_name, apr_or_tree, t, channel_name);
 
     if(part_location == 0){
         return false;
@@ -658,7 +658,7 @@ hid_t APRFile::open_dataset_location(std::string& particles_name, bool apr_or_tr
         return 0;
     }
 
-    if (!fileStructure.open_time_point(t, with_tree_flag, channel_name)) {
+    if (!fileStructure.open_time_point(t, !apr_or_tree, channel_name)) {
         std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name
                   << "'" << std::endl;
         return 0;
@@ -730,7 +730,7 @@ bool APRFile::read_particles(std::string particles_name, ParticleData<DataType>&
         return false;
     }
 
-    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+    if(!fileStructure.open_time_point(t, !apr_or_tree, channel_name)) {
         std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
         return false;
     }
@@ -904,7 +904,7 @@ std::vector<std::string> APRFile::get_channel_names(){
    */
 std::vector<std::string> APRFile::get_particles_names(bool apr_or_tree,uint64_t t,std::string channel_name){
 
-    fileStructure.open_time_point(t,with_tree_flag,channel_name);
+    fileStructure.open_time_point(t, !apr_or_tree, channel_name);
 
     const int max_name_size = 1024;
 
