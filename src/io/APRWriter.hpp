@@ -15,22 +15,6 @@
 #include "numerics/APRCompress.hpp"
 #include "data_structures/APR/particles/ParticleData.hpp"
 
-struct FileSizeInfo {
-    float total_file_size=0;
-    float intensity_data=0;
-    float access_data=0;
-};
-
-struct FileSizeInfoTime {
-//    float total_file_size=0;
-//    float update_fp = 0;
-//    float update_index = 0;
-//    float add_index = 0;
-//    float add_fp = 0;
-//    float remove_index = 0;
-//    float remove_fp = 0;
-};
-
 
 /*
  *  Class to handle generation of datasets using hdf5 using blosc
