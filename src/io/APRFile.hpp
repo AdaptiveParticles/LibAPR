@@ -427,10 +427,7 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
     bool tree_exists = stored_linear_tree || stored_random_tree;
 
-    if(!tree_exists){
-        // if tree access does not exist in file, initialize it from the APR access
-        apr.initialize_tree_linear();
-    } else {
+    if(tree_exists){
 
         APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
                             &apr.treeInfo.total_number_particles);

@@ -104,7 +104,12 @@ public:
     inline uint64_t total_number_particles() const { return aprInfo.total_number_particles; }
     uint64_t org_dims(int dim) const { return aprInfo.org_dims[dim]; }
 
-    inline uint64_t total_number_tree_particles() const { return treeInfo.total_number_particles; }
+    inline uint64_t total_number_tree_particles() {
+        if(!tree_initialized && !tree_initialized_random) {
+            initialize_tree_linear();
+        }
+        return treeInfo.total_number_particles;
+    }
 
     inline int number_dimensions() const {
         return aprInfo.number_dimensions;
