@@ -158,6 +158,11 @@ template class ParticleDataGpu<double>;
 template class ParticleDataGpu<int>;
 template class ParticleDataGpu<uint64_t>;
 
+template class ParticleDataGpu<int8_t>;
+template class ParticleDataGpu<int16_t>;
+template class ParticleDataGpu<uint32_t>;
+template class ParticleDataGpu<int64_t>;
+
 __global__ void fill_y_vec_max_level(const uint64_t* level_xz_vec,
                                      const uint64_t* xz_end_vec,
                                      uint16_t* y_vec,
