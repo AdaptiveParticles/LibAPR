@@ -27,7 +27,7 @@ protected:
 
     // initialize tree RandomAccess
     void initialize_tree_random_sparse();
-    void initialize_tree_random_dense();
+    void initialize_tree_random_dense();    // appears to be broken #TODO: remove or fix
 
     // initialize tree LinearAccess
     void initialize_tree_sparse();
