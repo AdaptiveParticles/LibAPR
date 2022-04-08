@@ -30,6 +30,7 @@ protected:
     void initialize_apr_tree_sparse_linear();
     void initialize_apr_tree();
     void initialize_linear_access(LinearAccess& aprAccess,APRIterator& it);
+    void initialize_tree_dense();
 
     //New Access
     LinearAccess linearAccess;
@@ -219,7 +220,8 @@ protected:
 
     void initialize_tree_linear(){
         if(!tree_initialized){
-            initialize_apr_tree_sparse_linear();
+            //initialize_apr_tree_sparse_linear();
+            initialize_tree_dense();
             tree_initialized = true;
         }
     }
@@ -611,6 +613,68 @@ void APR::initialize_apr_tree_sparse_linear() {
 
 
 }
+
+
+void APR::initialize_tree_dense() {
+
+    APRTimer timer(false);
+    auto apr_iterator = iterator();
+
+
+    treeInfo.init_tree(org_dims(0),org_dims(1),org_dims(2));
+    linearAccessTree.genInfo = &treeInfo;
+
+    std::vector<PixelData<uint8_t>> particle_cell_parent_tree(treeInfo.l_max+1);
+
+    timer.start_timer("init tree - allocate dense tree structure");
+    for (int l = treeInfo.l_min; l <= treeInfo.l_max; ++l) {
+
+        particle_cell_parent_tree[l].initWithValue(treeInfo.y_num[l],
+                                                   treeInfo.x_num[l],
+                                                   treeInfo.z_num[l],
+                                                   0);
+    }
+    timer.stop_timer();
+
+    timer.start_timer("init tree - fill particle parents");
+    // fill in parents of APR particles
+    for(int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic, 2) firstprivate(apr_iterator)
+#endif
+        for(int z = 0; z < apr_iterator.z_num(level); ++z) {
+            for(int x = 0; x < apr_iterator.x_num(level); ++x) {
+                for(apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end(); ++apr_iterator) {
+                    particle_cell_parent_tree[level-1].at(apr_iterator.y() / 2, x / 2, z / 2) = 1;
+                }
+            }
+        }
+    }
+    timer.stop_timer();
+
+    timer.start_timer("init tree - fill tree recursive");
+    // fill rest of tree, level by level
+    for(int level = treeInfo.l_max-1; level >= treeInfo.l_min; --level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+        for(int z = 0; z < treeInfo.z_num[level]; ++z) {
+            for (int x = 0; x < treeInfo.x_num[level]; ++x) {
+                for(int y = 0; y < treeInfo.y_num[level]; ++y) {
+                    // suffices to check one child
+                    particle_cell_parent_tree[level].at(y, x, z) = particle_cell_parent_tree[level].at(y, x, z) | particle_cell_parent_tree[level+1].at(2*y, 2*x, 2*z);
+                }
+            }
+        }
+    }
+    timer.stop_timer();
+
+    timer.start_timer("create sparse data structure");
+    linearAccessTree.initialize_tree_access_dense(particle_cell_parent_tree);
+    timer.stop_timer();
+}
+
+
 
 /**
    * Initializes the APR tree datastructures using a sparse structure for reduced memory, these are all particle cells that are parents of particles in the APR
