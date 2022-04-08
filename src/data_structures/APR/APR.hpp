@@ -33,7 +33,8 @@ protected:
     void initialize_tree_sparse();
     void initialize_tree_dense();
 
-    void initialize_linear_access(LinearAccess& aprAccess, APRIterator& it);
+    void initialize_linear_access_from_random(LinearAccess& aprAccess, APRIterator& it);
+    void initialize_random_access_from_linear();
 
     //New Access
     LinearAccess linearAccess;
@@ -127,35 +128,22 @@ public:
     APRIterator random_iterator() {
 
         if(!apr_initialized_random){
-            initialize_random_access();
-            apr_initialized_random = true;
+            initialize_random();
         }
 
         return APRIterator(apr_access,aprInfo);
     }
 
     LinearIterator iterator() {
-        // Just checking if its initialized
-        if(!apr_initialized){
-            if(!apr_initialized_random){
-                std::cerr << "No APR initialized" << std::endl;
 
-            } else {
-                initialize_linear();
-                apr_initialized = true;
-            }
+        if(!apr_initialized){
+            initialize_linear();
         }
 
         return LinearIterator(linearAccess,aprInfo);
     }
 
     APRTreeIterator random_tree_iterator() {
-
-        if(!apr_initialized_random){
-            //the random tree iterator and the apr iteratator are joint at the hip.
-            initialize_random_access();
-            apr_initialized_random = true;
-        }
 
         if(!tree_initialized_random){
             initialize_tree_random();
@@ -165,7 +153,7 @@ public:
     }
 
     LinearIterator tree_iterator() {
-        // Checking if initialized.
+
         if(!tree_initialized){
             initialize_tree_linear();
         }
@@ -200,8 +188,31 @@ public:
 
     }
 
+    void initialize_linear(){
+        if(!apr_initialized){
+            if(!apr_initialized_random) {
+                std::cerr << "APR::initialize_linear - No APR initialized" << std::endl;
+            } else {
+                auto it = random_iterator();
+                initialize_linear_access_from_random(linearAccess, it);
+                apr_initialized = true;
+            }
+        }
+    }
+
+    void initialize_random() {
+        if(!apr_initialized_random) {
+            if(!apr_initialized) {
+                std::cerr << "APR::initialize_random - No APR initialized" << std::endl;
+            } else {
+                initialize_random_access_from_linear();
+                apr_initialized_random = true;
+            }
+        }
+    }
 
     void initialize_tree_linear(bool sparse=false){
+
         if(!tree_initialized){
             if(sparse) {
                 initialize_tree_sparse();
@@ -212,28 +223,13 @@ public:
         }
     }
 
-protected:
+    void initialize_tree_random(){
 
-    bool initialize_tree_random(){
         if(!tree_initialized_random){
-
             initialize_tree_random_sparse();
             tree_initialized_random = true;
-
-        }
-        return tree_initialized_random;
-    }
-
-    void initialize_linear(){
-        if(!apr_initialized){
-            auto it = random_iterator();
-            initialize_linear_access(linearAccess,it);
-            apr_initialized = true;
         }
     }
-
-    void initialize_random_access();
-
 
 };
 
@@ -243,7 +239,7 @@ protected:
 /**
    * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
    */
-void APR::initialize_linear_access(LinearAccess& aprAccess,APRIterator& it){
+void APR::initialize_linear_access_from_random(LinearAccess& aprAccess, APRIterator& it){
 
     // TODO: Should be renamed.. random-> linear access. also need the reverse function
 
@@ -283,7 +279,7 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,APRIterator& it){
 /**
    * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
    */
-void APR::initialize_random_access(){
+void APR::initialize_random_access_from_linear(){
     //
     //  TODO: Note this is not performance orientataed, and should be depreciated in the future. (the whole random access iterations should be removed.)
     //
@@ -348,7 +344,6 @@ void APR::initialize_random_access(){
     }
 
     apr_access.initialize_structure_from_particle_cell_tree_sparse(parameters,particle_cell_tree);
-
 }
 
 
@@ -689,7 +684,7 @@ void APR::initialize_tree_random_sparse() {
 
     APRTimer timer(false);
 
-    auto apr_iterator = iterator();
+    auto apr_iterator = random_iterator();
 
     //need to create a local copy
 

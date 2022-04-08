@@ -217,7 +217,7 @@ bool APRFile::write_apr(APR &apr, uint64_t t, std::string channel_name, bool wri
 
     } else {
         timer.start_timer("write_apr_access_data");
-        apr.initialize_random_access(); //check that it is initialized.
+        apr.initialize_random(); //check that it is initialized.
 
         APRWriter::write_random_access(meta_location, fileStructure.objectId, apr.apr_access, blosc_comp_type_access,
                                        blosc_comp_level_access, blosc_shuffle_access);
