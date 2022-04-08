@@ -64,7 +64,7 @@ public:
 };
 
 
-void LinearAccess::initialize_tree_access_dense(std::vector<PixelData<uint8_t>> &p_map) {
+inline void LinearAccess::initialize_tree_access_dense(std::vector<PixelData<uint8_t>> &p_map) {
     APRTimer timer(false);
 
     initialize_xz_linear();
