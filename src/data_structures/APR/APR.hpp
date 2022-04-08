@@ -201,6 +201,17 @@ public:
     }
 
 
+    void initialize_tree_linear(bool sparse=false){
+        if(!tree_initialized){
+            if(sparse) {
+                initialize_tree_sparse();
+            } else {
+                initialize_tree_dense();
+            }
+            tree_initialized = true;
+        }
+    }
+
 protected:
 
     bool initialize_tree_random(){
@@ -218,13 +229,6 @@ protected:
             auto it = random_iterator();
             initialize_linear_access(linearAccess,it);
             apr_initialized = true;
-        }
-    }
-
-    void initialize_tree_linear(){
-        if(!tree_initialized){
-            initialize_tree_dense();
-            tree_initialized = true;
         }
     }
 
@@ -621,7 +625,6 @@ void APR::initialize_tree_dense() {
 
     APRTimer timer(false);
     auto apr_iterator = iterator();
-
 
     treeInfo.init_tree(org_dims(0),org_dims(1),org_dims(2));
     linearAccessTree.genInfo = &treeInfo;
