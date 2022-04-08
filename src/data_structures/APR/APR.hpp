@@ -25,12 +25,15 @@ class APR {
 
 protected:
 
-    //APR Tree function
-    void initialize_apr_tree_sparse();
-    void initialize_apr_tree_sparse_linear();
-    void initialize_apr_tree();
-    void initialize_linear_access(LinearAccess& aprAccess,APRIterator& it);
+    // initialize tree RandomAccess
+    void initialize_tree_random_sparse();
+    void initialize_tree_random_dense();
+
+    // initialize tree LinearAccess
+    void initialize_tree_sparse();
     void initialize_tree_dense();
+
+    void initialize_linear_access(LinearAccess& aprAccess, APRIterator& it);
 
     //New Access
     LinearAccess linearAccess;
@@ -203,7 +206,7 @@ protected:
     bool initialize_tree_random(){
         if(!tree_initialized_random){
 
-            initialize_apr_tree_sparse();
+            initialize_tree_random_sparse();
             tree_initialized_random = true;
 
         }
@@ -220,7 +223,6 @@ protected:
 
     void initialize_tree_linear(){
         if(!tree_initialized){
-            //initialize_apr_tree_sparse_linear();
             initialize_tree_dense();
             tree_initialized = true;
         }
@@ -350,9 +352,9 @@ void APR::initialize_random_access(){
    * Initializes the APR tree datastructures using a dense structure for memory, these are all particle cells that are parents of particles in the APR
    * , alternatively can be thought of as the interior nodes of an APR represented as a binary tree.
    */
-void APR::initialize_apr_tree() {
+void APR::initialize_tree_random_dense() {
 
-    APRTimer timer(true);
+    APRTimer timer(false);
 
     auto apr_iterator = iterator();
 
@@ -472,7 +474,7 @@ void APR::initialize_apr_tree() {
 
 }
 
-void APR::initialize_apr_tree_sparse_linear() {
+void APR::initialize_tree_sparse() {
 
     APRTimer timer(false);
 
@@ -680,7 +682,7 @@ void APR::initialize_tree_dense() {
    * Initializes the APR tree datastructures using a sparse structure for reduced memory, these are all particle cells that are parents of particles in the APR
    * , alternatively can be thought of as the interior nodes of an APR represented as a binary tree.
    */
-void APR::initialize_apr_tree_sparse() {
+void APR::initialize_tree_random_sparse() {
 
     APRTimer timer(false);
 
