@@ -232,17 +232,15 @@ public:
 
 
 /**
-   * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
-   */
-void APR::initialize_linear_access_from_random(LinearAccess& aprAccess, APRIterator& it){
-
-    // TODO: Should be renamed.. random-> linear access. also need the reverse function
-
-    auto& lin_a = aprAccess;
+ * Initializes linear access apr structures from the random access data. The linear structure is faster in most
+ * cases, but require more memory and do not allow the same neighbor access as the random access iterators.
+ */
+void APR::initialize_linear_access_from_random(LinearAccess& lin_a, APRIterator& it){
 
     uint64_t counter = 0;
     uint64_t counter_xz = 1;
 
+    lin_a.genInfo = &aprInfo;
     lin_a.initialize_xz_linear();
 
     lin_a.y_vec.resize(it.total_number_particles());
@@ -260,15 +258,11 @@ void APR::initialize_linear_access_from_random(LinearAccess& aprAccess, APRItera
                     counter++;
                 }
 
-
-                lin_a.xz_end_vec[counter_xz] = (counter);
+                lin_a.xz_end_vec[counter_xz] = counter;
                 counter_xz++;
             }
         }
-
     }
-
-
 }
 
 /**
