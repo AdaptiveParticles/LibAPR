@@ -441,7 +441,9 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
 
     initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
 
-#ifndef APR_USE_CUDA
+// TODO: Current pipeline is temporarily turned off,
+//       After revising a CUDA pipeline remove "#if true // " part.
+#if true // #ifndef APR_USE_CUDA
 
     total_timer.start_timer("full_pipeline");
 
