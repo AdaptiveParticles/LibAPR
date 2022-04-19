@@ -217,6 +217,8 @@ cmake-build-debug/
 cmake-build-release/
 cmake-build*
 xcode*
+build-cmake-debug/
+build-cmake-release/
 #####
 # Xcode private settings (window sizes, bookmarks, breakpoints, custom executables, smart groups)
 #
