@@ -2879,7 +2879,7 @@ bool test_pipeline_u16(TestData& test_data){
     }
 
     APR apr_c;
-    aprConverter.initPipelineAPR(apr_c, test_data.img_original.y_num, test_data.img_original.x_num, test_data.img_original.z_num);
+    aprConverter.initPipelineAPR(apr_c, test_data.img_original);
 
     aprConverter.get_apr_custom_grad_scale(apr_c,gradient_saved,scale_saved);
 
