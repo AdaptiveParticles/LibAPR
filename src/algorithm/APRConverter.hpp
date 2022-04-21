@@ -67,21 +67,38 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
-    template<typename T>
+    template <typename T>
     bool get_apr(APR &aAPR, PixelData<T> &input_image);
+
+    template <typename T>
+    bool get_apr_cpu(APR &aAPR, PixelData<T> &input_image);
+
+#ifdef APR_USE_CUDA
+    template <typename T>
+    bool get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
+#endif
 
     bool verbose = true;
 
     void get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled = true);
 
-    void initPipelineAPR(APR &aAPR, int y_num, int x_num = 1, int z_num = 1){
-        //
-        //  Initializes the APR datastructures for the given image.
-        //
+    template <typename T>
+    bool initPipelineAPR(APR &aAPR, PixelData<T> &input_image) {
 
-        aAPR.aprInfo.init(y_num,x_num,z_num);
+        if (par.check_input) {
+            if (!check_input_dimensions(input_image)) {
+                std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
+                return false;
+            }
+        }
+
+        //  Initializes the APR datastructures for the given image.
+        aAPR.parameters = par;
+        aAPR.aprInfo.init(input_image.y_num,input_image.x_num,input_image.z_num);
         aAPR.linearAccess.genInfo = &aAPR.aprInfo;
         aAPR.apr_access.genInfo = &aAPR.aprInfo;
+
+        return true;
     }
 
 protected:
@@ -120,16 +137,6 @@ protected:
     bool check_input_dimensions(PixelData<T> &input_image);
 
     void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1);
-
-private:
-
-    template<typename T>
-    void get_apr_cpu(APR &aAPR, PixelData<T> &input_image);
-
-#ifdef APR_USE_CUDA
-    template<typename T>
-    void get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
-#endif
 
 };
 
@@ -431,6 +438,7 @@ inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
 
 }
 
+
 #ifdef APR_USE_CUDA
 /**
  * Implementation of pipeline for GPU/CUDA
@@ -439,7 +447,10 @@ inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
  * @param input_image - input image
  */
 template<typename ImageType> template<typename T>
-inline void APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input_image) {
+inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input_image) {
+    if (!initPipelineAPR(aAPR, input_image)) return false;
+
+
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -534,6 +545,8 @@ inline void APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
     }
     t.stop_timer();
     method_timer.stop_timer();
+
+    return true;
 }
 #endif
 
@@ -545,7 +558,10 @@ inline void APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
  * @param input_image - input image
  */
 template<typename ImageType> template<typename T>
-inline void APRConverter<ImageType>::get_apr_cpu(APR &aAPR, PixelData<T> &input_image) {
+inline bool APRConverter<ImageType>::get_apr_cpu(APR &aAPR, PixelData<T> &input_image) {
+
+    if (!initPipelineAPR(aAPR, input_image)) return false;
+
     total_timer.start_timer("full_pipeline");
 
     computation_timer.start_timer("init_mem");
@@ -588,37 +604,26 @@ inline void APRConverter<ImageType>::get_apr_cpu(APR &aAPR, PixelData<T> &input_
     computation_timer.stop_timer();
 
     total_timer.stop_timer();
+
+    return true;
 }
+
 
 /**
  * Main method for constructing the APR from an input image
  *
- * @param aAPR - the APR datastructure
+ * @param aAPR - the APR data structure
  * @param input_image - input image
  */
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_image) {
-
-    aAPR.parameters = par;
-
-    if (par.check_input) {
-        if (!check_input_dimensions(input_image)) {
-            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
-            return false;
-        }
-    }
-
-    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
-
-// TODO: Current pipeline is temporarily turned off,
+// TODO: CUDA pipeline is temporarily turned off and CPU version is always chosen.
 //       After revising a CUDA pipeline remove "#if true // " part.
 #if true // #ifndef APR_USE_CUDA
-    get_apr_cpu(aAPR, input_image);
+    return get_apr_cpu(aAPR, input_image);
 #else
-    get_apr_cuda(aAPR, input_image);
+    return get_apr_cuda(aAPR, input_image);
 #endif
-
-    return true;
 }
 
 
