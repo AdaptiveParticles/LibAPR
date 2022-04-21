@@ -121,6 +121,15 @@ protected:
 
     void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1);
 
+private:
+
+    template<typename T>
+    void get_apr_cpu(APR &aAPR, PixelData<T> &input_image);
+
+#ifdef APR_USE_CUDA
+    template<typename T>
+    void get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
+#endif
 
 };
 
@@ -422,76 +431,15 @@ inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
 
 }
 
-
+#ifdef APR_USE_CUDA
 /**
- * Main method for constructing the APR from an input image
+ * Implementation of pipeline for GPU/CUDA
+ *
+ * @param aAPR - the APR datastructure
+ * @param input_image - input image
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_image) {
-
-    aAPR.parameters = par;
-
-    if(par.check_input) {
-        if(!check_input_dimensions(input_image)) {
-            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
-            return false;
-        }
-    }
-
-
-    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
-
-// TODO: Current pipeline is temporarily turned off,
-//       After revising a CUDA pipeline remove "#if true // " part.
-#if true // #ifndef APR_USE_CUDA
-
-    total_timer.start_timer("full_pipeline");
-
-    computation_timer.start_timer("init_mem");
-
-    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
-
-    computation_timer.stop_timer();
-
-
-    computation_timer.start_timer("compute_L");
-
-    //Compute the local resolution estimate
-    computeL(aAPR,input_image);
-
-    computation_timer.stop_timer();
-
-    computation_timer.start_timer("apply_parameters");
-
-    if( par.auto_parameters ) {
-        method_timer.start_timer("autoParameters");
-//        autoParameters(local_scale_temp,grad_temp);
-        autoParametersLiEntropy(local_scale_temp2, local_scale_temp, grad_temp);
-        aAPR.parameters = par;
-        method_timer.stop_timer();
-    }
-
-    applyParameters(aAPR,par);
-
-    computation_timer.stop_timer();
-
-    computation_timer.start_timer("solve_for_apr");
-
-    solveForAPR(aAPR);
-
-    computation_timer.stop_timer();
-
-    computation_timer.start_timer("generate_data_structures");
-
-    generateDatastructures(aAPR);
-
-    computation_timer.stop_timer();
-
-    total_timer.stop_timer();
-
-#else
-
-
+inline void APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input_image) {
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
@@ -503,19 +451,16 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
         computation_timer.start_timer("init_mem");
         PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
-
         /////////////////////////////////
         /// Pipeline
         ////////////////////////
-
-
         //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
         // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
 
         if (std::is_same<uint16_t, ImageType>::value) {
             bspline_offset = 100;
             image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-        } else if (std::is_same<uint8_t, ImageType>::value){
+        } else if (std::is_same<uint8_t, ImageType>::value) {
             bspline_offset = 5;
             image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
         } else {
@@ -563,13 +508,13 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             PixelData<float> lst(local_scale_temp, true);
 
 #ifdef HAVE_LIBTIFF
-            if(par.output_steps){
+            if (par.output_steps){
                 TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", lst);
             }
 #endif
 
 #ifdef HAVE_LIBTIFF
-            if(par.output_steps){
+            if (par.output_steps){
                 TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
             }
 #endif
@@ -583,18 +528,99 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             computation_timer.start_timer("generate_data_structures");
             generateDatastructures(aAPR);
             computation_timer.stop_timer();
-
-
         }
         std::cout << "Total n ENDED" << std::endl;
 
     }
     t.stop_timer();
     method_timer.stop_timer();
+}
+#endif
+
+
+/**
+ * Implementation of pipeline for CPU
+ *
+ * @param aAPR - the APR datastructure
+ * @param input_image - input image
+ */
+template<typename ImageType> template<typename T>
+inline void APRConverter<ImageType>::get_apr_cpu(APR &aAPR, PixelData<T> &input_image) {
+    total_timer.start_timer("full_pipeline");
+
+    computation_timer.start_timer("init_mem");
+
+    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("compute_L");
+
+    //Compute the local resolution estimate
+    computeL(aAPR,input_image);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("apply_parameters");
+
+    if (par.auto_parameters) {
+        method_timer.start_timer("autoParameters");
+//        autoParameters(local_scale_temp,grad_temp);
+        autoParametersLiEntropy(local_scale_temp2, local_scale_temp, grad_temp);
+        aAPR.parameters = par;
+        method_timer.stop_timer();
+    }
+
+    applyParameters(aAPR,par);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("solve_for_apr");
+
+    solveForAPR(aAPR);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("generate_data_structures");
+
+    generateDatastructures(aAPR);
+
+    computation_timer.stop_timer();
+
+    total_timer.stop_timer();
+}
+
+/**
+ * Main method for constructing the APR from an input image
+ *
+ * @param aAPR - the APR datastructure
+ * @param input_image - input image
+ */
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_image) {
+
+    aAPR.parameters = par;
+
+    if (par.check_input) {
+        if (!check_input_dimensions(input_image)) {
+            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
+            return false;
+        }
+    }
+
+    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
+
+// TODO: Current pipeline is temporarily turned off,
+//       After revising a CUDA pipeline remove "#if true // " part.
+#if true // #ifndef APR_USE_CUDA
+    get_apr_cpu(aAPR, input_image);
+#else
+    get_apr_cuda(aAPR, input_image);
 #endif
 
     return true;
 }
+
 
 template<typename T>
 void compute_means(const std::vector<T>& data, float threshold, float& mean_back, float& mean_fore) {
