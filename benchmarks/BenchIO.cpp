@@ -106,13 +106,11 @@ inline void bench_apr_io(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
 
     aprFile.open(file_name,"WRITE");
 
-    aprFile.set_read_write_tree(false);
-
     for (int r = 0; r < num_rep; ++r) {
 
         timer_steps.start_timer("write_apr");
 
-        aprFile.write_apr(apr,r);
+        aprFile.write_apr(apr, r, "t", false);
 
         timer_steps.stop_timer();
 
@@ -131,8 +129,6 @@ inline void bench_apr_io(APR& apr,ParticleData<partsType>& parts,int num_rep,Ana
     timer.start_timer("read");
 
     aprFile.open(file_name,"READ");
-
-    aprFile.set_read_write_tree(false);
 
     for (int r = 0; r < num_rep; ++r) {
 

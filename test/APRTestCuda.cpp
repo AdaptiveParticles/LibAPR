@@ -134,7 +134,6 @@ void CreateSmallSphereTest::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -165,7 +164,6 @@ void CreatDiffDimsSphereTest::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -198,7 +196,6 @@ void CreateCR1::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -212,7 +209,6 @@ void CreateCR3::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -226,7 +222,6 @@ void CreateCR5::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -240,7 +235,6 @@ void CreateCR10::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -254,7 +248,6 @@ void CreateCR15::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -268,7 +261,6 @@ void CreateCR20::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -282,7 +274,6 @@ void CreateCR30::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -296,7 +287,6 @@ void CreateCR54::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -310,7 +300,6 @@ void CreateCR124::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -324,7 +313,6 @@ void CreateCR1000::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();

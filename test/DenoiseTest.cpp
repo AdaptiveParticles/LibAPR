@@ -113,7 +113,6 @@ void Stencil2D::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(testData.apr);
     aprFile.read_particles(testData.apr,"particle_intensities",testData.parts);
     aprFile.close();
@@ -129,7 +128,6 @@ void Stencil1D::SetUp(){
 
   APRFile aprFile;
   aprFile.open(file_name,"READ");
-  aprFile.set_read_write_tree(false);
   aprFile.read_apr(testData.apr);
   aprFile.read_particles(testData.apr,"particle_intensities",testData.parts);
   aprFile.close();
@@ -148,7 +146,6 @@ void Stencil3D::SetUp(){
 
   APRFile aprFile;
   aprFile.open(file_name,"READ");
-  aprFile.set_read_write_tree(false);
   aprFile.read_apr(testData.apr);
   aprFile.read_particles(testData.apr,"particle_intensities",testData.parts);
   aprFile.close();

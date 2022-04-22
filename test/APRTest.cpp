@@ -1259,8 +1259,6 @@ bool test_linear_access_io(TestData& test_data) {
 
     APR apr_random;
 
-    writeFile.set_read_write_tree(true);
-
     writeFile.open(file_name,"READ");
     writeFile.read_apr(apr_random);
 
@@ -1289,8 +1287,6 @@ bool test_linear_access_io(TestData& test_data) {
     timer.start_timer("linear read");
 
     APR apr_lin;
-
-    writeFile.set_read_write_tree(true);
 
     writeFile.open(file_name,"READ");
     writeFile.read_apr(apr_lin);
@@ -1597,8 +1593,6 @@ bool test_apr_file(TestData& test_data){
     bool success = true;
 
     readFile.open(file_name,"READ");
-
-    readFile.set_read_write_tree(false);
 
     APR aprRead;
 
@@ -3460,7 +3454,6 @@ void CreateBigBigData::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"parts",test_data.particles_intensities);
     aprFile.close();
@@ -3476,7 +3469,6 @@ void CreateSmallSphereTest::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3507,7 +3499,6 @@ void CreateDiffDimsSphereTest::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3538,7 +3529,6 @@ void Create210SphereTestAPROnly::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3555,7 +3545,6 @@ void CreateGTSmall2DTestProperties::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3585,7 +3574,6 @@ void CreateGTSmall1DTestProperties::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -4403,7 +4391,6 @@ bool compare_lazy_iterator(LazyIterator& lazy_it, LinearIterator& apr_it) {
 bool test_lazy_iterators(TestData& test_data) {
     // write APR to file using new format (required by LazyAccess) #TODO: update the test files
     APRFile aprFile;
-    aprFile.set_read_write_tree(true);
     std::string file_name = "lazy_access_test.apr";
     aprFile.open(file_name,"WRITE");
     aprFile.write_apr(test_data.apr);
@@ -4462,7 +4449,6 @@ bool test_reconstruct_lazy(TestData& test_data, ReconPatch& patch) {
     // write APR and tree data to file
     APRFile aprFile;
     std::string file_name = "lazy_recon_test.apr";
-    aprFile.set_read_write_tree(true);
     aprFile.open(file_name, "WRITE");
     aprFile.write_apr(test_data.apr);
     aprFile.write_particles("particles", test_data.particles_intensities, true);

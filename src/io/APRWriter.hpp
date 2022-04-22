@@ -15,22 +15,6 @@
 #include "numerics/APRCompress.hpp"
 #include "data_structures/APR/particles/ParticleData.hpp"
 
-struct FileSizeInfo {
-    float total_file_size=0;
-    float intensity_data=0;
-    float access_data=0;
-};
-
-struct FileSizeInfoTime {
-//    float total_file_size=0;
-//    float update_fp = 0;
-//    float update_index = 0;
-//    float add_index = 0;
-//    float add_fp = 0;
-//    float remove_index = 0;
-//    float remove_fp = 0;
-};
-
 
 /*
  *  Class to handle generation of datasets using hdf5 using blosc
@@ -578,577 +562,6 @@ public:
     }
 
 
-//    void read_apr(APR& apr, const std::string &file_name,bool build_tree = false, int max_level_delta = 0,unsigned int time_point = UINT32_MAX) {
-//
-//        APRTimer timer;
-//        timer.verbose_flag = false;
-//
-//        APRTimer timer_f;
-//        timer_f.verbose_flag = false;
-//
-//        FileStructure::Operation op;
-//
-//        if(build_tree){
-//            op = FileStructure::Operation::READ_WITH_TREE;
-//        } else {
-//            op = FileStructure::Operation::READ;
-//        }
-//
-//        unsigned int t = 0;
-//
-//        if(time_point!=UINT32_MAX){
-//            t = time_point;
-//        }
-//
-//        FileStructure f(file_name, op);
-//
-//        hid_t meta_data = f.groupId;
-//
-//        //check if old or new file, for location of the properties. (The metadata moved to the time point.)
-//        bool old = attribute_exists(f.objectId,AprTypes::MaxLevelType.typeName);
-//
-//        if(old) {
-//            meta_data = f.objectId;
-//        }
-//
-//        if (!f.isOpened()) return;
-//
-//        // ------------- read metadata --------------------------
-//        char string_out[100] = {0};
-//        hid_t attr_id = H5Aopen(meta_data,"name",H5P_DEFAULT);
-//        hid_t atype = H5Aget_type(attr_id);
-//        hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
-//        H5Aread(attr_id, atype_mem, string_out) ;
-//        H5Aclose(attr_id);
-//        apr.name= string_out;
-//
-//        // check if the APR structure has already been read in, the case when a partial load has been done, now only the particles need to be read
-//        uint64_t old_particles = apr.apr_access.total_number_particles;
-//        uint64_t old_gaps = apr.apr_access.total_number_gaps;
-//
-//        //read in access information
-//        read_access_info(meta_data,apr.apr_access);
-//
-//        int compress_type;
-//        readAttr(AprTypes::CompressionType, meta_data, &compress_type);
-//        float quantization_factor;
-//        readAttr(AprTypes::QuantizationFactorType, meta_data, &quantization_factor);
-//
-//        bool read_structure = true;
-//
-//        if((old_particles == apr.apr_access.total_number_particles) && (old_gaps == apr.apr_access.total_number_gaps) && (build_tree)){
-//            read_structure = false;
-//        }
-//
-//        //incase you ask for to high a level delta
-//        max_level_delta = std::max(max_level_delta,0);
-//        max_level_delta = std::min(max_level_delta,(int)apr.apr_access.level_max());
-//
-//        if(read_structure) {
-//            //read in pipeline parameters
-//            read_apr_parameters(meta_data,apr.parameters);
-//
-//            // ------------- map handling ----------------------------
-//
-//            timer.start_timer("map loading data");
-//
-//            auto map_data = std::make_shared<MapStorageData>();
-//
-//            map_data->global_index.resize(apr.apr_access.total_number_non_empty_rows);
-//
-//            timer_f.start_timer("index");
-//            std::vector<int16_t> index_delta(apr.apr_access.total_number_non_empty_rows);
-//            readData(AprTypes::MapGlobalIndexType, f.objectId, index_delta.data());
-//            std::vector<uint64_t> index_delta_big(apr.apr_access.total_number_non_empty_rows);
-//            std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
-//            std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data->global_index.begin());
-//
-//            timer_f.stop_timer();
-//
-//            timer_f.start_timer("y_b_e");
-//            map_data->y_end.resize(apr.apr_access.total_number_gaps);
-//            readData(AprTypes::MapYendType, f.objectId, map_data->y_end.data());
-//            map_data->y_begin.resize(apr.apr_access.total_number_gaps);
-//            readData(AprTypes::MapYbeginType, f.objectId, map_data->y_begin.data());
-//
-//            timer_f.stop_timer();
-//
-//
-//            timer_f.start_timer("zxl");
-//            map_data->number_gaps.resize(apr.apr_access.total_number_non_empty_rows);
-//            readData(AprTypes::MapNumberGapsType, f.objectId, map_data->number_gaps.data());
-//            map_data->level.resize(apr.apr_access.total_number_non_empty_rows);
-//            readData(AprTypes::MapLevelType, f.objectId, map_data->level.data());
-//            map_data->x.resize(apr.apr_access.total_number_non_empty_rows);
-//            readData(AprTypes::MapXType, f.objectId, map_data->x.data());
-//            map_data->z.resize(apr.apr_access.total_number_non_empty_rows);
-//            readData(AprTypes::MapZType, f.objectId, map_data->z.data());
-//            timer_f.stop_timer();
-//
-//            timer.stop_timer();
-//
-//            timer.start_timer("map building");
-//
-//            apr.apr_access.rebuild_map(*map_data);
-//
-//            timer.stop_timer();
-//        }
-//
-////        uint64_t max_read_level = apr.apr_access.level_max()-max_level_delta;
-////        uint64_t max_read_level_tree = std::min(apr.apr_access.level_max()-1,max_read_level);
-////        uint64_t prev_read_level = 0;
-//
-////        if(build_tree){
-////
-////
-////            if(read_structure) {
-////
-////
-////                timer.start_timer("build tree - map");
-////
-////                apr.apr_tree.tree_access.l_max = apr.level_max() - 1;
-////                apr.apr_tree.tree_access.l_min = apr.level_min() - 1;
-////
-////                apr.apr_tree.tree_access.x_num.resize(apr.apr_tree.tree_access.level_max() + 1);
-////                apr.apr_tree.tree_access.z_num.resize(apr.apr_tree.tree_access.level_max() + 1);
-////                apr.apr_tree.tree_access.y_num.resize(apr.apr_tree.tree_access.level_max() + 1);
-////
-////                for (int i = apr.apr_tree.tree_access.level_min(); i <= apr.apr_tree.tree_access.level_max(); ++i) {
-////                    apr.apr_tree.tree_access.x_num[i] = apr.spatial_index_x_max(i);
-////                    apr.apr_tree.tree_access.y_num[i] = apr.spatial_index_y_max(i);
-////                    apr.apr_tree.tree_access.z_num[i] = apr.spatial_index_z_max(i);
-////                }
-////
-////                apr.apr_tree.tree_access.x_num[apr.level_min() - 1] = ceil(apr.spatial_index_x_max(apr.level_min()) / 2.0f);
-////                apr.apr_tree.tree_access.y_num[apr.level_min() - 1] = ceil(apr.spatial_index_y_max(apr.level_min()) / 2.0f);
-////                apr.apr_tree.tree_access.z_num[apr.level_min() - 1] = ceil(apr.spatial_index_z_max(apr.level_min()) / 2.0f);
-////
-////                readAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree,
-////                         &apr.apr_tree.tree_access.total_number_particles);
-////                readAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
-////                readAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree,
-////                         &apr.apr_tree.tree_access.total_number_non_empty_rows);
-////
-////                auto map_data_tree = std::make_shared<MapStorageData>();
-////
-////                map_data_tree->global_index.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-////
-////
-////                std::vector<int16_t> index_delta(apr.apr_tree.tree_access.total_number_non_empty_rows);
-////                readData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta.data());
-////                std::vector<uint64_t> index_delta_big(apr.apr_tree.tree_access.total_number_non_empty_rows);
-////                std::copy(index_delta.begin(), index_delta.end(), index_delta_big.begin());
-////                std::partial_sum(index_delta_big.begin(), index_delta_big.end(), map_data_tree->global_index.begin());
-////
-////
-////                map_data_tree->y_end.resize(apr.apr_tree.tree_access.total_number_gaps);
-////                readData(AprTypes::MapYendType, f.objectIdTree, map_data_tree->y_end.data());
-////                map_data_tree->y_begin.resize(apr.apr_tree.tree_access.total_number_gaps);
-////                readData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree->y_begin.data());
-////
-////                map_data_tree->number_gaps.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-////                readData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree->number_gaps.data());
-////                map_data_tree->level.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-////                readData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree->level.data());
-////                map_data_tree->x.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-////                readData(AprTypes::MapXType, f.objectIdTree, map_data_tree->x.data());
-////                map_data_tree->z.resize(apr.apr_tree.tree_access.total_number_non_empty_rows);
-////                readData(AprTypes::MapZType, f.objectIdTree, map_data_tree->z.data());
-////
-////                apr.apr_tree.tree_access.rebuild_map_tree(*map_data_tree,apr.apr_access);
-////
-////                //Important needs linking to the APR
-////                apr.apr_tree.APROwn = &apr;
-////
-////                timer.stop_timer();
-////            }
-////
-////            if(!read_structure) {
-////                uint64_t current_parts_size = apr.apr_tree.particles_ds_tree.data.size();
-////
-////                for (int j = apr.level_min(); j <apr.level_max(); ++j) {
-////                    if((apr.apr_tree.tree_access.global_index_by_level_end[j] + 1)==current_parts_size){
-////                        prev_read_level = j;
-////                    }
-////                }
-////            }
-////
-////            timer.start_timer("tree intensities");
-////
-////            uint64_t parts_start = 0;
-////            if(prev_read_level > 0){
-////                parts_start = apr.apr_tree.tree_access.global_index_by_level_end[prev_read_level] + 1;
-////            }
-////            uint64_t parts_end = apr.apr_tree.tree_access.global_index_by_level_end[max_read_level_tree] + 1;
-////
-////            apr.apr_tree.particles_ds_tree.data.resize(parts_end);
-////
-////            if ( apr.apr_tree.particles_ds_tree.data.size() > 0) {
-////                readData(AprTypes::ParticleIntensitiesType, f.objectIdTree, apr.apr_tree.particles_ds_tree.data.data() + parts_start,parts_start,parts_end);
-////            }
-////
-////            APRCompress apr_compress;
-////            apr_compress.set_compression_type(1);
-////            apr_compress.set_quantization_factor(2);
-////            apr_compress.decompress(apr, apr.apr_tree.particles_ds_tree,parts_start);
-////
-////            timer.stop_timer();
-////
-////        }
-//
-////        uint64_t parts_start = 0;
-////        uint64_t parts_end = apr.apr_access.global_index_by_level_end[max_read_level] + 1;
-////
-////        prev_read_level = 0;
-////        if(!read_structure) {
-////            uint64_t current_parts_size = apr.total_number_particles();
-////
-////            for (int j = apr.level_min(); j <apr.level_max(); ++j) {
-////                if((apr.apr_access.global_index_by_level_end[j] + 1)==current_parts_size){
-////                    prev_read_level = j;
-////                }
-////            }
-////        }
-////
-////        if(prev_read_level > 0){
-////            parts_start = apr.apr_access.global_index_by_level_end[prev_read_level] + 1;
-////        }
-//
-//        //apr.apr_access.level_max = max_read_level;
-//
-////        timer.start_timer("Read intensities");
-////        // ------------- read data ------------------------------
-////        apr.particles_intensities.data.resize(parts_end);
-////        if (apr.particles_intensities.data.size() > 0) {
-////            readData(AprTypes::ParticleIntensitiesType, f.objectId, apr.particles_intensities.data.data() + parts_start,parts_start,parts_end);
-////        }
-//
-//
-//        timer.stop_timer();
-//
-//        //std::cout << "Data rate intensities: " << (apr.particles_intensities.data.size()*2)/(timer.timings.back()*1000000.0f) << " MB/s" << std::endl;
-//
-//
-//        timer.start_timer("decompress");
-//        // ------------ decompress if needed ---------------------
-//        if (compress_type > 0) {
-////            APRCompress apr_compress;
-////            apr_compress.set_compression_type(compress_type);
-////            apr_compress.set_quantization_factor(quantization_factor);
-////            apr_compress.decompress(apr, apr.particles_intensities,parts_start);
-//        }
-//        timer.stop_timer();
-//    }
-
-
-//    FileSizeInfo write_apr(APR& apr, const std::string &save_loc, const std::string &file_name) {
-//        APRCompress apr_compressor;
-//        apr_compressor.set_compression_type(0);
-//        return write_apr(apr, save_loc, file_name, apr_compressor);
-//    }
-//
-//    FileSizeInfo write_apr_append(APR& apr, const std::string &save_loc, const std::string &file_name) {
-//        APRCompress apr_compressor;
-//        apr_compressor.set_compression_type(0);
-//        return write_apr(apr, save_loc, file_name, apr_compressor,BLOSC_ZSTD,4,1,false,true);
-//    }
-
-
-
-    /**
-     * Writes the APR to the particle cell structure sparse format, using the p_map for reconstruction
-     */
-
-//    FileSizeInfo write_apr(APR &apr, const std::string &save_loc, const std::string &file_name, APRCompress &apr_compressor, unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1,bool write_tree = false,bool append_apr_time = true) {
-//        APRTimer write_timer;
-//        write_timer.verbose_flag = true;
-//
-//        std::string hdf5_file_name = save_loc + file_name + ".h5";
-//
-//
-//        FileStructure::Operation op;
-//
-//        if(write_tree){
-//            op = FileStructure::Operation::WRITE_WITH_TREE;
-//        } else {
-//            op = FileStructure::Operation::WRITE;
-//        }
-//
-//        uint64_t t = 0;
-//
-//        if(append_apr_time){
-//            t = current_t;
-//            current_t++;
-//        }
-//
-//        FileStructure f(hdf5_file_name, op);
-//
-//        FileSizeInfo fileSizeInfo1;
-//        if (!f.isOpened()) return fileSizeInfo1;
-//
-//        hid_t meta_location = f.groupId;
-//
-//        if(append_apr_time){
-//            meta_location = f.objectId;
-//        }
-//
-//        //global property
-//        writeAttr(AprTypes::TimeStepType, f.groupId, &t);
-//
-//        // ------------- write metadata -------------------------
-//        //per time step
-//
-//        writeAttr(AprTypes::NumberOfXType, meta_location, &apr.apr_access.org_dims[1]);
-//        writeAttr(AprTypes::NumberOfYType, meta_location, &apr.apr_access.org_dims[0]);
-//        writeAttr(AprTypes::NumberOfZType, meta_location, &apr.apr_access.org_dims[2]);
-//        writeAttr(AprTypes::TotalNumberOfGapsType, meta_location, &apr.apr_access.total_number_gaps);
-//        writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, meta_location, &apr.apr_access.total_number_non_empty_rows);
-//
-//        writeString(AprTypes::NameType,meta_location, (apr.name.size() == 0) ? "no_name" : apr.name);
-//        writeString(AprTypes::GitType, meta_location, ConfigAPR::APR_GIT_HASH);
-//        writeAttr(AprTypes::TotalNumberOfParticlesType, meta_location, &apr.apr_access.total_number_particles);
-//        writeAttr(AprTypes::MaxLevelType, meta_location, &apr.apr_access.l_max);
-//        writeAttr(AprTypes::MinLevelType, meta_location, &apr.apr_access.l_min);
-//
-//        int compress_type_num = apr_compressor.get_compression_type();
-//        writeAttr(AprTypes::CompressionType, meta_location, &compress_type_num);
-//        float quantization_factor = apr_compressor.get_quantization_factor();
-//        writeAttr(AprTypes::QuantizationFactorType, meta_location, &quantization_factor);
-//        writeAttr(AprTypes::LambdaType, meta_location, &apr.parameters.lambda);
-//        writeAttr(AprTypes::SigmaThType, meta_location, &apr.parameters.sigma_th);
-//        writeAttr(AprTypes::SigmaThMaxType, meta_location, &apr.parameters.sigma_th_max);
-//        writeAttr(AprTypes::IthType, meta_location, &apr.parameters.Ip_th);
-//        writeAttr(AprTypes::DxType, meta_location, &apr.parameters.dx);
-//        writeAttr(AprTypes::DyType, meta_location, &apr.parameters.dy);
-//        writeAttr(AprTypes::DzType, meta_location, &apr.parameters.dz);
-//        writeAttr(AprTypes::PsfXType, meta_location, &apr.parameters.psfx);
-//        writeAttr(AprTypes::PsfYType, meta_location, &apr.parameters.psfy);
-//        writeAttr(AprTypes::PsfZType, meta_location, &apr.parameters.psfz);
-//        writeAttr(AprTypes::RelativeErrorType, meta_location, &apr.parameters.rel_error);
-//        writeAttr(AprTypes::NoiseSdEstimateType, meta_location, &apr.parameters.noise_sd_estimate);
-//        writeAttr(AprTypes::BackgroundIntensityEstimateType, meta_location,
-//                  &apr.parameters.background_intensity_estimate);
-//
-//        write_timer.start_timer("access_data");
-//        MapStorageData map_data;
-//        apr.apr_access.flatten_structure( map_data);
-//
-//        std::vector<uint16_t> index_delta;
-//        index_delta.resize(map_data.global_index.size());
-//        std::adjacent_difference(map_data.global_index.begin(),map_data.global_index.end(),index_delta.begin());
-//        writeData(AprTypes::MapGlobalIndexType, f.objectId, index_delta, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//
-//        writeData(AprTypes::MapYendType, f.objectId, map_data.y_end, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//        writeData(AprTypes::MapYbeginType, f.objectId, map_data.y_begin, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//        writeData(AprTypes::MapNumberGapsType, f.objectId, map_data.number_gaps, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//        writeData(AprTypes::MapLevelType, f.objectId, map_data.level, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//        writeData(AprTypes::MapXType, f.objectId, map_data.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//        writeData(AprTypes::MapZType, f.objectId, map_data.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//
-//        // #TODO: New write file APRTree
-//
-////        bool store_tree = write_tree;
-////
-////        if(store_tree){
-////
-////            if(apr.apr_tree.particles_ds_tree.data.size()==0) {
-////                apr.apr_tree.init(apr);
-////                apr.apr_tree.fill_tree_mean_downsample(apr.particles_intensities);
-////            }
-////
-////            writeAttr(AprTypes::TotalNumberOfGapsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_gaps);
-////            writeAttr(AprTypes::TotalNumberOfNonEmptyRowsType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_non_empty_rows);
-////            writeAttr(AprTypes::TotalNumberOfParticlesType, f.objectIdTree, &apr.apr_tree.tree_access.total_number_particles);
-////
-////            MapStorageData map_data_tree;
-////            apr.apr_tree.tree_access.flatten_structure( map_data_tree);
-////
-////            std::vector<uint16_t> index_delta;
-////            index_delta.resize(map_data_tree.global_index.size());
-////            std::adjacent_difference(map_data_tree.global_index.begin(),map_data_tree.global_index.end(),index_delta.begin());
-////            writeData(AprTypes::MapGlobalIndexType, f.objectIdTree, index_delta, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////
-////            writeData(AprTypes::MapYendType, f.objectIdTree, map_data_tree.y_end, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////            writeData(AprTypes::MapYbeginType, f.objectIdTree, map_data_tree.y_begin, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////            writeData(AprTypes::MapNumberGapsType, f.objectIdTree, map_data_tree.number_gaps, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////            writeData(AprTypes::MapLevelType, f.objectIdTree, map_data_tree.level, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////            writeData(AprTypes::MapXType, f.objectIdTree, map_data_tree.x, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////            writeData(AprTypes::MapZType, f.objectIdTree, map_data_tree.z, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////
-////            APRCompress tree_compress;
-////            tree_compress.set_compression_type(1);
-////            tree_compress.set_quantization_factor(2);
-////
-////            tree_compress.compress(apr, apr.apr_tree.particles_ds_tree);
-////
-////            unsigned int tree_blosc_comp_type = 6;
-////
-////            hid_t type = Hdf5Type<ImageType>::type();
-////            writeData({type, AprTypes::ParticleIntensitiesType}, f.objectIdTree, apr.apr_tree.particles_ds_tree.data, tree_blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////
-////        }
-//
-//        write_timer.stop_timer();
-//
-//        for (size_t i = apr.level_min(); i <apr.level_max() ; ++i) {
-//            int x_num = apr.apr_access.x_num[i];
-//            writeAttr(AprTypes::NumberOfLevelXType, i, meta_location, &x_num);
-//            int y_num = apr.apr_access.y_num[i];
-//            writeAttr(AprTypes::NumberOfLevelYType, i, meta_location, &y_num);
-//            int z_num = apr.apr_access.z_num[i];
-//            writeAttr(AprTypes::NumberOfLevelZType, i, meta_location, &z_num);
-//        }
-//
-//
-//        // ------------- output the file size -------------------
-//        hsize_t file_size = f.getFileSize();
-//        double sizeMB_access = file_size / 1e6;
-//
-//        FileSizeInfo fileSizeInfo;
-//        fileSizeInfo.access_data = sizeMB_access;
-//
-//        // ------------- write data ----------------------------
-////        write_timer.start_timer("intensities");
-////        if (compress_type_num > 0){
-////            apr_compressor.compress(apr,apr.particles_intensities);
-////        }
-////        hid_t type = Hdf5Type<ImageType>::type();
-////        writeData({type, AprTypes::ParticleIntensitiesType}, meta_location, apr.particles_intensities.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-////        write_timer.stop_timer();
-//
-//        // ------------- output the file size -------------------
-//        file_size = f.getFileSize();
-//        double sizeMB = file_size / 1e6;
-//
-//        fileSizeInfo.total_file_size = sizeMB;
-//        fileSizeInfo.intensity_data = fileSizeInfo.total_file_size - fileSizeInfo.access_data;
-//
-//        std::cout << "HDF5 Total Filesize: " << sizeMB << " MB\n" << "Writing Complete" << std::endl;
-//        return fileSizeInfo;
-//    }
-//
-//
-//
-//
-//    template<typename T>
-//    void write_apr_paraview(APR &apr, const std::string &save_loc, const std::string &file_name, const ParticleData<T> &parts,std::vector<uint64_t> previous_num = {0}) {
-//        std::string hdf5_file_name = save_loc + file_name + ".h5";
-//
-//        bool write_time = false;
-//        unsigned int t = 0;
-//        if(previous_num[0]!=0){
-//            //time series write
-//            write_time = true;
-//            t = (previous_num.size()-1);
-//        }
-//
-//
-//        FileStructure f(hdf5_file_name, FileStructure::Operation::WRITE);
-//        if (!f.isOpened()) return;
-//
-//        // ------------- write metadata -------------------------
-//
-//        writeString(AprTypes::NameType, f.objectId, (apr.name.size() == 0) ? "no_name" : apr.name);
-//        writeString(AprTypes::GitType, f.objectId, ConfigAPR::APR_GIT_HASH);
-//        writeAttr(AprTypes::MaxLevelType, f.objectId, &apr.apr_access.l_max);
-//        writeAttr(AprTypes::MinLevelType, f.objectId, &apr.apr_access.l_min);
-//        writeAttr(AprTypes::TotalNumberOfParticlesType, f.objectId, &apr.apr_access.total_number_particles);
-//
-//        // ------------- write data ----------------------------
-//        writeDataStandard({(Hdf5Type<T>::type()), AprTypes::ParticlePropertyType}, f.objectId, parts.data);
-//
-//        auto apr_iterator = apr.iterator();
-//        std::vector<uint16_t> xv(apr_iterator.total_number_particles());
-//        std::vector<uint16_t> yv(apr_iterator.total_number_particles());
-//        std::vector<uint16_t> zv(apr_iterator.total_number_particles());
-//        std::vector<uint8_t> levelv(apr_iterator.total_number_particles());
-//        //std::vector<uint8_t> typev(apr_iterator.total_number_particles());
-//
-//        for (unsigned int level = apr_iterator.level_min(); level <= apr_iterator.level_max(); ++level) {
-//            int z = 0;
-//            int x = 0;
-//
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel for schedule(dynamic) private(z, x) firstprivate(apr_iterator)
-//#endif
-//            for (z = 0; z < apr_iterator.spatial_index_z_max(level); z++) {
-//                for (x = 0; x < apr_iterator.spatial_index_x_max(level); ++x) {
-//                    for (apr_iterator.set_new_lzx(level, z, x); apr_iterator.global_index() < apr_iterator.end_index;
-//                         apr_iterator.set_iterator_to_particle_next_particle()) {
-//                        xv[apr_iterator.global_index()] = apr_iterator.x_global();
-//                        yv[apr_iterator.global_index()] = apr_iterator.y_global();
-//                        zv[apr_iterator.global_index()] = apr_iterator.z_global();
-//                        levelv[apr_iterator.global_index()] = apr_iterator.level();
-//                    }
-//                }
-//            }
-//        }
-//
-//        writeDataStandard(AprTypes::ParaviewXType, f.objectId, xv);
-//        writeDataStandard(AprTypes::ParaviewYType, f.objectId, yv);
-//        writeDataStandard(AprTypes::ParaviewZType, f.objectId, zv);
-//        writeDataStandard(AprTypes::ParaviewLevelType, f.objectId, levelv);
-//        //writeDataStandard(AprTypes::ParaviewTypeType, f.objectId, typev);
-//
-//        // TODO: This needs to be able extended to handle more general type, currently it is assuming uint16
-//        if(write_time){
-//            write_main_paraview_xdmf_xml_time(save_loc, hdf5_file_name, file_name,previous_num);
-//        } else {
-//            write_main_paraview_xdmf_xml(save_loc, hdf5_file_name, file_name, apr_iterator.total_number_particles());
-//        }
-//
-//        // ------------- output the file size -------------------
-//        hsize_t file_size;
-//        H5Fget_filesize(f.fileId, &file_size);
-//        std::cout << "HDF5 Filesize: " << file_size*1.0/1000000.0 << " MB" << std::endl;
-//        std::cout << "Writing Complete" << std::endl;
-//    }
-//
-//
-//    /**
-//     * Writes only the particle data, requires the same APR to be read in correctly.
-//     */
-//    template<typename S>
-//    float write_particles_only(const std::string &save_loc, const std::string &file_name, const ParticleData<S> &parts_extra) {
-//        std::string hdf5_file_name = save_loc + file_name + ".h5";
-//
-//        FileStructure f{hdf5_file_name, FileStructure::Operation::WRITE};
-//        if (!f.isOpened()) return 0;
-//
-//        // ------------- write metadata -------------------------
-//        uint64_t total_number_parts = parts_extra.data.size();
-//        writeAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &total_number_parts);
-//        writeString(AprTypes::GitType, f.groupId, ConfigAPR::APR_GIT_HASH);
-//
-//        // ------------- write data ----------------------------
-//        unsigned int blosc_comp_type = 6;
-//        unsigned int blosc_comp_level = 9;
-//        unsigned int blosc_shuffle = 1;
-//        hid_t type = Hdf5Type<S>::type();
-//        writeData({type, AprTypes::ExtraParticleDataType}, f.objectId, parts_extra.data, blosc_comp_type, blosc_comp_level, blosc_shuffle);
-//
-//        // ------------- output the file size -------------------
-//        hsize_t file_size = f.getFileSize();
-//        std::cout << "HDF5 Filesize: " << file_size/1e6 << " MB" << std::endl;
-//        std::cout << "Writing ExtraPartCellData Complete" << std::endl;
-//
-//        return file_size/1e6; //returns file size in MB
-//    }
-//
-//    template<typename T>
-//    void read_parts_only(const std::string &aFileName, ParticleData<T>& extra_parts) {
-//        FileStructure f{aFileName, FileStructure::Operation::READ};
-//        if (!f.isOpened()) return;
-//
-//        // ------------- read metadata --------------------------
-//        uint64_t numberOfParticles;
-//        readAttr(AprTypes::TotalNumberOfParticlesType, f.groupId, &numberOfParticles);
-//
-//        // ------------- read data -----------------------------
-//        extra_parts.data.resize(numberOfParticles);
-//        readData(AprTypes::ExtraParticleDataType, f.objectId, extra_parts.data.data());
-//    }
-
     template<typename ImageType>
     float write_mesh_to_hdf5(PixelData<ImageType>& input_mesh,const std::string &save_loc, const std::string &file_name,unsigned int blosc_comp_type = BLOSC_ZSTD, unsigned int blosc_comp_level = 2, unsigned int blosc_shuffle=1){
         std::string hdf5_file_name = save_loc + file_name + "_pixels.h5";
@@ -1197,9 +610,9 @@ public:
         }
 
 
-        bool open_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+        bool open_time_point(const unsigned int t, bool require_tree, std::string t_string = "t") {
 
-            //first close existing time point
+            // first close existing time point
             close_time_point();
 
             if(t != 0){
@@ -1209,33 +622,37 @@ public:
             subGroup1 = ("ParticleRepr/" + t_string);
             subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
-            const char * const subGroup  = subGroup1.c_str();
-            const char * const subGroupTree  = subGroupTree1.c_str();
+            const char * const subGroup = subGroup1.c_str();
+            const char * const subGroupTree = subGroupTree1.c_str();
 
-            //need to check if the tree exists
-            if(!group_exists(fileId,subGroup)){
-                //group does not exist
+            // check if APR data exists
+            if(!group_exists(fileId, subGroup)){
+                std::cerr << "Error reading APR file: could not open time point t=" << t << std::endl;
                 return false;
             }
 
             // open group
             objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
 
-            if(tree){
-                if(!group_exists(fileId,subGroupTree)) {
-                    // tree group does not exist
-                    return false;
-                }
+            // check if tree data exists
+            const bool tree_exists = group_exists(fileId, subGroupTree);
 
-                // open tree group
+            if(require_tree && !tree_exists) {
+                std::cerr << "Error reading APR file: requested tree data does not exist" << std::endl;
+                return false;
+            }
+
+            // open tree group if it exists
+            if(tree_exists) {
                 objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
             }
+
             return true;
         }
 
 
 
-        void create_time_point(const unsigned int t,bool tree,std::string t_string = "t"){
+        void create_time_point(const unsigned int t, bool with_tree, std::string t_string = "t"){
 
             close_time_point();
 
@@ -1246,23 +663,22 @@ public:
             subGroup1 = ("ParticleRepr/" + t_string);
             subGroupTree1 = "ParticleRepr/" + t_string + "/Tree";
 
-            const char * const subGroup  = subGroup1.c_str();
-            const char * const subGroupTree  = subGroupTree1.c_str();
+            const char * const subGroup = subGroup1.c_str();
+            const char * const subGroupTree = subGroupTree1.c_str();
 
-            if(!group_exists(fileId,subGroup)) {
+            if(!group_exists(fileId, subGroup)) {
                 objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
             } else {
                 objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
             }
 
-            if(tree){
-                if(!group_exists(fileId,subGroupTree)) {
+            if(with_tree){
+                if(!group_exists(fileId, subGroupTree)) {
                     objectIdTree = H5Gcreate2(fileId, subGroupTree, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                 } else {
                     objectIdTree = H5Gopen2(fileId, subGroupTree, H5P_DEFAULT);
                 }
             }
-
         }
 
         bool init(const std::string &aFileName, const Operation aOp){
