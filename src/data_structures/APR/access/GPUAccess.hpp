@@ -17,6 +17,7 @@ protected:
 
     class GPUAccessImpl;
     std::unique_ptr<GPUAccessImpl> data;
+    bool initialized = false;
 
 public:
 
@@ -61,20 +62,26 @@ public:
     uint64_t* get_xz_end_vec_ptr();
     uint64_t* get_level_xz_vec_ptr();
 
-    void init_gpu(){
-        gpuAccess->init_y_vec(linearAccess->y_vec);
-        gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
-        gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
-        gpuAccess->genInfo = linearAccess->genInfo;
-        gpuAccess->copy2Device();
+    void init_gpu(bool force=false){
+        if(force || !gpuAccess->initialized) {
+            gpuAccess->init_y_vec(linearAccess->y_vec);
+            gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
+            gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
+            gpuAccess->genInfo = linearAccess->genInfo;
+            gpuAccess->copy2Device();
+            gpuAccess->initialized = true;
+        }
     }
 
-    void init_gpu(GPUAccessHelper& tree_access){
-        gpuAccess->init_y_vec(linearAccess->y_vec);
-        gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
-        gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
-        gpuAccess->genInfo = linearAccess->genInfo;
-        gpuAccess->copy2Device(total_number_particles(tree_access.level_max()), tree_access.gpuAccess);
+    void init_gpu(GPUAccessHelper& tree_access, bool force=false){
+        if(force || !gpuAccess->initialized) {
+            gpuAccess->init_y_vec(linearAccess->y_vec);
+            gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
+            gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
+            gpuAccess->genInfo = linearAccess->genInfo;
+            gpuAccess->copy2Device(total_number_particles(tree_access.level_max()), tree_access.gpuAccess);
+            gpuAccess->initialized = true;
+        }
     }
 
     void copy2Host() {

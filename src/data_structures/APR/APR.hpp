@@ -79,6 +79,22 @@ public:
         }
         return GPUAccessHelper(gpuTreeAccess,linearAccessTree);
     }
+
+
+    /**
+     * Initialize GPU access and copy data to device
+     * @param with_tree     include the tree access
+     */
+    void init_cuda(bool with_tree=true) {
+        auto apr_helper = gpuAPRHelper();
+        if(with_tree) {
+            auto tree_helper = gpuTreeHelper();
+            tree_helper.init_gpu();
+            apr_helper.init_gpu(tree_helper);
+        } else {
+            apr_helper.init_gpu();
+        }
+    }
 #endif
 
 
