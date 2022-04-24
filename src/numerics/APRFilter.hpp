@@ -1193,13 +1193,12 @@ void APRFilter::apply_filter(LinearIterator &apr_it, const int level, const int 
 
     for (apr_it.begin(level, z, x); apr_it < apr_it.end(); ++apr_it) {
 
-        int y = apr_it.y();
         // copy neighborhood to temp_vec
         for(int iz = 0; iz < size_z; ++iz) {
-            uint64_t base_offset = ((z + iz) % size_z) * xy_num + y;
+            uint64_t base_offset = ((z + iz) % size_z) * xy_num + apr_it.y();
             for(int ix = 0; ix < size_x; ++ix) {
                 uint64_t offset = base_offset + ((x + ix) % size_x) * y_num;
-                for(int iy = 0; iy < size_y; ++ iy) {
+                for(int iy = 0; iy < size_y; ++iy) {
                     temp_vec[iz*size_x*size_y + ix*size_y + iy] = patch_buffer.mesh[offset + iy];
                 }
             }
