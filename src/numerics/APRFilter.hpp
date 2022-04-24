@@ -902,13 +902,6 @@ namespace APRFilter {
     }
 
 
-    template<typename T>
-    T median(std::vector<T>& v) {
-        size_t n = v.size() / 2;
-        std::nth_element(v.begin(), v.begin()+n, v.end());
-        return v[n];
-    }
-
     template<typename T, T filter(std::vector<T>&), int size_z, int size_x, int size_y>
     void apply_filter(LinearIterator &apr_it, const int level, const int z, const int x,
                       const ImageBuffer<T> &patch_buffer, ParticleData<T> &outputParticles,
@@ -921,6 +914,14 @@ namespace APRFilter {
                         const ParticleData<U> &tree_data,
                         ParticleData<V> &particle_output,
                         const bool reflect_boundary);
+
+
+    template<typename T>
+    T median(std::vector<T>& v) {
+        size_t n = v.size() / 2;
+        std::nth_element(v.begin(), v.begin()+n, v.end());
+        return v[n];
+    }
 
 
     template<int size_z, int size_x, int size_y, typename T, typename U>
