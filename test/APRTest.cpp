@@ -16,6 +16,7 @@
 #include "io/APRWriter.hpp"
 #include "numerics/APRStencil.hpp"
 #include "data_structures/APR/particles/LazyData.hpp"
+#include "FilterTestHelpers.hpp"
 
 #include "io/APRFile.hpp"
 
@@ -3265,7 +3266,7 @@ bool test_convolve_pencil(TestData &test_data, const bool boundary = false, cons
     APRFilter::convolve_pencil(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
 
     ParticleData<double> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
 
 
     if(output.size() != output_gt.size()) {
@@ -3306,7 +3307,7 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const std::
     APRFilter::convolve(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
 
     ParticleData<double> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
 
     if(output.size() != output_gt.size()) {
         std::cout << "output sizes differ" << std::endl;
