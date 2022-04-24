@@ -15,7 +15,7 @@
 #include "io/APRWriter.hpp"
 #include "data_structures/APR/particles/LazyData.hpp"
 #include "io/APRFile.hpp"
-
+#include "FilterTestHelpers.hpp"
 #include "numerics/PixelNumericsGPU.hpp"
 #include "numerics/APRNumericsGPU.hpp"
 
@@ -495,7 +495,7 @@ bool test_gpu_conv_333_alt(TestDataGPU& test_data, bool use_stencil_downsample){
     }
 
     ParticleData<double> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -647,7 +647,7 @@ bool test_gpu_conv_333(TestDataGPU& test_data, bool reflective_bc, bool use_sten
     }
 
     ParticleData<double> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, reflective_bc);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, reflective_bc);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -845,7 +845,7 @@ bool test_gpu_conv_555_alt(TestDataGPU& test_data, bool use_stencil_downsample) 
     }
 
     ParticleData<double> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
 
     size_t pass_count = 0;
     size_t total_count = 0;
@@ -997,7 +997,7 @@ bool test_gpu_conv_555(TestDataGPU& test_data, bool reflective_bc, bool use_sten
     }
 
     ParticleData<float> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, reflective_bc);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, reflective_bc);
 
     size_t pass_count = 0;
     size_t total_count = 0;
