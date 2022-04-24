@@ -3224,7 +3224,7 @@ template<int size_y, int size_x, int size_z>
 bool test_median_filter(TestData &test_data) {
 
     ParticleData<float> output;
-    APRFilter::median_filter<size_z, size_x, size_y>(test_data.apr, test_data.particles_intensities, output);
+    APRFilter::median_filter<size_y, size_x, size_z>(test_data.apr, test_data.particles_intensities, output);
 
     ParticleData<float> output_gt;
     FilterTestHelpers::compute_median_filter_gt(test_data.apr, test_data.particles_intensities, output_gt, size_y, size_x, size_z);
@@ -4364,7 +4364,7 @@ TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 1, 13}));
 
     // Median filter
-    bool success3D = test_median_filter<5, 5, 5>(test_data);
+    bool success3D = test_median_filter<7, 5, 3>(test_data);
     bool success2D = test_median_filter<5, 3, 1>(test_data);
     bool success1D = test_median_filter<7, 1, 1>(test_data);
     ASSERT_TRUE(success3D && success2D && success1D);

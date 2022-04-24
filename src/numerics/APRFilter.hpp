@@ -902,13 +902,13 @@ namespace APRFilter {
     }
 
 
-    template<typename T, T filter(std::vector<T>&), int size_z, int size_x, int size_y>
+    template<typename T, T filter(std::vector<T>&), int size_y, int size_x, int size_z>
     void apply_filter(LinearIterator &apr_it, const int level, const int z, const int x,
                       const ImageBuffer<T> &patch_buffer, ParticleData<T> &outputParticles,
                       std::vector<T> &temp_vec);
 
 
-    template<typename T, typename U, typename V, V filter(std::vector<V>&), int size_z, int size_x, int size_y>
+    template<typename T, typename U, typename V, V filter(std::vector<V>&), int size_y, int size_x, int size_z>
     void generic_filter(APR &apr,
                         const ParticleData<T> &particle_input,
                         const ParticleData<U> &tree_data,
@@ -924,14 +924,14 @@ namespace APRFilter {
     }
 
 
-    template<int size_z, int size_x, int size_y, typename T, typename U>
+    template<int size_y, int size_x, int size_z, typename T, typename U>
     void median_filter(APR &apr,
                        const ParticleData<T> &particle_input,
                        ParticleData<U> &particle_output) {
 
         ParticleData<U> tree_data;
         APRTreeNumerics::fill_tree_mean(apr, particle_input, tree_data);
-        generic_filter<T, U, U, median<U>, size_z, size_x, size_y>(apr, particle_input, tree_data, particle_output, true);
+        generic_filter<T, U, U, median<U>, size_y, size_x, size_z>(apr, particle_input, tree_data, particle_output, true);
     }
 }
 
@@ -1184,7 +1184,7 @@ void APRFilter::convolve_pencil(APR &apr,
 }
 
 
-template<typename T, T filter(std::vector<T>&), int size_z, int size_x, int size_y>
+template<typename T, T filter(std::vector<T>&), int size_y, int size_x, int size_z>
 void APRFilter::apply_filter(LinearIterator &apr_it, const int level, const int z, const int x,
                              const ImageBuffer<T> &patch_buffer, ParticleData<T> &outputParticles,
                              std::vector<T> &temp_vec) {
@@ -1211,7 +1211,7 @@ void APRFilter::apply_filter(LinearIterator &apr_it, const int level, const int 
 }
 
 
-template<typename T, typename U, typename V, V filter(std::vector<V>&), int size_z, int size_x, int size_y>
+template<typename T, typename U, typename V, V filter(std::vector<V>&), int size_y, int size_x, int size_z>
 void APRFilter::generic_filter(APR &apr,
                                const ParticleData<T> &particle_input,
                                const ParticleData<U> &tree_data,
@@ -1281,7 +1281,7 @@ void APRFilter::generic_filter(APR &apr,
                                                 stencil_half, stencil_shape);
                 }
 
-                apply_filter<V, filter, size_z, size_x, size_y>(apr_it, level, z, 0, patch_buffer, particle_output, temp_vec);
+                apply_filter<V, filter, size_y, size_x, size_z>(apr_it, level, z, 0, patch_buffer, particle_output, temp_vec);
 
                 for (int x = 1; x < x_num; ++x) {
 
@@ -1309,7 +1309,7 @@ void APRFilter::generic_filter(APR &apr,
                                                     reflect_boundary, false, stencil_half, stencil_shape);
                     }
 
-                    apply_filter<V, filter, size_z, size_x, size_y>(apr_it, level, z, x, patch_buffer, particle_output, temp_vec);
+                    apply_filter<V, filter, size_y, size_x, size_z>(apr_it, level, z, x, patch_buffer, particle_output, temp_vec);
                 }
             }
         }
