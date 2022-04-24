@@ -3220,7 +3220,33 @@ bool test_reconstruct_patch_smooth(TestData &test_data) {
 }
 
 
+template<int size_y, int size_x, int size_z>
+bool test_median_filter(TestData &test_data) {
 
+    ParticleData<float> output;
+    APRFilter::median_filter<size_z, size_x, size_y>(test_data.apr, test_data.particles_intensities, output);
+
+    ParticleData<float> output_gt;
+    FilterTestHelpers::compute_median_filter_gt(test_data.apr, test_data.particles_intensities, output_gt, size_y, size_x, size_z);
+
+
+    if(output.size() != output_gt.size()) {
+        std::cerr << "output sizes differ" << std::endl;
+        return false;
+    }
+
+    double eps = 1e-2;
+    size_t failures = 0;
+
+    for(uint64_t x=0; x < output.size(); ++x) {
+        if(std::abs(output[x] - output_gt[x]) > eps) {
+            std::cout << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
+            failures++;
+        }
+    }
+    std::cout << failures << " failures out of " << test_data.apr.total_number_particles() << std::endl;
+    return (failures==0);
+}
 
 
 bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const std::vector<int>& stencil_size = {3, 3, 3}) {
@@ -4336,6 +4362,13 @@ TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 1, 1}));
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 13, 1}));
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 1, 13}));
+
+    // Median filter
+    bool success3D = test_median_filter<5, 5, 5>(test_data);
+    bool success2D = test_median_filter<5, 3, 1>(test_data);
+    bool success1D = test_median_filter<7, 1, 1>(test_data);
+    ASSERT_TRUE(success3D && success2D && success1D);
+
 }
 
 TEST_F(CreateAPRTest, READ_PARTICLE_TYPE){
