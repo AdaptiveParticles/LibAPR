@@ -20,10 +20,15 @@ T compute_median(std::vector<T>& input) {
 }
 
 template<typename T>
-T compute_min(std::vector<T>& input){
+T compute_min(std::vector<T>& input) {
     return *std::min_element(input.begin(), input.end());
-
 }
+
+template<typename T>
+T compute_max(std::vector<T>& input) {
+    return *std::max_element(input.begin(), input.end());
+}
+
 
 namespace FilterTestHelpers {
 
@@ -71,6 +76,20 @@ namespace FilterTestHelpers {
         ParticleData<OutputType> tree_particles;
         APRTreeNumerics::fill_tree_min(apr, input_particles, tree_particles);
         compute_generic_filter_gt(apr, input_particles, tree_particles, output_particles, size_y, size_x, size_z, true, compute_min);
+    }
+
+
+    template<typename InputType, typename OutputType>
+    void compute_max_filter_gt(APR& apr,
+                               ParticleData<InputType>& input_particles,
+                               ParticleData<OutputType>& output_particles,
+                               int size_y,
+                               int size_x,
+                               int size_z) {
+
+        ParticleData<OutputType> tree_particles;
+        APRTreeNumerics::fill_tree_max(apr, input_particles, tree_particles);
+        compute_generic_filter_gt(apr, input_particles, tree_particles, output_particles, size_y, size_x, size_z, true, compute_max);
     }
 
 }
