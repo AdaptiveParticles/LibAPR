@@ -2899,6 +2899,32 @@ bool test_pipeline_u16(TestData& test_data){
 
 }
 
+
+/**
+ * Extend value range to `uint16 max - bspline offset` and run pipeline test. If smoothing is used (lambda > 0), the
+ * pipeline should throw.
+ * @param test_data
+ * @return true if lambda > 0 and overflow caught, or if lambda = 0 (bspline smoothing not used). Otherwise false.
+ */
+bool test_u16_overflow_detection(TestData& test_data) {
+
+    if(test_data.apr.get_apr_parameters().lambda > 0) {
+        try{
+            const auto idx = test_data.img_original.mesh.size() / 2;
+            test_data.img_original.mesh[idx] = 65535-100;
+            test_pipeline_u16(test_data);
+        } catch(std::invalid_argument&) {
+            std::cout << "overflow successfully detected" << std::endl;
+            return true;
+        }
+    } else {
+        std::cout << "not testing overflow detection as smoothing is turned off (lambda = 0)" << std::endl;
+        return true;
+    }
+    return false;
+}
+
+
 bool test_pipeline_u16_blocked(TestData& test_data) {
 
     /// Checks that the blocked pipeline (APRConverterBatch) and sampling give the same result as
@@ -3697,6 +3723,7 @@ TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
 TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 
 }
 
@@ -3803,6 +3830,7 @@ TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
 
 TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 }
 
 TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
@@ -4181,12 +4209,14 @@ TEST_F(CreateDiffDimsSphereTest, APR_INPUT_OUTPUT) {
 TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 
 }
 
 TEST_F(CreateDiffDimsSphereTest, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 
 }
 

@@ -218,15 +218,30 @@ inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,floa
     return c0*pow(rho,std::abs(k))*(cos(omg*std::abs(k)) + gamma*sin(omg*std::abs(k)))*(1.0/(pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2)));
 }
 
+
+/**
+ * floating point output -> no rounding or under-/overflow check
+ */
 template<typename T>
-inline T round(T val,const bool rounding){
-    if(rounding){
-        return std::round(val);
-    } else {
-        return val;
-    }
+std::enable_if_t<std::is_floating_point<T>::value, T>
+round(float val, size_t &errCount) {
+    return val;
 }
 
+/**
+ * integer output -> check for under-/overflow and round
+ */
+template<typename T>
+std::enable_if_t<!std::is_floating_point<T>::value, T>
+round(float val, size_t &errCount) {
+
+    val = std::round(val);
+
+    if(val < std::numeric_limits<T>::min() || val > std::numeric_limits<T>::max()) {
+        errCount++;
+    }
+    return val;
+}
 
 
 
@@ -317,19 +332,12 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
     APRTimer btime;
     btime.verbose_flag = false;
 
-    bool round_flag;
-    if ((std::is_same<T, float>::value) || (std::is_same<T, double>::value)){
-        round_flag = false;
-    } else {
-        round_flag = true;
-    }
-
-    const bool rounding = round_flag;
+    size_t error_count = 0;     // count overflow errors
 
     //forwards direction
     btime.start_timer("forward_loop_y");
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared)
+	#pragma omp parallel for default(shared) reduction(+: error_count)
     #endif
     for (size_t z = 0; z < z_num; ++z) {
         const size_t jxnumynum = z * x_num * y_num;
@@ -359,13 +367,13 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + 2); it !=  (image.mesh.begin()+jxnumynum + iynum + y_num); ++it) {
                 float  temp = temp1*b1 + temp2*b2 + *it;
-                *it = round(temp,rounding);
+                *it = round<T>(temp, error_count);
                 temp2 = temp1;
                 temp1 = temp;
             }
 
-            image.mesh[jxnumynum + iynum + y_num - 2] = round(temp3*norm_factor,rounding);
-            image.mesh[jxnumynum + iynum + y_num - 1] = round(temp4*norm_factor,rounding);
+            image.mesh[jxnumynum + iynum + y_num - 2] = round<T>(temp3*norm_factor, error_count);
+            image.mesh[jxnumynum + iynum + y_num - 1] = round<T>(temp4*norm_factor, error_count);
 
 
         }
@@ -375,7 +383,7 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
 
     btime.start_timer("backward_loop_y");
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared)
+	#pragma omp parallel for default(shared) reduction(+: error_count)
     #endif
     for (int64_t j = z_num - 1; j >= 0; --j) {
         const size_t jxnumynum = j * x_num * y_num;
@@ -389,7 +397,7 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + y_num-3); it !=  (image.mesh.begin()+jxnumynum + iynum-1); --it) {
                 float temp = temp1*b1 + temp2*b2 + *it;
 
-                *it = round(temp*norm_factor,rounding);
+                *it = round<T>(temp*norm_factor, error_count);
 
                 temp2 = temp1;
                 temp1 = temp;
@@ -397,6 +405,11 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         }
     }
     btime.stop_timer();
+
+    if(error_count > 0) {
+        throw std::invalid_argument("integer under-/overflow encountered in ComputeGradient::bspline_filt_rec_y - try "
+                                    "squashing the input image to a narrower range or use APRConverter<float>");
+    }
 }
 
 template<typename T>
@@ -495,20 +508,11 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
     std::vector<float> temp_vec3(y_num,0);
     std::vector<float> temp_vec4(y_num,0);
 
-    bool round_flag;
-    if ((std::is_same<T, float>::value) || (std::is_same<T, double>::value)){
-        round_flag = false;
-    } else {
-        round_flag = true;
-    }
-
-    const bool rounding = round_flag;
-
-
+    size_t error_count = 0;     // count overflow errors
 
     //Initialization and boundary conditions
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
+	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4) reduction(+: error_count)
     #endif
     for (size_t i = 0; i < x_num; ++i) {
 
@@ -538,12 +542,12 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         //initialization
         for (size_t k = 0; k < y_num; ++k) {
             //z(0)
-            image.mesh[iynum + k] = round(temp_vec2[k],rounding);
+            image.mesh[iynum + k] = round<T>(temp_vec2[k], error_count);
         }
 
         for (size_t k = 0; k < y_num; ++k) {
             //y(1)
-            image.mesh[x_num*y_num  + iynum + k] = round(temp_vec1[k],rounding);
+            image.mesh[x_num*y_num  + iynum + k] = round<T>(temp_vec1[k], error_count);
         }
 
         for (size_t j = 2; j < z_num; ++j) {
@@ -553,7 +557,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 	        #pragma omp simd
             #endif
             for (size_t k = 0; k < y_num; ++k) {
-                temp_vec2[k] = round(1.0*image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k],rounding);
+                temp_vec2[k] = round<T>(1.0f*image.mesh[index + k] + b1*temp_vec1[k] + b2*temp_vec2[k], error_count);
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -564,12 +568,12 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
-            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = round(temp_vec4[k]*norm_factor,rounding);
+            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = round<T>(temp_vec4[k]*norm_factor, error_count);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
-            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = round(temp_vec3[k]*norm_factor,rounding);
+            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = round<T>(temp_vec3[k]*norm_factor, error_count);
         }
 
         //main loop
@@ -580,12 +584,17 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 	        #pragma omp simd
             #endif
             for (int64_t k = y_num - 1; k >= 0; --k) {
-                float temp = (image.mesh[index + k] +  b1*temp_vec3[k]+  b2*temp_vec4[k]);
-                image.mesh[index + k] = round(temp*norm_factor,rounding);
+                float temp = (image.mesh[index + k] +  b1*temp_vec3[k] + b2*temp_vec4[k]);
+                image.mesh[index + k] = round<T>(temp*norm_factor, error_count);
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
             }
         }
+    }
+
+    if(error_count > 0) {
+        throw std::invalid_argument("integer under-/overflow encountered in ComputeGradient::bspline_filt_rec_z - try "
+                                    "squashing the input image to a narrower range or use APRConverter<float>");
     }
 }
 
@@ -683,18 +692,10 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     std::vector<float> temp_vec3(y_num,0);
     std::vector<float> temp_vec4(y_num,0);
 
-    bool round_flag;
-    if ((std::is_same<T, float>::value) || (std::is_same<T, double>::value)){
-        round_flag = false;
-    } else {
-        round_flag = true;
-    }
-
-    const bool rounding = round_flag;
-
+    size_t error_count = 0;     // count overflow errors
 
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
+	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4) reduction(+: error_count)
     #endif
     for (size_t j = 0;j < z_num; ++j) {
         std::fill(temp_vec1.begin(), temp_vec1.end(), 0);
@@ -719,12 +720,12 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(0)
-            image.mesh[jxnumynum  + k] = round(temp_vec2[k],rounding);
+            image.mesh[jxnumynum  + k] = round<T>(temp_vec2[k], error_count);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(1)
-            image.mesh[jxnumynum  + y_num + k] = round(temp_vec1[k],rounding);
+            image.mesh[jxnumynum  + y_num + k] = round<T>(temp_vec1[k], error_count);
         }
 
         for (size_t i = 2;i < x_num; ++i) {
@@ -734,7 +735,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
             #pragma omp simd
             #endif
             for (int64_t k = y_num - 1; k >= 0; k--) {
-                temp_vec2[k] = round(image.mesh[index + k] + b1*temp_vec1[k]+  b2*temp_vec2[k],rounding);
+                temp_vec2[k] = round<T>(image.mesh[index + k] + b1*temp_vec1[k] + b2*temp_vec2[k], error_count);
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -747,12 +748,12 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
-            image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = round(temp_vec4[k]*norm_factor,rounding);
+            image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = round<T>(temp_vec4[k]*norm_factor, error_count);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
-            image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = round(temp_vec3[k]*norm_factor,rounding);
+            image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = round<T>(temp_vec3[k]*norm_factor, error_count);
         }
 
         //main loop
@@ -764,11 +765,16 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
             #endif
             for (int64_t k = y_num - 1; k >= 0; k--){
                 float temp = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k]);
-                image.mesh[index + k] = round(temp*norm_factor,rounding);
+                image.mesh[index + k] = round<T>(temp*norm_factor, error_count);
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
             }
         }
+    }
+
+    if(error_count > 0) {
+        throw std::invalid_argument("integer under-/overflow encountered in ComputeGradient::bspline_filt_rec_x - try "
+                                    "squashing the input image to a narrower range or use APRConverter<float>");
     }
 }
 
