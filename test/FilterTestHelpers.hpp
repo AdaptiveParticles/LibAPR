@@ -12,6 +12,19 @@
 #include <vector>
 
 
+template<typename T>
+T compute_median(std::vector<T>& input) {
+    std::sort(input.begin(), input.end());
+    const auto n = input.size();
+    return (n % 2 == 0) ? (input[n/2 - 1] + input[n/2]) / 2 : input[n/2];
+}
+
+template<typename T>
+T compute_min(std::vector<T>& input){
+    return *std::min_element(input.begin(), input.end());
+
+}
+
 namespace FilterTestHelpers {
 
     template<typename InputType, typename StencilType, typename OutputType>
@@ -23,7 +36,8 @@ namespace FilterTestHelpers {
 
     template<typename InputType, typename OutputType>
     void compute_generic_filter_gt(APR& apr,
-                                   const ParticleData<InputType>& input_particles,
+                                   ParticleData<InputType>& input_particles,
+                                   ParticleData<OutputType>& tree_particles,
                                    ParticleData<OutputType>& output_particles,
                                    int size_y,
                                    int size_x,
@@ -32,23 +46,31 @@ namespace FilterTestHelpers {
                                    OutputType filter(std::vector<OutputType>&));
 
 
-    template<typename T>
-    T median(std::vector<T>& input) {
-        std::sort(input.begin(), input.end());
-        const auto n = input.size();
-        return (n % 2 == 0) ? (input[n/2 - 1] + input[n/2]) / 2 : input[n/2];
-    }
-
-
     template<typename InputType, typename OutputType>
     void compute_median_filter_gt(APR& apr,
-                                  const ParticleData<InputType>& input_particles,
+                                  ParticleData<InputType>& input_particles,
                                   ParticleData<OutputType>& output_particles,
                                   int size_y,
                                   int size_x,
                                   int size_z) {
 
-        compute_generic_filter_gt(apr, input_particles, output_particles, size_y, size_x, size_z, true, FilterTestHelpers::median);
+        ParticleData<OutputType> tree_particles;
+        APRTreeNumerics::fill_tree_mean(apr, input_particles, tree_particles);
+        compute_generic_filter_gt(apr, input_particles, tree_particles, output_particles, size_y, size_x, size_z, true, compute_median);
+    }
+
+
+    template<typename InputType, typename OutputType>
+    void compute_min_filter_gt(APR& apr,
+                               ParticleData<InputType>& input_particles,
+                               ParticleData<OutputType>& output_particles,
+                               int size_y,
+                               int size_x,
+                               int size_z) {
+
+        ParticleData<OutputType> tree_particles;
+        APRTreeNumerics::fill_tree_min(apr, input_particles, tree_particles);
+        compute_generic_filter_gt(apr, input_particles, tree_particles, output_particles, size_y, size_x, size_z, true, compute_min);
     }
 
 }
@@ -152,7 +174,8 @@ void FilterTestHelpers::compute_convolution_gt(APR &apr,
 
 
 template<typename InputType, typename OutputType>
-void FilterTestHelpers::compute_generic_filter_gt(APR &apr, const ParticleData<InputType> &input_particles,
+void FilterTestHelpers::compute_generic_filter_gt(APR &apr, ParticleData<InputType> &input_particles,
+                                                  ParticleData<OutputType> &tree_particles,
                                                   ParticleData<OutputType> &output_particles, const int size_y,
                                                   const int size_x, const int size_z, const bool reflect_boundary,
                                                   OutputType filter(std::vector<OutputType>&)) {
@@ -166,7 +189,7 @@ void FilterTestHelpers::compute_generic_filter_gt(APR &apr, const ParticleData<I
         ReconPatch patch_spec;
         patch_spec.level_delta = level - apr.level_max();
         PixelData<OutputType> by_level_recon;
-        APRReconstruction::reconstruct_constant(apr, by_level_recon, input_particles, patch_spec);
+        APRReconstruction::reconstruct_constant(apr, by_level_recon, input_particles, tree_particles, patch_spec);
 
         // iteration over particles - at each location compute filter output using the reconstructed image
         for (int z = 0; z < apr_it.z_num(level); ++z) {
