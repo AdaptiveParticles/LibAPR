@@ -3229,23 +3229,7 @@ bool test_median_filter(TestData &test_data) {
     ParticleData<float> output_gt;
     FilterTestHelpers::compute_median_filter_gt(test_data.apr, test_data.particles_intensities, output_gt, size_y, size_x, size_z);
 
-
-    if(output.size() != output_gt.size()) {
-        std::cerr << "output sizes differ" << std::endl;
-        return false;
-    }
-
-    double eps = 1e-2;
-    size_t failures = 0;
-
-    for(uint64_t x=0; x < output.size(); ++x) {
-        if(std::abs(output[x] - output_gt[x]) > eps) {
-            std::cout << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
-            failures++;
-        }
-    }
-    std::cout << failures << " failures out of " << test_data.apr.total_number_particles() << std::endl;
-    return (failures==0);
+    return compareParticles(output_gt, output) == 0;
 }
 
 
@@ -3270,23 +3254,7 @@ bool test_convolve_pencil(TestData &test_data, const bool boundary = false, cons
     ParticleData<double> output_gt;
     FilterTestHelpers::compute_convolution_gt(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
 
-
-    if(output.size() != output_gt.size()) {
-        std::cerr << "output sizes differ" << std::endl;
-        return false;
-    }
-
-    double eps = 1e-2;
-    size_t failures = 0;
-
-    for(uint64_t x=0; x < output.size(); ++x) {
-        if(std::abs(output[x] - output_gt[x]) > eps) {
-            std::cout << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
-            failures++;
-        }
-    }
-    std::cout << failures << " failures out of " << it.total_number_particles() << std::endl;
-    return (failures==0);
+    return compareParticles(output_gt, output) == 0;
 }
 
 
@@ -3311,29 +3279,7 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const std::
     ParticleData<double> output_gt;
     FilterTestHelpers::compute_convolution_gt(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
 
-    if(output.size() != output_gt.size()) {
-        std::cout << "output sizes differ" << std::endl;
-        return false;
-    }
-
-    double eps = 1e-2;
-    uint64_t failures = 0;
-
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) > eps) {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                        failures++;
-                    }
-                }
-            }
-        }
-    }
-    std::cout << failures << " failures out of " << it.total_number_particles() << std::endl;
-    return (failures==0);
+    return compareParticles(output_gt, output) == 0;
 }
 
 
