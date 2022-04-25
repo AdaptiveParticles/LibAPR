@@ -3257,6 +3257,19 @@ bool test_median_filter(TestData &test_data) {
 }
 
 
+template<int size_y, int size_x, int size_z>
+bool test_min_filter(TestData &test_data) {
+
+    ParticleData<float> output;
+    APRFilter::min_filter<size_y, size_x, size_z>(test_data.apr, test_data.particles_intensities, output);
+
+    ParticleData<float> output_gt;
+    FilterTestHelpers::compute_min_filter_gt(test_data.apr, test_data.particles_intensities, output_gt, size_y, size_x, size_z);
+
+    return compareParticles(output_gt, output) == 0;
+}
+
+
 bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const std::vector<int>& stencil_size = {3, 3, 3}) {
 
     auto it = test_data.apr.iterator();
@@ -4335,6 +4348,12 @@ TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
     bool success3D = test_median_filter<7, 5, 3>(test_data);
     bool success2D = test_median_filter<5, 3, 1>(test_data);
     bool success1D = test_median_filter<7, 1, 1>(test_data);
+    ASSERT_TRUE(success3D && success2D && success1D);
+
+    // Min filter
+    success3D = test_min_filter<7, 5, 3>(test_data);
+    success2D = test_min_filter<5, 3, 1>(test_data);
+    success1D = test_min_filter<7, 1, 1>(test_data);
     ASSERT_TRUE(success3D && success2D && success1D);
 
 }
