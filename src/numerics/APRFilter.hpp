@@ -949,6 +949,22 @@ namespace APRFilter {
         APRTreeNumerics::fill_tree_min(apr, particle_input, tree_data);
         generic_filter<T, U, U, compute_min<U>, size_y, size_x, size_z>(apr, particle_input, tree_data, particle_output, true);
     }
+
+
+    template<typename T>
+    T compute_max(std::vector<T>& v) {
+        return *std::max_element(v.begin(), v.end());
+    }
+
+    template<int size_y, int size_x, int size_z, typename T, typename U>
+    void max_filter(APR &apr,
+                    const ParticleData<T> &particle_input,
+                    ParticleData<U> &particle_output) {
+
+        ParticleData<U> tree_data;
+        APRTreeNumerics::fill_tree_max(apr, particle_input, tree_data);
+        generic_filter<T, U, U, compute_max<U>, size_y, size_x, size_z>(apr, particle_input, tree_data, particle_output, true);
+    }
 }
 
 
