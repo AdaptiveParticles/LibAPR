@@ -80,6 +80,28 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
     return cnt;
 }
 
+
+template <typename T>
+inline size_t compareParticles(const ParticleData<T> &expected, const ParticleData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 10) {
+    size_t cnt = 0;
+    if(expected.size() != tested.size()) {
+        std::cerr << "ERROR compareParticles: sizes differ!" << std::endl;
+        cnt++;
+    }
+
+    for (size_t i = 0; i < expected.size(); ++i) {
+        if (std::abs(expected[i] - tested[i]) > maxError) {
+            if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                std::cout << "ERROR expected vs tested particle: " << (float)expected[i] << " vs " << (float)tested[i] << " IDX:" << i << std::endl;
+            }
+            cnt++;
+        }
+    }
+    std::cout << "Number of errors / all points: " << cnt << " / " << expected.size() << std::endl;
+    return cnt;
+}
+
+
 /**
  * Generates mesh with provided dims with random values in range [0, 1] * multiplier
  * @param y
