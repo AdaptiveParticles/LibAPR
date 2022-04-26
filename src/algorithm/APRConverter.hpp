@@ -136,7 +136,7 @@ protected:
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
 
-    void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1);
+    void initPipelineMemory(int y_num, int x_num = 1, int z_num = 1);
 
 };
 
@@ -394,6 +394,8 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 
 /**
  * Main method for constructing the input steps to the computation to the APR before parameters are applied.
+ *
+ * Note: currently only used by the python wrappers for interactive parameter selection
  */
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_image) {
@@ -423,6 +425,8 @@ inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_imag
 
 /**
  * Main method for constructing the input steps to the computation to the APR before parameters are applied.
+ *
+ * Note: currently only used by the python wrappers for interactive parameter selection
  */
 template<typename ImageType>
 inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
