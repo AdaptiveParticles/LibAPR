@@ -404,7 +404,7 @@ inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_imag
 
     aAPR.parameters = par;
 
-    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
+    initPipelineAPR(aAPR, input_image);
 
     computation_timer.start_timer("init_mem");
 
