@@ -13,13 +13,12 @@
 
 #ifdef HAVE_LIBTIFF // This class requires LibTIFF to read tiles from file
 
+#include "AutoParameters.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
 #include "data_structures/Mesh/ImagePatch.hpp"
 
 #include "io/TiffUtils.hpp"
 #include "data_structures/APR/APR.hpp"
-
-#include "APRConverter.hpp"
 
 #include "ComputeGradient.hpp"
 #include "LocalIntensityScale.hpp"
@@ -228,7 +227,6 @@ bool APRConverterBatch<ImageType>::get_apr_method_patch(APR &aAPR, PixelData<T>&
     }
     fine_grained_timer.stop_timer();
 
-//#ifndef APR_USE_CUDA
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
     iComputeGradient.get_gradient(image_temp, grad_temp, local_scale_temp, par);
     method_timer.stop_timer();
@@ -245,16 +243,16 @@ bool APRConverterBatch<ImageType>::get_apr_method_patch(APR &aAPR, PixelData<T>&
         TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", local_scale_temp);
     }
 
-//#else
-//    method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-//    getFullPipeline(image_temp, grad_temp, local_scale_temp, local_scale_temp2,bspline_offset, par);
-//    method_timer.stop_timer();
-//#endif
+    if (par.auto_parameters) {
+        method_timer.start_timer("autoParameters");
+        autoParametersLiEntropy(par, local_scale_temp2, local_scale_temp, grad_temp, bspline_offset, verbose);
+        aAPR.parameters = par;
+        method_timer.stop_timer();
+    }
 
-    //TODO: How to do auto parameters? compute from first patch only?
-    computation_timer.start_timer("apply_parameters");
+    method_timer.start_timer("apply_parameters");
     applyParameters(grad_temp, local_scale_temp, local_scale_temp2,par);
-    computation_timer.stop_timer();
+    method_timer.stop_timer();
 
     method_timer.start_timer("compute_local_particle_set");
     iLocalParticleSet.computeLevels(grad_temp, local_scale_temp, aAPR.level_max(), par.rel_error, par.dx, par.dy, par.dz);
