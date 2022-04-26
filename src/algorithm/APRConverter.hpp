@@ -125,9 +125,6 @@ protected:
     void generateDatastructures(APR& aAPR);
 
     template<typename T,typename S>
-    void autoParameters(const PixelData<T> &localIntensityScale,const PixelData<S> &grad);
-
-    template<typename T,typename S>
     void autoParametersLiEntropy(const PixelData<T> &image, const PixelData<T> &localIntensityScale, const PixelData<S> &grad);
 
     template<typename T>
@@ -582,7 +579,6 @@ inline bool APRConverter<ImageType>::get_apr_cpu(APR &aAPR, PixelData<T> &input_
 
     if (par.auto_parameters) {
         method_timer.start_timer("autoParameters");
-//        autoParameters(local_scale_temp,grad_temp);
         autoParametersLiEntropy(local_scale_temp2, local_scale_temp, grad_temp);
         aAPR.parameters = par;
         method_timer.stop_timer();
