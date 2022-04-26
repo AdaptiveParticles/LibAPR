@@ -34,9 +34,6 @@ template<typename ImageType>
 class APRConverter {
 
     template<typename T>
-    friend class PyAPRConverter;
-
-    template<typename T>
     friend class APRConverterBatch;
 
 protected:
