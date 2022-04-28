@@ -113,18 +113,19 @@ public:
     }
 
     std::vector<uint64_t> get_dimensions(){
+        if(dataspace_id > -1) {
+            const int ndims = H5Sget_simple_extent_ndims(dataspace_id);
+            std::vector<hsize_t> _dims;
+            _dims.resize(ndims, 0);
 
-        const int ndims = H5Sget_simple_extent_ndims(dataspace_id);
-        std::vector<hsize_t> _dims;
-        _dims.resize(ndims,0);
+            H5Sget_simple_extent_dims(dataspace_id, _dims.data(), NULL);
 
-        H5Sget_simple_extent_dims(dataspace_id, _dims.data(), NULL);
-
-        std::vector<uint64_t> dims_u64;
-        dims_u64.resize(ndims,0);
-        std::copy(_dims.begin(),_dims.end(),dims_u64.begin());
-
-        return dims_u64;
+            std::vector<uint64_t> dims_u64;
+            dims_u64.resize(ndims, 0);
+            std::copy(_dims.begin(), _dims.end(), dims_u64.begin());
+            return dims_u64;
+        }
+        return {};
     }
 
 
