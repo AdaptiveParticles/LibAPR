@@ -120,6 +120,7 @@ public:
 
     uint64_t dataset_size(){
         std::vector<uint64_t> dims = dataSet.get_dimensions();
+        if(dims.empty()) return 0;
         return dims[0];
     }
 
