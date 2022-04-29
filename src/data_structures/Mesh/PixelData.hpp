@@ -29,6 +29,39 @@
 #include "misc/CudaMemory.cuh"
 #endif
 
+struct PixelDataDim {
+    size_t y;
+    size_t x;
+    size_t z;
+
+    PixelDataDim(size_t y, size_t x, size_t z) : y(y), x(x), z(z) {}
+
+    size_t size() const { return y * x * z; }
+
+    PixelDataDim operator+(const PixelDataDim &rhs) const { return {y + rhs.y, x + rhs.x, z + rhs.z}; }
+    PixelDataDim operator-(const PixelDataDim &rhs) const { return {y - rhs.y, x - rhs.x, z - rhs.z}; }
+
+    template<typename INTEGER>
+    constexpr typename std::enable_if<std::is_integral<INTEGER>::value, PixelDataDim>::type
+    operator+(INTEGER i) const { return {y + i, x + i, z + i}; }
+
+    template<typename INTEGER>
+    constexpr typename std::enable_if<std::is_integral<INTEGER>::value, PixelDataDim>::type
+    operator-(INTEGER i) const { return *this + (-i); }
+
+    friend bool operator==(const PixelDataDim& lhs, const PixelDataDim& rhs) {
+        return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z);
+    }
+    friend bool operator!=(const PixelDataDim& lhs, const PixelDataDim& rhs) {
+        return !(lhs == rhs);
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const PixelDataDim &obj) {
+        os << "{" << obj.y << ", " << obj.x << ", " << obj.z << "}";
+        return os;
+    }
+};
+
 template <typename T>
 class ArrayWrapper
 {
@@ -436,6 +469,13 @@ public :
     PixelData(const PixelData<U> &aMesh, bool aShouldCopyData, bool aUsedPinnedMemory = false) {
         init(aMesh.y_num, aMesh.x_num, aMesh.z_num, aUsedPinnedMemory);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
+    }
+
+    /**
+     * Returns dimensions of PixelData
+     */
+    PixelDataDim getDimension() const {
+        return {static_cast<size_t>(y_num), static_cast<size_t>(x_num), static_cast<size_t>(z_num)};
     }
 
     /**
