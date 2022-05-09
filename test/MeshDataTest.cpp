@@ -24,6 +24,64 @@ namespace {
         VectorData<MESH_TYPE> m;
     };
 
+    TEST(MeshDataSimpleTest, PixelDataDimTest) {
+        // size provided
+        {
+            PixelData<int> md(10, 20, 30);
+            auto d = md.getDimension();
+
+            ASSERT_EQ(d.y, 10);
+            ASSERT_EQ(d.x, 20);
+            ASSERT_EQ(d.z, 30);
+            ASSERT_EQ(d.size(), 10*20*30);
+        }
+        { // adding int to all dims
+
+            PixelDataDim x = {1,2,3};
+            auto d = x + 1;
+            ASSERT_EQ(d.y, 2);
+            ASSERT_EQ(d.x, 3);
+            ASSERT_EQ(d.z, 4);
+        }
+        { // subtract int from all dims
+
+            const PixelDataDim x = {1,2,3};
+            auto d = x - 1;
+            ASSERT_EQ(d.y, 0);
+            ASSERT_EQ(d.x, 1);
+            ASSERT_EQ(d.z, 2);
+        }
+        { // adding another PixelDataDim
+
+            PixelDataDim x = {1,2,3};
+            const PixelDataDim y = {5, 10, 15};
+            auto d = x + y;
+            ASSERT_EQ(d.y, 6);
+            ASSERT_EQ(d.x, 12);
+            ASSERT_EQ(d.z, 18);
+        }
+        { // subtract another PixelDataDim
+
+            const PixelDataDim x = {5, 10, 15};
+            PixelDataDim y = {1, 2, 3};
+            auto d = x - y;
+            ASSERT_EQ(d.y, 4);
+            ASSERT_EQ(d.x, 8);
+            ASSERT_EQ(d.z, 12);
+        }
+        { // compare two PixelDataDim structures
+            const PixelDataDim x = {2, 3, 5};
+            const PixelDataDim y = {2, 3, 5};
+            const PixelDataDim z = {3, 4, 5};
+
+            ASSERT_TRUE(x == y);
+            ASSERT_FALSE(x != y);
+
+            ASSERT_FALSE(x == z);
+            ASSERT_TRUE(x != z);
+        }
+    }
+
     TEST_F(VectorDataTest, InitTest) {
         // Check initialize and resize and size are working correctly
 

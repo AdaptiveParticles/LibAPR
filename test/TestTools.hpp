@@ -81,8 +81,8 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
 
 
 template <typename T>
-inline size_t compareParticles(const ParticleData<T> &expected, const ParticleData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 10) {
-    size_t cnt = 0;
+inline int64_t compareParticles(const ParticleData<T> &expected, const ParticleData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 10) {
+    int64_t cnt = 0;
     if(expected.size() != tested.size()) {
         std::cerr << "ERROR compareParticles: sizes differ!" << std::endl;
         cnt++;
