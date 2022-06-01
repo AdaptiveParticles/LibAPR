@@ -77,20 +77,6 @@ namespace APRStencil {
     }
 
 
-    inline int compute_stencil_vec_size(const int kernel_size, const int nlevels) {
-        int output_size = kernel_size * kernel_size * kernel_size;
-        int step_size = 1;
-
-        for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
-            step_size *= 2;
-            int ds_size = std::max((kernel_size + step_size - 1) / step_size, 3);
-            output_size += ds_size * ds_size * ds_size;
-        }
-
-        return output_size;
-    }
-
-
     template<typename T, typename S>
     void get_downsampled_stencils(const PixelData<T> &aInput, std::vector<PixelData<S>> &aOutput, const int nlevels,
                                   const bool normalize = false) {
