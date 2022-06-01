@@ -23,6 +23,9 @@ template<typename inputType, typename outputType, typename stencilType, typename
 void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
                             VectorData<outputType>& output, VectorData<stencilType>& stencil, VectorData<treeType>& tree_data,
                             bool reflective_bc=false, bool use_stencil_downsample=false, bool normalize_stencil=false) {
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
     assert(stencil.size() == 27);
     VectorData<stencilType> stencil_vec;
     const int nlevels = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
@@ -35,6 +38,9 @@ template<typename inputType, typename outputType, typename stencilType, typename
 void isotropic_convolve_333(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
                             VectorData<outputType>& output, PixelData<stencilType>& stencil, VectorData<treeType>& tree_data,
                             bool reflective_bc=false, bool use_stencil_downsample=false, bool normalize_stencil=false) {
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
     assert(stencil.z_num == 3);
     assert(stencil.x_num == 3);
     assert(stencil.y_num == 3);

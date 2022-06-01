@@ -119,14 +119,20 @@ namespace APRNumericsGPU {
 template<typename InputType>
 void APRNumericsGPU::gradient_cfd(GPUAccessHelper &access, GPUAccessHelper &tree_access, VectorData<InputType> &inputParticles,
                                   VectorData<float> &outputParticles, const int dimension, const float delta) {
+    // initialize access
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
 
+    // generate stencil
     PixelData<float> stencil(3, 3, 3, 0);
     stencil.at(dimension == 0 ? 0 : 1, dimension == 1 ? 0 : 1, dimension == 2 ? 0 : 1) = -1.f / (2.f * delta);
     stencil.at(dimension == 0 ? 2 : 1, dimension == 1 ? 2 : 1, dimension == 2 ? 2 : 1) = 1.f / (2.f * delta);
 
+    // rescale stencil for each level
     VectorData<float> stencil_vec;
     APRStencil::get_rescaled_stencils(stencil, stencil_vec, access.level_max()-access.level_min());
 
+    // compute gradient
     VectorData<float> tree_data;
     isotropic_convolve_333_direct(access, tree_access, inputParticles, outputParticles, stencil_vec, tree_data, true);
 }
@@ -136,12 +142,18 @@ template<typename InputType>
 void APRNumericsGPU::gradient_sobel(GPUAccessHelper &access, GPUAccessHelper &tree_access,
                                     VectorData<InputType> &inputParticles, VectorData<float> &outputParticles,
                                     int dimension, float delta) {
+    // initialize acccess
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
 
+    // generate stencil
     auto stencil = APRStencil::create_sobel_filter<float>(dimension, delta);
 
+    // rescale stencil for each level
     VectorData<float> stencil_vec;
     APRStencil::get_rescaled_stencils(stencil, stencil_vec, access.level_max()-access.level_min());
 
+    // compute output
     VectorData<float> tree_data;
     isotropic_convolve_333_direct(access, tree_access, inputParticles, outputParticles, stencil_vec, tree_data, true);
 }
@@ -151,6 +163,9 @@ template<typename InputType>
 void APRNumericsGPU::gradient_magnitude_cfd(GPUAccessHelper &access, GPUAccessHelper &tree_access,
                                             VectorData<InputType> &inputParticles, VectorData<float> &outputParticles,
                                             const std::vector<float> &deltas) {
+    // initialize access
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
 
     // generate cfd stencils
     PixelData<float> stencil_y(3, 3, 3, 0);
@@ -176,6 +191,10 @@ template<typename InputType>
 void APRNumericsGPU::gradient_magnitude_sobel(GPUAccessHelper &access, GPUAccessHelper &tree_access,
                                               VectorData<InputType> &inputParticles, VectorData<float> &outputParticles,
                                               const std::vector<float> &deltas) {
+    // initialize access
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
     // generate Sobel stencils
     auto stencil_y = APRStencil::create_sobel_filter<float>(0, deltas[0]);
     auto stencil_x = APRStencil::create_sobel_filter<float>(1, deltas[1]);
