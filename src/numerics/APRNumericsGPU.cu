@@ -122,9 +122,9 @@ void APRNumericsGPU::richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& t
 
     /// set block/grid size for cuda kernels
     const size_t numParts = access.total_number_particles();
-
-    dim3 grid_dim(8, 1, 1);
-    dim3 block_dim(256, 1, 1);
+    int block_dim, grid_dim, minGridSize;
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &block_dim, elementWiseMult<stencilType>, 0, 0);
+    grid_dim = (numParts + block_dim - 1) / block_dim;
 
     error_check( cudaDeviceSynchronize() )
 
