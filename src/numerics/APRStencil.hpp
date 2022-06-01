@@ -151,6 +151,24 @@ namespace APRStencil {
         }
     }
 
+    template<typename T, typename S>
+    void get_rescaled_stencils(const PixelData<T> &aInput, VectorData<S> &aOutput, const int nlevels) {
+        std::vector<PixelData<S>> stencil_vec;
+        get_rescaled_stencils(aInput, stencil_vec, nlevels);
+
+        size_t num_elements = 0;
+        for(auto& pd : stencil_vec) {
+            num_elements += pd.mesh.size();
+        }
+        aOutput.resize(num_elements);
+
+        size_t offset = 0;
+        for(auto& pd : stencil_vec) {
+            std::copy(pd.mesh.begin(), pd.mesh.end(), aOutput.begin() + offset);
+            offset += pd.mesh.size();
+        }
+    }
+
 
     template<typename T>
     PixelData<T> create_gaussian_filter(const std::vector<float>& sigma = {1, 1, 1},
