@@ -1110,7 +1110,7 @@ bool run_richardson_lucy(TestDataGPU& test_data) {
     VectorData<float> output;
     PixelData<float> psf(5, 5, 5, 1.0f/125.0f);
 
-    richardson_lucy(access, tree_access, test_data.particles_intensities.data, output, psf, 10, true, true);
+    APRNumericsGPU::richardson_lucy(access, tree_access, test_data.particles_intensities.data, output, psf, 10, true, true);
 
     return true;
 }
