@@ -117,6 +117,21 @@ namespace APRStencil {
 
 
     template<typename T, typename S>
+    void get_downsampled_stencils(const VectorData<T> &aInput, VectorData<S> &aOutput, const int nlevels,
+                                  const bool normalize = false) {
+
+        const int kernel_size = (int) std::round(std::cbrt((float) aInput.size()));
+        PixelData<T> input_as_pd(kernel_size, kernel_size, kernel_size);
+        if(input_as_pd.mesh.size() != aInput.size()){
+            throw std::invalid_argument("input stencil size is not cubic");
+        }
+
+        std::copy(aInput.begin(), aInput.end(), input_as_pd.mesh.begin());
+        get_downsampled_stencils(input_as_pd, aOutput, nlevels, normalize);
+    }
+
+
+    template<typename T, typename S>
     void rescale_stencil(const PixelData<T> &aInput, PixelData<S> &aOutput, const int level_delta) {
         aOutput.init(aInput);
         const float step_size = std::pow(2, level_delta);
@@ -134,21 +149,6 @@ namespace APRStencil {
         for (int level_delta = 0; level_delta < nlevels; ++level_delta) {
             rescale_stencil(aInput, aOutput[level_delta], level_delta);
         }
-    }
-
-
-    template<typename T, typename S>
-    void get_downsampled_stencils(const VectorData<T> &aInput, VectorData<S> &aOutput, const int nlevels,
-                                  const bool normalize = false) {
-
-        const int kernel_size = (int) std::round(std::cbrt((float) aInput.size()));
-        PixelData<T> input_as_pd(kernel_size, kernel_size, kernel_size);
-        if(input_as_pd.mesh.size() != aInput.size()){
-            throw std::invalid_argument("input stencil size is not cubic");
-        }
-
-        std::copy(aInput.begin(), aInput.end(), input_as_pd.mesh.begin());
-        get_downsampled_stencils(input_as_pd, aOutput, nlevels, normalize);
     }
 
 
