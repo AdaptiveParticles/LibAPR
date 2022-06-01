@@ -1612,11 +1612,15 @@ void isotropic_convolve_333_alt(GPUAccessHelper& access, GPUAccessHelper& tree_a
 
 
 /// instantiate templates
+template void isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
 template void isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
 template void isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
 template void isotropic_convolve_333(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&, bool);
 
+template void isotropic_convolve_333_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
 template void isotropic_convolve_333_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
+template void isotropic_convolve_333_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
 template void isotropic_convolve_333_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
 template void isotropic_convolve_333_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&, bool, bool);
 
