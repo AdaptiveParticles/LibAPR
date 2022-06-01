@@ -30,6 +30,27 @@ namespace APRNumericsGPU {
                       float delta = 1.0f);
 
 
+    /**
+     * Compute the gradient in a given dimension using level-adaptive Sobel filters (smoothing perpendicular to the
+     * gradient dimension, followed by central finite differences). Combines the operations into a dense 3x3x3 convolution.
+     * @tparam InputType
+     * @param apr
+     * @param inputParticles
+     * @param outputParticles
+     * @param dimension             dimension along which the gradient is computed (0: y, 1: x, 2: z)
+     * @param delta                 pixel size used to scale the gradient (default: 1)
+     */
+    template<typename InputType>
+    void gradient_sobel(GPUAccessHelper &access,
+                        GPUAccessHelper &tree_access,
+                        VectorData<InputType>& inputParticles,
+                        VectorData<float>& outputParticles,
+                        int dimension,
+                        float delta = 1.0f);
+
+
+
+
     template<typename inputType, typename stencilType>
     void richardson_lucy(GPUAccessHelper &access, GPUAccessHelper &tree_access, VectorData<inputType> &input,
                          VectorData<stencilType> &output, PixelData<stencilType> &psf, int niter,
@@ -51,6 +72,21 @@ void APRNumericsGPU::gradient_cfd(GPUAccessHelper &access, GPUAccessHelper &tree
     PixelData<float> stencil(3, 3, 3, 0);
     stencil.at(dimension == 0 ? 0 : 1, dimension == 1 ? 0 : 1, dimension == 2 ? 0 : 1) = -1.f / (2.f * delta);
     stencil.at(dimension == 0 ? 2 : 1, dimension == 1 ? 2 : 1, dimension == 2 ? 2 : 1) = 1.f / (2.f * delta);
+
+    VectorData<float> stencil_vec;
+    APRStencil::get_rescaled_stencils(stencil, stencil_vec, access.level_max()-access.level_min());
+
+    VectorData<float> tree_data;
+    isotropic_convolve_333(access, tree_access, inputParticles, outputParticles, stencil_vec, tree_data, true);
+}
+
+
+template<typename InputType>
+void APRNumericsGPU::gradient_sobel(GPUAccessHelper &access, GPUAccessHelper &tree_access,
+                                    VectorData<InputType> &inputParticles, VectorData<float> &outputParticles,
+                                    int dimension, float delta) {
+
+    auto stencil = APRStencil::create_sobel_filter<float>(dimension, delta);
 
     VectorData<float> stencil_vec;
     APRStencil::get_rescaled_stencils(stencil, stencil_vec, access.level_max()-access.level_min());
