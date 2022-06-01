@@ -1440,6 +1440,37 @@ TEST_F(CreateCR124, TEST_GRADIENT_CUDA) {
 }
 
 
+bool test_sobel_cuda(TestDataGPU &test_data, int dim) {
+
+    const float delta = 0.9;
+    test_data.apr.init_cuda(true);
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+
+    ParticleData<float> output;
+    APRNumericsGPU::gradient_sobel(access, tree_access, test_data.particles_intensities.data, output.data, dim, delta);
+
+    ParticleData<float> output_gt;
+    APRNumerics::gradient_sobel(test_data.apr, test_data.particles_intensities, output_gt, dim, delta);
+
+    size_t err_count = compareParticles(output_gt, output, 1e-2, 20);
+    return err_count == 0;
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_SOBEL_CUDA) {
+    ASSERT_TRUE( test_sobel_cuda(test_data, 0) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 1) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 2) );
+}
+
+TEST_F(CreateCR124, TEST_SOBEL_CUDA) {
+    ASSERT_TRUE( test_sobel_cuda(test_data, 0) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 1) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 2) );
+}
+
+
 
 #endif  // APR_USE_CUDA
 
