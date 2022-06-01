@@ -1471,6 +1471,67 @@ TEST_F(CreateCR124, TEST_SOBEL_CUDA) {
 }
 
 
+bool test_gradient_magnitude_cuda(TestDataGPU &test_data) {
+
+    APRTimer timer(true);
+    const std::vector<float> deltas = {0.9, 1.1, 1.3};
+    test_data.apr.init_cuda(true);
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+
+    timer.start_timer("gradient magnitude CUDA");
+    ParticleData<float> output;
+    APRNumericsGPU::gradient_magnitude_cfd(access, tree_access, test_data.particles_intensities.data, output.data, deltas);
+    timer.stop_timer();
+
+    timer.start_timer("gradient magnitude CPU");
+    ParticleData<float> output_gt;
+    APRNumerics::gradient_magnitude_cfd(test_data.apr, test_data.particles_intensities, output_gt, deltas);
+    timer.stop_timer();
+
+    size_t err_count = compareParticles(output_gt, output, 1e-2, 20);
+    return err_count == 0;
+}
+
+TEST_F(CreateSmallSphereTest, TEST_GRADIENT_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_gradient_magnitude_cuda(test_data));
+}
+
+TEST_F(CreateCR124, TEST_GRADIENT_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_gradient_magnitude_cuda(test_data));
+}
+
+
+bool test_sobel_magnitude_cuda(TestDataGPU &test_data) {
+
+    APRTimer timer(true);
+    const std::vector<float> deltas = {0.9, 1.1, 1.3};
+    test_data.apr.init_cuda(true);
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+
+    timer.start_timer("sobel magnitude CUDA");
+    ParticleData<float> output;
+    APRNumericsGPU::gradient_magnitude_sobel(access, tree_access, test_data.particles_intensities.data, output.data, deltas);
+    timer.stop_timer();
+
+    timer.start_timer("sobel magnitude CPU");
+    ParticleData<float> output_gt;
+    APRNumerics::gradient_magnitude_sobel(test_data.apr, test_data.particles_intensities, output_gt, deltas);
+    timer.stop_timer();
+
+    size_t err_count = compareParticles(output_gt, output, 1e-2, 20);
+    return err_count == 0;
+}
+
+TEST_F(CreateSmallSphereTest, TEST_SOBEL_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_sobel_magnitude_cuda(test_data));
+}
+
+TEST_F(CreateCR124, TEST_SOBEL_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_sobel_magnitude_cuda(test_data));
+}
+
 
 #endif  // APR_USE_CUDA
 
