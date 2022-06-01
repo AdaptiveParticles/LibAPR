@@ -15,8 +15,9 @@
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,
-                            VectorData<stencilType>& stencil, VectorData<treeType>& tree_data, bool reflective_bc);
+void isotropic_convolve_555_direct(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                   VectorData<outputType>& output, VectorData<stencilType>& stencil,
+                                   VectorData<treeType>& tree_data, bool reflective_bc);
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
@@ -27,7 +28,7 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
     VectorData<stencilType> stencil_vec;
     const int nlevels = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
     APRStencil::get_downsampled_stencils(stencil, stencil_vec, nlevels, normalize_stencil);
-    isotropic_convolve_555(access, tree_access, input, output, stencil_vec, tree_data, reflective_bc);
+    isotropic_convolve_555_direct(access, tree_access, input, output, stencil_vec, tree_data, reflective_bc);
 }
 
 
@@ -41,7 +42,7 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
     VectorData<stencilType> stencil_vec;
     const int nlevels = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
     APRStencil::get_downsampled_stencils(stencil, stencil_vec, nlevels, normalize_stencil);
-    isotropic_convolve_555(access, tree_access, input, output, stencil_vec, tree_data, reflective_bc);
+    isotropic_convolve_555_direct(access, tree_access, input, output, stencil_vec, tree_data, reflective_bc);
 }
 
 

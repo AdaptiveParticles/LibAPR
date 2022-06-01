@@ -1727,8 +1727,9 @@ void isotropic_convolve_555_ds_alt(GPUAccessHelper& access, GPUAccessHelper& tre
 
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,
-                            VectorData<stencilType>& stencil, VectorData<treeType>& tree_data, bool reflective_bc) {
+void isotropic_convolve_555_direct(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                   VectorData<outputType>& output,VectorData<stencilType>& stencil,
+                                   VectorData<treeType>& tree_data, bool reflective_bc) {
 
     tree_access.init_gpu();
     access.init_gpu(tree_access);
@@ -1844,11 +1845,11 @@ void isotropic_convolve_555_alt(GPUAccessHelper& access, GPUAccessHelper& tree_a
 }
 
 
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&, bool);
 
 template void isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
 template void isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);

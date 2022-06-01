@@ -128,7 +128,7 @@ void APRNumericsGPU::gradient_cfd(GPUAccessHelper &access, GPUAccessHelper &tree
     APRStencil::get_rescaled_stencils(stencil, stencil_vec, access.level_max()-access.level_min());
 
     VectorData<float> tree_data;
-    isotropic_convolve_333(access, tree_access, inputParticles, outputParticles, stencil_vec, tree_data, true);
+    isotropic_convolve_333_direct(access, tree_access, inputParticles, outputParticles, stencil_vec, tree_data, true);
 }
 
 
@@ -143,7 +143,7 @@ void APRNumericsGPU::gradient_sobel(GPUAccessHelper &access, GPUAccessHelper &tr
     APRStencil::get_rescaled_stencils(stencil, stencil_vec, access.level_max()-access.level_min());
 
     VectorData<float> tree_data;
-    isotropic_convolve_333(access, tree_access, inputParticles, outputParticles, stencil_vec, tree_data, true);
+    isotropic_convolve_333_direct(access, tree_access, inputParticles, outputParticles, stencil_vec, tree_data, true);
 }
 
 
