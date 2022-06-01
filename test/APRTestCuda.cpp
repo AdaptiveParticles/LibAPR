@@ -18,6 +18,7 @@
 #include "FilterTestHelpers.hpp"
 #include "numerics/PixelNumericsGPU.hpp"
 #include "numerics/APRNumericsGPU.hpp"
+#include "numerics/APRNumerics.hpp"
 
 
 struct TestDataGPU{
@@ -1409,7 +1410,38 @@ TEST_F(CreateCR1000, TEST_NE_ROWS_TREE_CUDA) {
 
 
 
-#endif
+
+bool test_gradient_cuda(TestDataGPU &test_data, int dim) {
+
+    test_data.apr.init_cuda(true);
+    auto access = test_data.apr.gpuAPRHelper();
+    auto tree_access = test_data.apr.gpuTreeHelper();
+    ParticleData<float> output;
+    APRNumericsGPU::gradient_cfd(access, tree_access, test_data.particles_intensities.data, output.data, dim, 1.3);
+
+    ParticleData<float> output_gt;
+    APRNumerics::gradient_cfd(test_data.apr, test_data.particles_intensities, output_gt, dim, 1.3);
+
+    size_t err_count = compareParticles(output_gt, output, 1e-2, 20);
+    return err_count == 0;
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_GRADIENT_CUDA) {
+    ASSERT_TRUE( test_gradient_cuda(test_data, 0) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 1) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 2) );
+}
+
+TEST_F(CreateCR124, TEST_GRADIENT_CUDA) {
+    ASSERT_TRUE( test_gradient_cuda(test_data, 0) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 1) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 2) );
+}
+
+
+
+#endif  // APR_USE_CUDA
 
 int main(int argc, char **argv) {
 
