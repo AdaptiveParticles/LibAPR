@@ -1433,6 +1433,18 @@ TEST_F(CreateSmallSphereTest, TEST_GRADIENT_CUDA) {
     ASSERT_TRUE( test_gradient_cuda(test_data, 2) );
 }
 
+TEST_F(CreateCR10, TEST_GRADIENT_CUDA) {
+    ASSERT_TRUE( test_gradient_cuda(test_data, 0) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 1) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 2) );
+}
+
+TEST_F(CreateCR54, TEST_GRADIENT_CUDA) {
+    ASSERT_TRUE( test_gradient_cuda(test_data, 0) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 1) );
+    ASSERT_TRUE( test_gradient_cuda(test_data, 2) );
+}
+
 TEST_F(CreateCR124, TEST_GRADIENT_CUDA) {
     ASSERT_TRUE( test_gradient_cuda(test_data, 0) );
     ASSERT_TRUE( test_gradient_cuda(test_data, 1) );
@@ -1459,6 +1471,18 @@ bool test_sobel_cuda(TestDataGPU &test_data, int dim) {
 
 
 TEST_F(CreateSmallSphereTest, TEST_SOBEL_CUDA) {
+    ASSERT_TRUE( test_sobel_cuda(test_data, 0) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 1) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 2) );
+}
+
+TEST_F(CreateCR10, TEST_SOBEL_CUDA) {
+    ASSERT_TRUE( test_sobel_cuda(test_data, 0) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 1) );
+    ASSERT_TRUE( test_sobel_cuda(test_data, 2) );
+}
+
+TEST_F(CreateCR54, TEST_SOBEL_CUDA) {
     ASSERT_TRUE( test_sobel_cuda(test_data, 0) );
     ASSERT_TRUE( test_sobel_cuda(test_data, 1) );
     ASSERT_TRUE( test_sobel_cuda(test_data, 2) );
@@ -1497,6 +1521,14 @@ TEST_F(CreateSmallSphereTest, TEST_GRADIENT_MAGNITUDE_CUDA) {
     ASSERT_TRUE(test_gradient_magnitude_cuda(test_data));
 }
 
+TEST_F(CreateCR10, TEST_GRADIENT_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_gradient_magnitude_cuda(test_data));
+}
+
+TEST_F(CreateCR54, TEST_GRADIENT_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_gradient_magnitude_cuda(test_data));
+}
+
 TEST_F(CreateCR124, TEST_GRADIENT_MAGNITUDE_CUDA) {
     ASSERT_TRUE(test_gradient_magnitude_cuda(test_data));
 }
@@ -1525,6 +1557,14 @@ bool test_sobel_magnitude_cuda(TestDataGPU &test_data) {
 }
 
 TEST_F(CreateSmallSphereTest, TEST_SOBEL_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_sobel_magnitude_cuda(test_data));
+}
+
+TEST_F(CreateCR10, TEST_SOBEL_MAGNITUDE_CUDA) {
+    ASSERT_TRUE(test_sobel_magnitude_cuda(test_data));
+}
+
+TEST_F(CreateCR54, TEST_SOBEL_MAGNITUDE_CUDA) {
     ASSERT_TRUE(test_sobel_magnitude_cuda(test_data));
 }
 
