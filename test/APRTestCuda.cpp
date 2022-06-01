@@ -334,8 +334,6 @@ bool test_down_sample_gpu(TestDataGPU& test_data){
 
     downsample_avg(gpuData, gpuDataTree, test_data.particles_intensities.data, tree_data);
 
-
-
     ParticleData<float> tree_data_cpu;
     APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data_cpu);
 
@@ -369,9 +367,6 @@ bool test_down_sample_gpu(TestDataGPU& test_data){
                     rows++;
                     if(filled){
                         rows_filled++;
-                    } else {
-//                        std::cout << rows << std::endl;
-//                        std::cout << "x: " << x << " z: " << z << std::endl;
                     }
                 }
             }
@@ -449,11 +444,6 @@ bool test_gpu_conv_333_alt(TestDataGPU& test_data, bool use_stencil_downsample){
     auto access = test_data.apr.gpuAPRHelper();
     auto tree_access = test_data.apr.gpuTreeHelper();
 
-    access.init_gpu();
-    //tree_access.init_gpu();
-
-    VectorData<double> tree_data;
-    VectorData<double> output;
     VectorData<double> stencil;
     stencil.resize(27);
 
@@ -462,53 +452,23 @@ bool test_gpu_conv_333_alt(TestDataGPU& test_data, bool use_stencil_downsample){
         stencil[i] = ((double) i) / sum;
     }
 
+    VectorData<double> tree_data;
+    VectorData<double> output;
     isotropic_convolve_333_alt(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data, use_stencil_downsample, false);
 
+    // generate stencil vector for ground truth computation
+    int nstencils = use_stencil_downsample ? access.level_max()-access.level_min() : 1;
+    PixelData<double> tmp(3, 3, 3);
+    std::copy(stencil.begin(), stencil.end(), tmp.mesh.begin());
     std::vector<PixelData<double>> stencil_vec;
-    int nstencils = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
-    stencil_vec.resize(nstencils);
-
-    stencil_vec[0].init(3, 3, 3);
-    std::copy(stencil.begin(), stencil.end(), stencil_vec[0].mesh.begin());
-
-    if(use_stencil_downsample) {
-        int c = 1;
-        PixelData<double> stencil_ds;
-        for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            APRStencil::downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
-            stencil_vec[c].init(stencil_ds);
-            stencil_vec[c].copyFromMesh(stencil_ds);
-            c++;
-        }
-    }
+    APRStencil::get_downsampled_stencils(tmp, stencil_vec, nstencils, false);
 
     ParticleData<double> output_gt;
     FilterTestHelpers::compute_convolution_gt(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
 
-    size_t pass_count = 0;
-    size_t total_count = 0;
+    size_t err_count = compareParticles(output_gt, output, 1e-2, 30);
 
-    auto it = test_data.apr.iterator();
-
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
-                        pass_count++;
-                    } else {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                    }
-                    total_count++;
-                }
-            }
-        }
-    }
-
-    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
-
-    return (pass_count == total_count);
+    return err_count == 0;
 }
 
 TEST_F(CreatDiffDimsSphereTest, TEST_GPU_CONV_333_ALT) {
@@ -596,71 +556,41 @@ TEST_F(CreateCR1000, TEST_GPU_CONV_333_ALT) {
 }
 
 
-bool test_gpu_conv_333(TestDataGPU& test_data, bool reflective_bc, bool use_stencil_downsample){
+bool test_gpu_conv_333(TestDataGPU& test_data, bool reflective_bc, bool use_stencil_downsample) {
     auto access = test_data.apr.gpuAPRHelper();
     auto tree_access = test_data.apr.gpuTreeHelper();
 
-    access.init_gpu();
-    //tree_access.init_gpu();
-
-    VectorData<double> tree_data;
-    VectorData<double> output;
-    VectorData<double> stencil;
-    stencil.resize(27);
-
-    float sum = 13.0 * 27;
+    PixelData<double> stencil(3, 3, 3);
     for(int i = 0; i < 27; ++i) {
-        stencil[i] = ((double) i) / sum;
+        stencil.mesh[i] = i;
     }
 
-    isotropic_convolve_333(access, tree_access, test_data.particles_intensities.data, output, stencil,
-                        tree_data, reflective_bc, use_stencil_downsample, false);
+    VectorData<double> tree_data;
+    VectorData<double> output_pd;
+    isotropic_convolve_333(access, tree_access, test_data.particles_intensities.data, output_pd, stencil,
+                        tree_data, reflective_bc, use_stencil_downsample, true);
+
+    VectorData<double> stencil_vd;
+    stencil_vd.resize(27);
+    std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_vd.begin());
+    VectorData<double> output_vd;
+    isotropic_convolve_333(access, tree_access, test_data.particles_intensities.data, output_vd, stencil_vd,
+                           tree_data, reflective_bc, use_stencil_downsample, true);
 
     std::vector<PixelData<double>> stencil_vec;
     int nstencils = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
-    stencil_vec.resize(nstencils);
-
-    stencil_vec[0].init(3, 3, 3);
-    std::copy(stencil.begin(), stencil.end(), stencil_vec[0].mesh.begin());
-
-    if(use_stencil_downsample) {
-        int c = 1;
-        PixelData<double> stencil_ds;
-        for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            APRStencil::downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
-            stencil_vec[c].init(stencil_ds);
-            stencil_vec[c].copyFromMesh(stencil_ds);
-            c++;
-        }
-    }
+    APRStencil::get_downsampled_stencils(stencil, stencil_vec, nstencils, true);
 
     ParticleData<double> output_gt;
     FilterTestHelpers::compute_convolution_gt(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, reflective_bc);
 
-    size_t pass_count = 0;
-    size_t total_count = 0;
+    std::cout << "comparing convolution result for PixelData stencil vs VectorData stencil" << std::endl;
+    size_t err_1 = compareParticles(output_pd, output_vd, 1e-2, 30);
 
-    auto it = test_data.apr.iterator();
+    std::cout << "comparing convolution result for PixelData stencil vs ground truth" << std::endl;
+    size_t err_2 = compareParticles(output_gt, output_pd, 1e-2, 30);
 
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
-                        pass_count++;
-                    } else {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                    }
-                    total_count++;
-                }
-            }
-        }
-    }
-
-    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
-
-    return (pass_count == total_count);
+    return (err_1 + err_2) == 0;
 }
 
 TEST_F(CreateSmallSphereTest, TEST_GPU_CONV_333) {
@@ -815,50 +745,18 @@ bool test_gpu_conv_555_alt(TestDataGPU& test_data, bool use_stencil_downsample) 
 
     isotropic_convolve_555_alt(access, tree_access, test_data.particles_intensities.data, output, stencil, tree_data, use_stencil_downsample, false);
 
-    std::vector<PixelData<double>> stencil_vec;
     int nstencils = use_stencil_downsample ? access.level_max()-access.level_min() : 1;
-    stencil_vec.resize(nstencils);
-    stencil_vec[0].init(5, 5, 5);
-    std::copy(stencil.begin(), stencil.end(), stencil_vec[0].mesh.begin());
-
-    if(use_stencil_downsample){
-        int c = 1;
-        PixelData<double> stencil_ds;
-        for (int level = access.level_max() - 1; level > access.level_min(); --level) {
-            APRStencil::downsample_stencil(stencil_vec[0], stencil_ds, access.level_max() - level, false);
-            stencil_vec[c].init(stencil_ds);
-            stencil_vec[c].copyFromMesh(stencil_ds);
-            c++;
-        }
-    }
+    PixelData<double> tmp(5, 5, 5);
+    std::copy(stencil.begin(), stencil.end(), tmp.mesh.begin());
+    std::vector<PixelData<double>> stencil_vec;
+    APRStencil::get_downsampled_stencils(tmp, stencil_vec, nstencils, false);
 
     ParticleData<double> output_gt;
     FilterTestHelpers::compute_convolution_gt(test_data.apr, stencil_vec, test_data.particles_intensities, output_gt, false);
 
-    size_t pass_count = 0;
-    size_t total_count = 0;
+    size_t err_count = compareParticles(output_gt, output, 1e-2, 30);
 
-    auto it = test_data.apr.iterator();
-
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) < 1e-2) {
-                        pass_count++;
-                    } else {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                    }
-                    total_count++;
-                }
-            }
-        }
-    }
-
-    std::cout << "passed: " << pass_count << " failed: " << test_data.apr.total_number_particles()-pass_count << std::endl;
-
-    return (pass_count == total_count);
+    return err_count == 0;
 }
 
 
