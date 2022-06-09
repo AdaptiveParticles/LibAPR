@@ -1510,20 +1510,20 @@ void isotropic_convolve_555_ds(GPUAccessHelper& access, GPUAccessHelper& tree_ac
 
             conv_max_555_chunked
                     <chunkSize_555, blockSize_555>
-                            << < blocks_l, threads_l >> >
-                                      (access.get_level_xz_vec_ptr(),
-                                       access.get_xz_end_vec_ptr(),
-                                       access.get_y_vec_ptr(),
-                                       input_gpu,
-                                       output_gpu,
-                                       stencil_gpu,
-                                       access.z_num(level),
-                                       access.x_num(level),
-                                       access.y_num(level),
-                                       tree_access.z_num(level-1),
-                                       tree_access.x_num(level-1),
-                                       level,
-                                       ne_rows_555 + offset);
+                            <<< blocks_l, threads_l >>>
+                                    (access.get_level_xz_vec_ptr(),
+                                    access.get_xz_end_vec_ptr(),
+                                    access.get_y_vec_ptr(),
+                                    input_gpu,
+                                    output_gpu,
+                                    stencil_gpu,
+                                    access.z_num(level),
+                                    access.x_num(level),
+                                    access.y_num(level),
+                                    tree_access.z_num(level-1),
+                                    tree_access.x_num(level-1),
+                                    level,
+                                    ne_rows_555 + offset);
 
             stencil_offset += 125;
 
@@ -1726,17 +1726,18 @@ void isotropic_convolve_555_ds_alt(GPUAccessHelper& access, GPUAccessHelper& tre
 }
 
 
-
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
-void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,
-                            VectorData<stencilType>& stencil, VectorData<treeType>& tree_data, bool reflective_bc, bool use_stencil_downsample,
-                            bool normalize_stencil) {
+void isotropic_convolve_555_direct(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                   VectorData<outputType>& output,VectorData<stencilType>& stencil,
+                                   VectorData<treeType>& tree_data, bool reflective_bc) {
 
     tree_access.init_gpu();
     access.init_gpu(tree_access);
 
+    const bool downsampled_stencil = (stencil.size() >= (125 + 27 * (access.level_max() - access.level_min() - 1)));
+
     assert(input.size() == access.total_number_particles());
-    assert(stencil.size() == 125);
+    assert(stencil.size() >= 125);
 
     tree_data.resize(tree_access.total_number_particles());
     output.resize(access.total_number_particles());
@@ -1751,23 +1752,14 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
     compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
     compute_ne_rows_cuda<16, 32>(access, ne_counter_555, ne_rows_555_gpu, 4);
 
-    VectorData<stencilType> stencil_vec;
-    if(use_stencil_downsample) {
+    if(downsampled_stencil) {
         compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
-
-        APRStencil::get_downsampled_stencils(stencil, stencil_vec, access.level_max() - access.level_min(), normalize_stencil);
     }
 
     ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<treeType*, JUST_ALLOC> tree_data_gpu(tree_data.data(), tree_data.size());
     ScopedCudaMemHandler<outputType*, JUST_ALLOC> output_gpu(output.data(), output.size());
-    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu;
-
-    if(use_stencil_downsample) {
-        stencil_gpu.initialize(stencil_vec.data(), stencil_vec.size());
-    } else {
-        stencil_gpu.initialize(stencil.data(), stencil.size());
-    }
+    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> stencil_gpu(stencil.data(), stencil.size());
 
     input_gpu.copyH2D();
     stencil_gpu.copyH2D();
@@ -1776,7 +1768,7 @@ void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_acces
     downsample_avg(access, tree_access, input_gpu.get(), tree_data_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
     error_check( cudaDeviceSynchronize() )
 
-    int tmp = 2*reflective_bc + 1*use_stencil_downsample;
+    int tmp = 2*reflective_bc + 1*downsampled_stencil;
 
     switch(tmp) {
         case 0:
@@ -1853,10 +1845,14 @@ void isotropic_convolve_555_alt(GPUAccessHelper& access, GPUAccessHelper& tree_a
 }
 
 
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool, bool);
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool, bool);
-template void isotropic_convolve_555(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&, bool, bool, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool);
+template void isotropic_convolve_555_direct(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&, bool);
 
+template void isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
 template void isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
+template void isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
 template void isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, bool, bool);
 template void isotropic_convolve_555_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&, VectorData<double>&, VectorData<double>&, bool, bool);

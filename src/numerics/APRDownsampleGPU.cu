@@ -1207,13 +1207,17 @@ void downsample_avg(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vecto
 }
 
 /// instantiate templates
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&);
 template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&);
-template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&);
 template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&);
+template void downsample_avg(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&);
 
+template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&);
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&);
-template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&);
+template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&);
 template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&);
+template void downsample_avg_alt(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<double>&);
 
 template void compute_ne_rows_tree_cuda<8, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
 template void compute_ne_rows_tree_cuda<16, 32>(GPUAccessHelper&, VectorData<int>&, ScopedCudaMemHandler<int*, JUST_ALLOC>&);
