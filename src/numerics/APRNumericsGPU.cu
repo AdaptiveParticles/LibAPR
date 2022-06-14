@@ -209,32 +209,17 @@ void APRNumericsGPU::richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& t
 
     VectorData<stencilType> psf_vec;
     VectorData<stencilType> psf_flipped_vec;
-
-    if(use_stencil_downsample) {
-        APRStencil::get_downsampled_stencils(psf, psf_vec, access.level_max() - access.level_min(), normalize_stencil);
-        APRStencil::get_downsampled_stencils(psf_flipped, psf_flipped_vec, access.level_max() - access.level_min(), normalize_stencil);
-    }
+    const int num_levels = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
+    APRStencil::get_downsampled_stencils(psf, psf_vec, num_levels, normalize_stencil);
+    APRStencil::get_downsampled_stencils(psf_flipped, psf_flipped_vec, num_levels, normalize_stencil);
 
     output.resize(input.size());
 
-    /// allocate GPU memory
-    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+    /// allocate GPU memory and copy data
+    ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> output_gpu(output.data(), output.size());
-    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_gpu;
-    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_flipped_gpu;
-
-    if(use_stencil_downsample) {
-        psf_gpu.initialize(psf_vec.data(), psf_vec.size());
-        psf_flipped_gpu.initialize(psf_flipped_vec.data(), psf_flipped_vec.size());
-    } else {
-        psf_gpu.initialize(psf.mesh.get(), psf.mesh.size());
-        psf_flipped_gpu.initialize(psf_flipped.mesh.get(), psf_flipped.mesh.size());
-    }
-
-    /// copy input and psf to the device
-    input_gpu.copyH2D();
-    psf_gpu.copyH2D();
-    psf_flipped_gpu.copyH2D();
+    ScopedCudaMemHandler<stencilType*, H2D> psf_gpu(psf_vec.data(), psf_vec.size());
+    ScopedCudaMemHandler<stencilType*, H2D> psf_flipped_gpu(psf_flipped_vec.data(), psf_flipped_vec.size());
 
     if(resume) {
         output_gpu.copyH2D();
@@ -254,8 +239,10 @@ template void APRNumericsGPU::gradient_magnitude(GPUAccessHelper&, GPUAccessHelp
 template void APRNumericsGPU::gradient_magnitude(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
 template void APRNumericsGPU::gradient_magnitude(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
 
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint8_t*, float*, float*, float*, int, int, bool, bool);
 template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, float*, float*, int, int, bool, bool);
 template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, float*, float*, int, int, bool, bool);
 
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
 template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
 template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
