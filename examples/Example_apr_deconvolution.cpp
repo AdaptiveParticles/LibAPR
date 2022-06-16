@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     APRFile aprFile;
     aprFile.open(file_name,"READ");
     aprFile.read_apr(apr);
-    aprFile.read_particles(apr,"particles",parts);
+    aprFile.read_particles(apr, parts);
 
     timer.stop_timer();
 
@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
         auto tree_access = apr.gpuTreeHelper();
         ParticleData<float> tree_data;
 
-        richardson_lucy(access, tree_access, parts.data, output.data, stencil, options.number_iterations,
-                        /*downsample stencil*/ true, /*normalize stencils*/ true, /*resume*/false);
+        APRNumericsGPU::richardson_lucy(access, tree_access, parts.data, output.data, stencil, options.number_iterations,
+                                        /*downsample stencil*/ true, /*normalize stencils*/ true, /*resume*/false);
 
         done = true;
         timer.stop_timer();

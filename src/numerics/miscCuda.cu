@@ -43,8 +43,34 @@ __global__ void elementWiseDiv(const T* numerator,
 }
 
 
-template<typename T>
-__global__ void copyKernel(const T* in, T* out, const size_t size){
+/**
+ * Add the square of one vector to another. For 0 <= idx < size:
+ *      in1[idx] += in2[idx] * in2[idx];
+ */
+__global__ void addSquare(float* in1,
+                          const float* in2,
+                          const size_t size) {
+
+    for(size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < size; idx += blockDim.x * gridDim.x) {
+        in1[idx] += in2[idx] * in2[idx];
+    }
+}
+
+
+/**
+ * Take the square root of each element in the input vector
+ */
+__global__ void elementWiseSqrt(float* __restrict__ input,
+                                const size_t size) {
+
+    for(size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < size; idx += blockDim.x * gridDim.x) {
+        input[idx] = sqrtf(input[idx]);
+    }
+}
+
+
+template<typename T, typename S>
+__global__ void copyKernel(const T* __restrict__ in, S* __restrict__ out, const size_t size){
 
     for(size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < size; idx += blockDim.x * gridDim.x) {
         out[idx] = in[idx];
@@ -414,10 +440,11 @@ template __global__ void elementWiseMult(uint16_t*, const uint16_t*, const size_
 
 template __global__ void elementWiseDiv(const float*, const float*, float*, const size_t);
 template __global__ void elementWiseDiv(const uint16_t*, const float*, float*, const size_t);
-template __global__ void elementWiseDiv(const uint16_t*, const uint16_t*, uint16_t*, const size_t);
+template __global__ void elementWiseDiv(const uint8_t*, const float*, float*, const size_t);
 
 template __global__ void copyKernel(const float*, float*, const size_t);
-template __global__ void copyKernel(const uint16_t*, uint16_t*, const size_t);
+template __global__ void copyKernel(const uint16_t*, float*, const size_t);
+template __global__ void copyKernel(const uint8_t*, float*, const size_t);
 
 template __global__ void fillWithValue(float*, float, const size_t);
 template __global__ void fillWithValue(uint16_t*, uint16_t, const size_t);

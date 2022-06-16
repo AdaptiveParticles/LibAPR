@@ -29,13 +29,18 @@ public:
     void close();
 
     // write
-    bool write_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
+    bool write_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t", bool write_tree = true);
     bool write_apr_append(APR& apr);
     template<typename DataType>
     bool write_particles(std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
 
     // read
     bool read_apr(APR& apr,uint64_t t = 0,std::string channel_name = "t");
+
+    bool read_metadata(GenInfo& aprInfo, uint64_t t = 0, std::string channel_name = "t");
+
+    bool read_metadata_tree(GenInfo& treeInfo, uint64_t t = 0, std::string channel_name = "t");
+
     template<typename DataType>
     bool read_particles(APR& apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree = true,uint64_t t = 0,std::string channel_name = "t");
 
@@ -47,16 +52,13 @@ public:
     template<typename DataType>
     bool read_particles(std::string particles_name, ParticleData<DataType>& particles, bool apr_or_tree=true, uint64_t t=0, std::string channel_name="t");
 
-    //set helpers
+
+    [[deprecated("this now controlled via arguments to affected methods")]]
     bool get_read_write_tree(){
         return with_tree_flag;
     }
 
-    //set helperslts
-    /**
-   * Set whether the internal APR Tree internal access should also be written and read.
-   * @param write_with_tree_flag_ indicate whether the APRTree should be written and read. (True = save both APR and APR Tree)
-   */
+    [[deprecated("this now controlled via arguments to affected methods")]]
     void set_read_write_tree(bool with_tree_flag_){
         with_tree_flag = with_tree_flag_;
     }
@@ -116,7 +118,7 @@ private:
 
     //Basic Properties.
     uint64_t current_t=0;
-    bool with_tree_flag = true;
+    bool with_tree_flag = true; //usage is deprecated, keeping for backward compatibility
     std::string file_name = "noname";
     APRWriter::FileStructure fileStructure;
 
@@ -148,28 +150,16 @@ private:
    */
 bool APRFile::open(std::string file_name_,std::string read_write_append){
 
-
     if(read_write_append == "WRITE"){
-
         return fileStructure.init(file_name_, APRWriter::FileStructure::Operation::WRITE);
-
     } else if(read_write_append == "READ") {
-
         return fileStructure.init(file_name_, APRWriter::FileStructure::Operation::READ);
-
     } else if(read_write_append == "READWRITE") {
-
         return fileStructure.init(file_name_, APRWriter::FileStructure::Operation::WRITE_APPEND);
-
     } else {
         std::cerr << "Files should either be opened as READ or WRITE, or READWRITE" << std::endl;
         return false;
     }
-
-    file_name = file_name_;
-
-    return true;
-
 }
 
 /**
@@ -185,18 +175,18 @@ void APRFile::close(){
    * @param APR to be written
    * @param t the time point to be written (default will be to append to the end of the file, starting with 0)
    */
-bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
+bool APRFile::write_apr(APR &apr, uint64_t t, std::string channel_name, bool write_tree){
 
     current_t = t;
 
-    if(fileStructure.isOpened()){
-    } else {
+    if(!fileStructure.isOpened()){
         std::cerr << "File is not open!" << std::endl;
+        return false;
     }
 
     timer.start_timer("setup");
 
-    fileStructure.create_time_point(t,with_tree_flag,channel_name);
+    fileStructure.create_time_point(t, write_tree, channel_name);
 
     hid_t meta_location = fileStructure.objectId;
 
@@ -227,7 +217,7 @@ bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
 
     } else {
         timer.start_timer("write_apr_access_data");
-        apr.initialize_random_access(); //check that it is initialized.
+        apr.initialize_random(); //check that it is initialized.
 
         APRWriter::write_random_access(meta_location, fileStructure.objectId, apr.apr_access, blosc_comp_type_access,
                                        blosc_comp_level_access, blosc_shuffle_access);
@@ -235,7 +225,7 @@ bool APRFile::write_apr(APR &apr,uint64_t t,std::string channel_name){
     }
 
 
-    if(with_tree_flag){
+    if(write_tree){
 
         if(write_linear_tree) {
 
@@ -293,11 +283,8 @@ bool APRFile::write_particles(const std::string particles_name,ParticleData<Data
         std::cerr << "File is not open!" << std::endl;
     }
 
-    bool open_success = fileStructure.open_time_point(t,with_tree_flag,channel_name);
-
-    if(!open_success){
-        fileStructure.create_time_point(t,with_tree_flag,channel_name);
-    }
+    // opens dataset if it exists, otherwise it is created
+    fileStructure.create_time_point(t, !apr_or_tree, channel_name);
 
     hid_t part_location;
 
@@ -376,7 +363,7 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
         return false;
     }
 
-    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+    if(!fileStructure.open_time_point(t, false, channel_name)) {
         std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
         return false;
     }
@@ -432,56 +419,79 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
 
     timer.start_timer("read_tree_access");
 
-    if(with_tree_flag) {
+    data_n = fileStructure.subGroupTree1 + "/map_level";
+    bool stored_random_tree = data_exists(fileStructure.fileId,data_n.c_str());
 
-        data_n = fileStructure.subGroupTree1 + "/map_level";
-        bool stored_random_tree = data_exists(fileStructure.fileId,data_n.c_str());
+    data_n = fileStructure.subGroupTree1 + "/y_vec";
+    bool stored_linear_tree = data_exists(fileStructure.fileId,data_n.c_str());;
 
-        data_n = fileStructure.subGroupTree1 + "/y_vec";
-        bool stored_linear_tree = data_exists(fileStructure.fileId,data_n.c_str());;
+    bool tree_exists = stored_linear_tree || stored_random_tree;
 
-        bool tree_exists = stored_linear_tree || stored_random_tree;
+    if(tree_exists){
 
-        if(!tree_exists){
-            // if tree access does not exist in file, initialize it from the APR access
-            apr.initialize_tree_linear();
+        APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
+                            &apr.treeInfo.total_number_particles);
+
+        apr.treeInfo.init_tree(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
+        apr.tree_access.genInfo = &apr.treeInfo;
+        apr.linearAccessTree.genInfo = &apr.treeInfo;
+
+        if(!stored_linear_tree) {
+            //Older data structures are saved.
+            APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
+                                               apr.tree_access, apr.apr_access);
+            apr.tree_initialized_random = true;
+
         } else {
+            apr.tree_initialized = true;
+            int max_level_delta_tree=0;
 
-            APRWriter::readAttr(AprTypes::TotalNumberOfParticlesType, fileStructure.objectIdTree,
-                                &apr.treeInfo.total_number_particles);
-
-            apr.treeInfo.init_tree(apr.org_dims(0), apr.org_dims(1), apr.org_dims(2));
-            apr.tree_access.genInfo = &apr.treeInfo;
-            apr.linearAccessTree.genInfo = &apr.treeInfo;
-
-            if(!stored_linear_tree) {
-                //Older data structures are saved.
-                APRWriter::read_random_tree_access(fileStructure.objectIdTree, fileStructure.objectIdTree,
-                                                   apr.tree_access, apr.apr_access);
-                apr.tree_initialized_random = true;
-
-            } else {
-                apr.tree_initialized = true;
-                int max_level_delta_tree=0;
-
-                if(max_level_delta > 0){
-                    max_level_delta_tree = max_level_delta - 1;
-                }
-                APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree,max_level_delta_tree);
+            if(max_level_delta > 0){
+                max_level_delta_tree = max_level_delta - 1;
             }
-
+            APRWriter::read_linear_access( fileStructure.objectIdTree, apr.linearAccessTree,max_level_delta_tree);
         }
-
     }
 
     timer.stop_timer();
 
     return true;
-
-
 }
 
 
+bool APRFile::read_metadata(GenInfo& aprInfo, uint64_t t, std::string channel_name){
+
+    if(!fileStructure.isOpened()){
+        std::cerr << "File is not open!" << std::endl;
+        return false;
+    }
+
+    if(!fileStructure.open_time_point(t, false, channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+        return false;
+    }
+
+    APRWriter::read_access_info(fileStructure.objectId, aprInfo);
+    return true;
+}
+
+
+bool APRFile::read_metadata_tree(GenInfo& treeInfo, uint64_t t, std::string channel_name) {
+    if(!fileStructure.isOpened()){
+        std::cerr << "File is not open!" << std::endl;
+        return false;
+    }
+
+    if(!fileStructure.open_time_point(t, true,channel_name)) {
+        std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
+        return false;
+    }
+
+    APRWriter::read_dims(fileStructure.objectId, treeInfo);
+    APRWriter::read_access_info_tree(fileStructure.objectIdTree, treeInfo);
+    treeInfo.init_tree(treeInfo.org_dims[0], treeInfo.org_dims[1], treeInfo.org_dims[2]);
+    return true;
+}
 
 
 
@@ -494,9 +504,14 @@ bool APRFile::read_apr(APR &apr,uint64_t t,std::string channel_name){
    * @param apr_or_tree (Default = True (APR), false = APR Tree)
    */
 template<typename DataType>
-bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t,std::string channel_name){
+bool APRFile::read_particles(APR &apr,
+                             std::string particles_name,
+                             ParticleData<DataType>& particles,
+                             bool apr_or_tree,
+                             uint64_t t,
+                             std::string channel_name){
 
-    hid_t part_location = open_dataset_location(particles_name, apr_or_tree,t,channel_name);
+    hid_t part_location = open_dataset_location(particles_name, apr_or_tree, t, channel_name);
 
     if(part_location == 0){
         return false;
@@ -615,7 +630,7 @@ bool APRFile::read_particles(APR &apr,std::string particles_name,ParticleData<Da
 template<typename DataType>
 bool APRFile::read_particles(APR& apr,ParticleData<DataType>& particles,bool apr_or_tree,uint64_t t ,std::string channel_name){
 
-    std::vector<std::string> file_names = this->get_particles_names();
+    std::vector<std::string> file_names = this->get_particles_names(apr_or_tree, t, channel_name);
     std::string particles_name = file_names[0]; //by default it takes the first set of particles.
 
     bool read =  this->read_particles(apr,particles_name,particles,apr_or_tree,t,channel_name);
@@ -634,7 +649,7 @@ hid_t APRFile::open_dataset_location(std::string& particles_name, bool apr_or_tr
         return 0;
     }
 
-    if (!fileStructure.open_time_point(t, with_tree_flag, channel_name)) {
+    if (!fileStructure.open_time_point(t, !apr_or_tree, channel_name)) {
         std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name
                   << "'" << std::endl;
         return 0;
@@ -706,7 +721,7 @@ bool APRFile::read_particles(std::string particles_name, ParticleData<DataType>&
         return false;
     }
 
-    if(!fileStructure.open_time_point(t, with_tree_flag,channel_name)) {
+    if(!fileStructure.open_time_point(t, !apr_or_tree, channel_name)) {
         std::cerr << "Error reading APR file: could not open time point t=" << t << " in channel '" << channel_name << "'" << std::endl;
         return false;
     }
@@ -880,7 +895,7 @@ std::vector<std::string> APRFile::get_channel_names(){
    */
 std::vector<std::string> APRFile::get_particles_names(bool apr_or_tree,uint64_t t,std::string channel_name){
 
-    fileStructure.open_time_point(t,with_tree_flag,channel_name);
+    fileStructure.open_time_point(t, !apr_or_tree, channel_name);
 
     const int max_name_size = 1024;
 

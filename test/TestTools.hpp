@@ -68,8 +68,7 @@ template <typename T>
 inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
     int cnt = 0;
     for (size_t i = 0; i < expected.mesh.size(); ++i) {
-        if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError || std::isnan(expected.mesh[i]) ||
-            std::isnan(tested.mesh[i])) {
+        if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
                 std::cout << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
             }
@@ -79,6 +78,38 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
     std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << std::endl;
     return cnt;
 }
+
+
+/**
+ * compare two sets of particles (can be supplied as ParticleData, VectorData, std::vector, ...)
+ * @tparam ParticleTypeA
+ * @tparam ParticleTypeB
+ * @param expected
+ * @param tested
+ * @param maxError              tolerance
+ * @param maxNumOfErrPrinted    maximum number of errors to print (-1 for all)
+ * @return                      number of errors
+ */
+template <typename ParticleTypeA, typename ParticleTypeB>
+inline int64_t compareParticles(const ParticleTypeA &expected, const ParticleTypeB &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 10) {
+    int64_t cnt = 0;
+    if(expected.size() != tested.size()) {
+        std::cerr << "ERROR compareParticles: sizes differ!" << std::endl;
+        cnt++;
+    }
+
+    for (size_t i = 0; i < expected.size(); ++i) {
+        if (std::abs(expected[i] - tested[i]) > maxError) {
+            if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                std::cout << "ERROR expected vs tested particle: " << (float)expected[i] << " vs " << (float)tested[i] << " IDX:" << i << std::endl;
+            }
+            cnt++;
+        }
+    }
+    std::cout << "Number of errors / all points: " << cnt << " / " << expected.size() << std::endl;
+    return cnt;
+}
+
 
 /**
  * Generates mesh with provided dims with random values in range [0, 1] * multiplier

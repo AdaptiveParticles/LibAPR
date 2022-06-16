@@ -11,7 +11,7 @@ class GenIterator {
 
 protected:
 
-    //Pointer to the actuall access information used by the iterator
+    //Pointer to the actual access information used by the iterator
 
     uint64_t end_index = 0;
 
@@ -19,80 +19,28 @@ protected:
 
 public:
 
-    uint64_t total_number_particles();
+    inline uint64_t total_number_particles() { return genInfo->total_number_particles; }
 
+    inline int x_nearest_pixel(const int level, const int x) { return (int) floor((x+0.5)*level_size(level)); }
+    inline int y_nearest_pixel(const int level, const int y) { return (int) floor((y+0.5)*level_size(level)); }
+    inline int z_nearest_pixel(const int level, const int z) { return (int) floor((z+0.5)*level_size(level)); }
+    inline float x_global(const int level, const int x) { return (x+0.5f)*level_size(level); }
+    inline float y_global(const int level, const int y) { return (y+0.5f)*level_size(level); }
+    inline float z_global(const int level, const int z) { return (z+0.5f)*level_size(level); }
 
-//    uint16_t y() const {return 0;};
-//
-//    operator uint64_t() {return 0;};
+    inline int level_size(const int level) { return genInfo->level_size[level]; }
 
-    //helpers
-    inline int x_nearest_pixel(int level, int x);
-    inline float x_global(int level, int x);
-    inline int y_nearest_pixel(int level, int y);
-    inline float y_global(int level, int y);
-    inline int z_nearest_pixel(int level, int z);
-    inline float z_global(int level, int z);
+    inline int org_dims(const int dim) const { return genInfo->org_dims[dim]; }
 
-    int level_size(int level);
+    inline int number_dimensions() { return genInfo->number_dimensions; }
 
-    int org_dims(int dim) const { return genInfo->org_dims[dim]; }
+    inline int level_min() { return genInfo->l_min; }
+    inline int level_max() { return genInfo->l_max; }
 
-    int number_dimensions(){return genInfo->number_dimensions;};
-
-    int level_min();
-    int level_max();
-
-    inline int x_num(const unsigned int level){
-        return genInfo->x_num[level];
-    }
-
-    inline int y_num(const unsigned int level){
-        return genInfo->y_num[level];
-    }
-
-    inline int z_num(const unsigned int level){
-        return genInfo->z_num[level];
-    }
-
-
-
+    inline int x_num(const unsigned int level) { return genInfo->x_num[level]; }
+    inline int y_num(const unsigned int level) { return genInfo->y_num[level]; }
+    inline int z_num(const unsigned int level) { return genInfo->z_num[level]; }
 };
-
-
-inline uint64_t GenIterator::total_number_particles() {return genInfo->total_number_particles;}
-
-
-inline int GenIterator::level_size(const int level){
-    return genInfo->level_size[level];
-}
-
-inline int GenIterator::x_nearest_pixel(const int level,const int x ){
-    return (int) floor((x+0.5)*level_size(level));
-}
-
-inline float GenIterator::x_global(const int level,const int x) {
-    return  (x+0.5f)*level_size(level);
-}
-
-inline int GenIterator::y_nearest_pixel(const int level,const int y ){
-    return (int) floor((y+0.5)*level_size(level));
-}
-
-inline float GenIterator::y_global(const int level,const int y) {
-    return  (y+0.5f)*level_size(level);
-}
-
-inline int GenIterator::z_nearest_pixel(const int level,const int z ){
-    return (int) floor((z+0.5)*level_size(level));
-}
-
-inline float GenIterator::z_global(const int level,const int z) {
-    return  (z+0.5f)*level_size(level);
-}
-
-inline int GenIterator::level_min() {return genInfo->l_min;}
-inline int GenIterator::level_max() {return genInfo->l_max;}
 
 
 #endif //LIBAPR_GENITERATOR_HPP

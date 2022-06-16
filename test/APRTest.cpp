@@ -16,8 +16,13 @@
 #include "io/APRWriter.hpp"
 #include "numerics/APRStencil.hpp"
 #include "data_structures/APR/particles/LazyData.hpp"
+#include "FilterTestHelpers.hpp"
 
 #include "io/APRFile.hpp"
+
+#include "data_structures/APR/access/LazyAccess.hpp"
+#include "data_structures/APR/iterators/LazyIterator.hpp"
+
 
 struct TestData{
 
@@ -609,7 +614,7 @@ bool test_symmetry_pipeline(){
             aprConverter.get_apr(apr, img);
 
             ParticleData<uint16_t> parts;
-            parts.sample_parts_from_img_downsampled(apr, img);
+            parts.sample_image(apr, img);
 
             // get grad/scale/level/final level/final image. --> All should be symmetric!!! //could be nice to have a more elagant method for this.
             PixelData<float> scale = TiffUtils::getMesh<float>("local_intensity_scale_step.tif");
@@ -748,7 +753,7 @@ bool test_pipeline_different_sizes(TestData& test_data){
 
                 ParticleData<uint16_t> parts;
 
-                parts.sample_parts_from_img_downsampled(apr,input_data);
+                parts.sample_image(apr, input_data);
 
                 APRFile aprFile;
                 aprFile.open("test_small.apr","WRITE");
@@ -912,11 +917,11 @@ bool test_linear_access_create(TestData& test_data) {
 
     aprConverter.get_apr(apr,test_data.img_original);
 
-    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+    particles_intensities.sample_image(apr, test_data.img_original);
 
     //test the partcell data structures
     PartCellData<uint16_t> partCellData_intensities;
-    partCellData_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+    partCellData_intensities.sample_image(apr, test_data.img_original);
 
     auto it = apr.iterator();
 
@@ -1107,7 +1112,7 @@ bool test_lazy_particles(TestData& test_data){
 
     LazyData<uint16_t> parts_lazy;
 
-    parts_lazy.init_file(writeFile,"parts",true);
+    parts_lazy.init(writeFile, "parts");
 
     parts_lazy.open();
 
@@ -1180,7 +1185,7 @@ bool test_lazy_particles(TestData& test_data){
     writeFile.open(file_name,"READWRITE");
 
     LazyData<uint16_t> parts_lazy_create;
-    parts_lazy_create.init_file(writeFile,"parts_create",true);
+    parts_lazy_create.init(writeFile, "parts_create");
 
     parts_lazy_create.create_file(test_data.particles_intensities.size());
 
@@ -1255,8 +1260,6 @@ bool test_linear_access_io(TestData& test_data) {
 
     APR apr_random;
 
-    writeFile.set_read_write_tree(true);
-
     writeFile.open(file_name,"READ");
     writeFile.read_apr(apr_random);
 
@@ -1285,8 +1288,6 @@ bool test_linear_access_io(TestData& test_data) {
     timer.start_timer("linear read");
 
     APR apr_lin;
-
-    writeFile.set_read_write_tree(true);
 
     writeFile.open(file_name,"READ");
     writeFile.read_apr(apr_lin);
@@ -1383,7 +1384,7 @@ bool test_apr_tree(TestData& test_data) {
 
     std::vector<PixelData<float>> downsampled_img;
     //Down-sample the image for particle intensity estimation
-    downsamplePyrmaid(pc_image, downsampled_img, test_data.apr.level_max(), test_data.apr.level_min()-1);
+    downsamplePyramid(pc_image, downsampled_img, test_data.apr.level_max(), test_data.apr.level_min() - 1);
 
 
     auto tree_it_random = test_data.apr.random_tree_iterator();
@@ -1594,8 +1595,6 @@ bool test_apr_file(TestData& test_data){
 
     readFile.open(file_name,"READ");
 
-    readFile.set_read_write_tree(false);
-
     APR aprRead;
 
     readFile.read_apr(aprRead);
@@ -1622,6 +1621,53 @@ bool test_apr_file(TestData& test_data){
     auto apr_iterator_read = aprRead.iterator();
 
     success = compare_two_iterators(apr_iterator,apr_iterator_read,success);
+
+    //test apr iterator with channel
+    writeFile.open(file_name,"WRITE");
+
+    writeFile.write_apr(test_data.apr, 0, "channel_0");
+    writeFile.write_apr(test_data.apr, 55, "channel_0");
+
+    writeFile.write_particles("parts", test_data.particles_intensities, true, 0, "channel_0");
+    writeFile.write_particles("parts", test_data.particles_intensities, true, 55, "channel_0");
+
+    writeFile.close();
+
+    writeFile.open(file_name, "READ");
+
+    APR apr_channel_0;
+    ParticleData<uint16_t> parts_channel_0;
+
+    APR apr_channel_0_55;
+    ParticleData<uint16_t> parts_channel_0_55;
+
+    writeFile.read_apr(apr_channel_0, 0, "channel_0");
+
+    if(!writeFile.read_particles("parts", parts_channel_0, true, 0, "channel_0")){
+        success = false;
+    }
+
+    //without name
+    if(!writeFile.read_particles(apr_channel_0, parts_channel_0, true, 0, "channel_0")){
+        success = false;
+    }
+
+    writeFile.read_apr(apr_channel_0_55, 55, "channel_0");
+
+    if(!writeFile.read_particles("parts", parts_channel_0_55, true, 55, "channel_0")){
+        success = false;
+    }
+
+    writeFile.close();
+
+    auto it1 = apr_channel_0.iterator();
+    auto it2 = test_data.apr.iterator();
+    success = compare_two_iterators(it1,it2,success);
+
+    it1 = apr_channel_0_55.iterator();
+    it2 = test_data.apr.iterator();
+    success = compare_two_iterators(it1,it2,success);
+
 
 
     //Test Tree IO and RW and channel
@@ -2828,7 +2874,7 @@ bool test_pipeline_u16(TestData& test_data){
     }
 
     APR apr_c;
-    aprConverter.initPipelineAPR(apr_c, test_data.img_original.y_num, test_data.img_original.x_num, test_data.img_original.z_num);
+    aprConverter.initPipelineAPR(apr_c, test_data.img_original);
 
     aprConverter.get_apr_custom_grad_scale(apr_c,gradient_saved,scale_saved);
 
@@ -2840,7 +2886,7 @@ bool test_pipeline_u16(TestData& test_data){
 
     ParticleData<uint16_t> particles_intensities;
 
-    particles_intensities.sample_parts_from_img_downsampled(apr_c,test_data.img_original);
+    particles_intensities.sample_image(apr_c, test_data.img_original);
 
     //test the particles
     for (size_t j = 0; j < particles_intensities.size(); ++j) {
@@ -2853,6 +2899,32 @@ bool test_pipeline_u16(TestData& test_data){
     return success;
 
 }
+
+
+/**
+ * Extend value range to `uint16 max - bspline offset` and run pipeline test. If smoothing is used (lambda > 0), the
+ * pipeline should throw.
+ * @param test_data
+ * @return true if lambda > 0 and overflow caught, or if lambda = 0 (bspline smoothing not used). Otherwise false.
+ */
+bool test_u16_overflow_detection(TestData& test_data) {
+
+    if(test_data.apr.get_apr_parameters().lambda > 0) {
+        try{
+            const auto idx = test_data.img_original.mesh.size() / 2;
+            test_data.img_original.mesh[idx] = 65535-100;
+            test_pipeline_u16(test_data);
+        } catch(std::invalid_argument&) {
+            std::cout << "overflow successfully detected" << std::endl;
+            return true;
+        }
+    } else {
+        std::cout << "not testing overflow detection as smoothing is turned off (lambda = 0)" << std::endl;
+        return true;
+    }
+    return false;
+}
+
 
 bool test_pipeline_u16_blocked(TestData& test_data) {
 
@@ -2904,7 +2976,7 @@ bool test_pipeline_u16_blocked(TestData& test_data) {
     ParticleData<uint16_t> parts;
     ParticleData<uint16_t> partsBatch;
 
-    parts.sample_parts_from_img_downsampled(apr, test_data.img_original);
+    parts.sample_image(apr, test_data.img_original);
     partsBatch.sample_parts_from_img_blocked(aprBatch, test_data.filename, z_block_size, z_ghost);
 
     for(size_t i = 0; i < apr.total_number_particles(); ++i) {
@@ -2951,7 +3023,7 @@ bool test_pipeline_bound(TestData& test_data,float rel_error){
 
     aprConverter.get_apr(apr,test_data.img_original);
 
-    particles_intensities.sample_parts_from_img_downsampled(apr,test_data.img_original);
+    particles_intensities.sample_image(apr, test_data.img_original);
 
     PixelData<uint16_t> pc_recon;
     APRReconstruction::reconstruct_constant(apr,pc_recon,particles_intensities);
@@ -3093,7 +3165,7 @@ bool test_reconstruct_patch(TestData &test_data, const int level_delta = 0) {
     if (level_delta < 0) {
         std::vector<PixelData<float>> img_pyramid;
         const int level = test_data.apr.level_max() + patch.level_delta;
-        downsamplePyrmaid(recon_full, img_pyramid, test_data.apr.level_max(), level);
+        downsamplePyramid(recon_full, img_pyramid, test_data.apr.level_max(), level);
         recon_full.swap(img_pyramid[level]);
     }
 
@@ -3172,7 +3244,43 @@ bool test_reconstruct_patch_smooth(TestData &test_data) {
 }
 
 
+template<int size_y, int size_x, int size_z>
+bool test_median_filter(TestData &test_data) {
 
+    ParticleData<float> output;
+    APRFilter::median_filter<size_y, size_x, size_z>(test_data.apr, test_data.particles_intensities, output);
+
+    ParticleData<float> output_gt;
+    FilterTestHelpers::compute_median_filter_gt(test_data.apr, test_data.particles_intensities, output_gt, size_y, size_x, size_z);
+
+    return compareParticles(output_gt, output) == 0;
+}
+
+
+template<int size_y, int size_x, int size_z>
+bool test_min_filter(TestData &test_data) {
+
+    ParticleData<float> output;
+    APRFilter::min_filter<size_y, size_x, size_z>(test_data.apr, test_data.particles_intensities, output);
+
+    ParticleData<float> output_gt;
+    FilterTestHelpers::compute_min_filter_gt(test_data.apr, test_data.particles_intensities, output_gt, size_y, size_x, size_z);
+
+    return compareParticles(output_gt, output) == 0;
+}
+
+
+template<int size_y, int size_x, int size_z>
+bool test_max_filter(TestData &test_data) {
+
+    ParticleData<float> output;
+    APRFilter::max_filter<size_y, size_x, size_z>(test_data.apr, test_data.particles_intensities, output);
+
+    ParticleData<float> output_gt;
+    FilterTestHelpers::compute_max_filter_gt(test_data.apr, test_data.particles_intensities, output_gt, size_y, size_x, size_z);
+
+    return compareParticles(output_gt, output) == 0;
+}
 
 
 bool test_convolve_pencil(TestData &test_data, const bool boundary = false, const std::vector<int>& stencil_size = {3, 3, 3}) {
@@ -3194,25 +3302,9 @@ bool test_convolve_pencil(TestData &test_data, const bool boundary = false, cons
     APRFilter::convolve_pencil(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
 
     ParticleData<double> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
 
-
-    if(output.size() != output_gt.size()) {
-        std::cerr << "output sizes differ" << std::endl;
-        return false;
-    }
-
-    double eps = 1e-2;
-    size_t failures = 0;
-
-    for(uint64_t x=0; x < output.size(); ++x) {
-        if(std::abs(output[x] - output_gt[x]) > eps) {
-            std::cout << "discrepancy of " << std::abs(output[x] - output_gt[x]) << " at particle " << x << " (output = " << output[x] << ", ground_truth = " << output_gt[x] << ")" << std::endl;
-            failures++;
-        }
-    }
-    std::cout << failures << " failures out of " << it.total_number_particles() << std::endl;
-    return (failures==0);
+    return compareParticles(output_gt, output) == 0;
 }
 
 
@@ -3235,31 +3327,9 @@ bool test_convolve(TestData &test_data, const bool boundary = false, const std::
     APRFilter::convolve(test_data.apr, stencils, test_data.particles_intensities, output, boundary);
 
     ParticleData<double> output_gt;
-    APRFilter::create_test_particles_equiv(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
+    FilterTestHelpers::compute_convolution_gt(test_data.apr, stencils, test_data.particles_intensities, output_gt, boundary);
 
-    if(output.size() != output_gt.size()) {
-        std::cout << "output sizes differ" << std::endl;
-        return false;
-    }
-
-    double eps = 1e-2;
-    uint64_t failures = 0;
-
-    for(int level = it.level_max(); level >= it.level_min(); --level) {
-        for(int z = 0; z < it.z_num(level); ++z) {
-            for(int x = 0; x < it.x_num(level); ++x) {
-                for(it.begin(level, z, x); it < it.end(); ++it) {
-                    if(std::abs(output[it] - output_gt[it]) > eps) {
-                        std::cout << "Expected " << output_gt[it] << " but received " << output[it] <<
-                                  " at particle index " << it << " (level, z, x, y) = (" << level << ", " << z << ", " << x << ", " << it.y() << ")" << std::endl;
-                        failures++;
-                    }
-                }
-            }
-        }
-    }
-    std::cout << failures << " failures out of " << it.total_number_particles() << std::endl;
-    return (failures==0);
+    return compareParticles(output_gt, output) == 0;
 }
 
 
@@ -3409,7 +3479,6 @@ void CreateBigBigData::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"parts",test_data.particles_intensities);
     aprFile.close();
@@ -3425,7 +3494,6 @@ void CreateSmallSphereTest::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3456,7 +3524,6 @@ void CreateDiffDimsSphereTest::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3487,7 +3554,6 @@ void Create210SphereTestAPROnly::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3504,7 +3570,6 @@ void CreateGTSmall2DTestProperties::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3534,7 +3599,6 @@ void CreateGTSmall1DTestProperties::SetUp(){
 
     APRFile aprFile;
     aprFile.open(file_name,"READ");
-    aprFile.set_read_write_tree(false);
     aprFile.read_apr(test_data.apr);
     aprFile.read_particles(test_data.apr,"particle_intensities",test_data.particles_intensities);
     aprFile.close();
@@ -3658,6 +3722,7 @@ TEST_F(CreateGTSmall1DTestProperties, APR_FILTER) {
 TEST_F(CreateGTSmall1DTestProperties, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 
 }
 
@@ -3764,6 +3829,7 @@ TEST_F(CreateGTSmall2DTestProperties, APR_FILTER) {
 
 TEST_F(CreateGTSmall2DTestProperties, PIPELINE_COMPARE) {
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 }
 
 TEST_F(CreateGTSmall2DTestProperties, ITERATOR_METHODS) {
@@ -4142,12 +4208,14 @@ TEST_F(CreateDiffDimsSphereTest, APR_INPUT_OUTPUT) {
 TEST_F(CreateSmallSphereTest, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 
 }
 
 TEST_F(CreateDiffDimsSphereTest, PIPELINE_COMPARE) {
 
     ASSERT_TRUE(test_pipeline_u16(test_data));
+    ASSERT_TRUE(test_u16_overflow_detection(test_data));
 
 }
 
@@ -4165,16 +4233,14 @@ TEST_F(CreateSmallSphereTest, RUN_RICHARDSON_LUCY) {
 }
 
 
-TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
-
-    PixelData<float> stencil_pd(5, 5, 5);
+bool check_downsample_stencil(const int size_y, const int size_x, const int size_z, const bool normalize) {
+    PixelData<float> stencil_pd(size_y, size_x, size_z);
+    const int N = size_z * size_x * size_y;
     VectorData<float> stencil_vd;
-    stencil_vd.resize(125);
-
-    float sum = 62.0f * 125.0f;
-    for(int i = 0; i < 125; ++i) {
-        stencil_pd.mesh[i] = ((float) i) / sum;
-        stencil_vd[i] = ((float) i) / sum;
+    stencil_vd.resize(N);
+    for(int i = 0; i < N; ++i) {
+        stencil_pd.mesh[i] = i+1;
+        stencil_vd[i] = i+1;
     }
 
     VectorData<float> stencil_vec_vd;
@@ -4183,46 +4249,57 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
 
     int nlevels = 7;
 
-    APRStencil::get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, false);
-    APRStencil::get_downsampled_stencils(stencil_pd, pd_vec, nlevels, false);
-    APRStencil::get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, normalize);
+    APRStencil::get_downsampled_stencils(stencil_pd, pd_vec, nlevels, normalize);
+    APRStencil::get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, normalize);
 
     // compare outputs for PixelData and VectorData inputs
-    bool success = true;
-    ASSERT_EQ(stencil_vec_vd.size(), stencil_vec_pd.size());
+
+    if(stencil_vec_vd.size() != stencil_vec_pd.size()) {
+        return false;
+    }
 
     std::cout << "comparing downsampled stencils for VectorData and PixelData inputs" << std::endl;
 
     for(size_t i = 0; i < stencil_vec_pd.size(); ++i) {
         if( std::abs( stencil_vec_pd[i] - stencil_vec_vd[i] ) > 1e-5 ) {
             std::cout << "stencil_vec_vd = " << stencil_vec_vd[i] << " stencil_vec_pd = " << stencil_vec_pd[i] << " at index " << i << std::endl;
-            success = false;
+            return false;
         }
     }
 
-    if(success) {
-        std::cout << "OK!" << std::endl;
-    }
+    std::cout << "OK!" << std::endl;
 
     std::cout << "comparing downsampeld stencils for VectorData and std::vector<PixelData> output" << std::endl;
-    success = true;
-    int c = 0;
+    size_t c = 0;
     for(size_t dlvl = 0; dlvl < pd_vec.size(); ++dlvl) {
         for(size_t i = 0; i < pd_vec[dlvl].mesh.size(); ++i) {
             if( std::abs( pd_vec[dlvl].mesh[i] - stencil_vec_pd[c] ) > 1e-5 ) {
                 std::cout << "pd_vec = " << pd_vec[dlvl].mesh[i] << " stencil_vec_pd = " << stencil_vec_pd[c] <<
                           " at dlvl = " << dlvl << " and i = " << i << std::endl;
-                success = false;
+                return false;
             }
             c++;
         }
     }
 
-    ASSERT_EQ(c, stencil_vec_pd.size());
-    if(success) {
-        std::cout << "OK!" << std::endl;
+    if(c != stencil_vec_pd.size()) {
+        return false;
     }
 
+    std::cout << "OK!" << std::endl;
+
+    return true;
+}
+
+
+TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
+    ASSERT_TRUE(check_downsample_stencil(3, 3, 3, false));
+    ASSERT_TRUE(check_downsample_stencil(7, 7, 7, false));
+    ASSERT_TRUE(check_downsample_stencil(13, 13, 13, false));
+    ASSERT_TRUE(check_downsample_stencil(5, 5, 5, true));
+    ASSERT_TRUE(check_downsample_stencil(7, 7, 7, true));
+    ASSERT_TRUE(check_downsample_stencil(11, 11, 11, true));
 }
 
 
@@ -4288,11 +4365,242 @@ TEST_F(CreateDiffDimsSphereTest, APR_FILTER) {
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {13, 1, 1}));
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 13, 1}));
     ASSERT_TRUE(test_convolve_pencil(test_data, true, {1, 1, 13}));
+
+    // Median filter
+    bool success3D = test_median_filter<7, 5, 3>(test_data);
+    bool success2D = test_median_filter<5, 3, 1>(test_data);
+    bool success1D = test_median_filter<7, 1, 1>(test_data);
+    ASSERT_TRUE(success3D && success2D && success1D);
+
+    // Min filter
+    success3D = test_min_filter<7, 5, 3>(test_data);
+    success2D = test_min_filter<5, 3, 1>(test_data);
+    success1D = test_min_filter<7, 1, 1>(test_data);
+    ASSERT_TRUE(success3D && success2D && success1D);
+
+    // Max filter
+    success3D = test_max_filter<7, 5, 3>(test_data);
+    success2D = test_max_filter<5, 3, 1>(test_data);
+    success1D = test_max_filter<7, 1, 1>(test_data);
+    ASSERT_TRUE(success3D && success2D && success1D);
+
 }
 
 TEST_F(CreateAPRTest, READ_PARTICLE_TYPE){
     ASSERT_TRUE(test_apr_file_particle_type());
 }
+
+
+bool compare_lazy_iterator(LazyIterator& lazy_it, LinearIterator& apr_it) {
+
+    if(lazy_it.level_min() != apr_it.level_min()) { return false; }
+    if(lazy_it.level_max() != apr_it.level_max()) { return false; }
+    if(lazy_it.total_number_particles() != apr_it.total_number_particles()) { return false; }
+
+    for(int level = lazy_it.level_min(); level <= lazy_it.level_max(); ++level) {
+        if(lazy_it.z_num(level) != apr_it.z_num(level)) { return false; }
+        if(lazy_it.x_num(level) != apr_it.x_num(level)) { return false; }
+        if(lazy_it.y_num(level) != apr_it.y_num(level)) { return false; }
+    }
+
+    // loading rows of data
+    lazy_it.set_buffer_size(lazy_it.y_num(lazy_it.level_max()));
+    uint64_t counter = 0;
+    for(int level = apr_it.level_max(); level >= apr_it.level_min(); --level) {
+        for(int z = 0; z < apr_it.z_num(level); ++z) {
+            for(int x = 0; x < apr_it.x_num(level); ++x) {
+                lazy_it.load_row(level, z, x);
+                if(lazy_it.begin(level, z, x) != apr_it.begin(level, z, x)) { return false; }
+                if(lazy_it.end() != apr_it.end()) { return false; }
+
+                for(; lazy_it < lazy_it.end(); ++lazy_it, ++apr_it) {
+                    if(lazy_it.y() != apr_it.y()) { return false; }
+                    counter++;
+                }
+            }
+        }
+    }
+    if(counter != apr_it.total_number_particles()) { return false; }
+
+    // loading slices of data
+    lazy_it.set_buffer_size(lazy_it.x_num(lazy_it.level_max()) * lazy_it.y_num(lazy_it.level_max()));
+    counter = 0;
+    for(int level = lazy_it.level_max(); level >= lazy_it.level_min(); --level) {
+        for(int z = 0; z < lazy_it.z_num(level); ++z) {
+            lazy_it.load_slice(level, z);
+            for(int x = 0; x < lazy_it.x_num(level); ++x) {
+                if(lazy_it.begin(level, z, x) != apr_it.begin(level, z, x)) { return false; }
+                if(lazy_it.end() != apr_it.end()) { return false; }
+
+                for(; lazy_it < lazy_it.end(); ++lazy_it, ++apr_it) {
+                    if(lazy_it.y() != apr_it.y()) { return false; }
+                    counter++;
+                }
+            }
+        }
+    }
+    if(counter != lazy_it.total_number_particles()) { return false; }
+
+    return true;
+}
+
+
+bool test_lazy_iterators(TestData& test_data) {
+    // write APR to file using new format (required by LazyAccess) #TODO: update the test files
+    APRFile aprFile;
+    std::string file_name = "lazy_access_test.apr";
+    aprFile.open(file_name,"WRITE");
+    aprFile.write_apr(test_data.apr);
+    aprFile.write_particles("particles",test_data.particles_intensities);
+    aprFile.close();
+
+    // open file
+    aprFile.open(file_name, "READ");
+
+    // initialize LazyAccess and LazyIterator
+    LazyAccess access;
+    access.init(aprFile);
+    access.open();
+    LazyIterator lazy_it(access);
+
+    // linear iterator
+    auto apr_it = test_data.apr.iterator();
+
+    // compare lazy and linear iterators
+    bool success_apr = compare_lazy_iterator(lazy_it, apr_it);
+
+    // initialize LazyAccess and LazyIterator for tree data
+    LazyAccess tree_access;
+    tree_access.init_tree(aprFile);
+    tree_access.open();
+    LazyIterator lazy_tree_it(tree_access);
+
+    // linear iterator
+    auto tree_it = test_data.apr.tree_iterator();
+
+    // compare lazy and linear iterators
+    bool success_tree = compare_lazy_iterator(lazy_tree_it, tree_it);
+
+    access.close();
+    tree_access.close();
+    aprFile.close();
+
+    return success_apr && success_tree;
+}
+
+TEST_F(CreateSmallSphereTest, TEST_LAZY_ITERATOR) {
+    ASSERT_TRUE(test_lazy_iterators(test_data));
+}
+
+TEST_F(CreateDiffDimsSphereTest, TEST_LAZY_ITERATOR) {
+    ASSERT_TRUE(test_lazy_iterators(test_data));
+}
+
+
+bool test_reconstruct_lazy(TestData& test_data, ReconPatch& patch) {
+
+    // fill interior tree
+    ParticleData<uint16_t> tree_data;
+    APRTreeNumerics::fill_tree_mean(test_data.apr, test_data.particles_intensities, tree_data);
+
+    // write APR and tree data to file
+    APRFile aprFile;
+    std::string file_name = "lazy_recon_test.apr";
+    aprFile.open(file_name, "WRITE");
+    aprFile.write_apr(test_data.apr);
+    aprFile.write_particles("particles", test_data.particles_intensities, true);
+    aprFile.write_particles("particles", tree_data, false);
+    aprFile.close();
+
+    // open file
+    aprFile.open(file_name, "READ");
+
+    // initialize lazy access and iterator for APR
+    LazyAccess access;
+    access.init(aprFile);
+    access.open();
+    LazyIterator apr_it(access);
+
+    // intialize lazy access and iterator for tree
+    LazyAccess tree_access;
+    tree_access.init_tree(aprFile);
+    tree_access.open();
+    LazyIterator tree_it(tree_access);
+
+    LazyData<uint16_t> lazy_parts;
+    lazy_parts.init(aprFile, "particles");
+    lazy_parts.open();
+
+    LazyData<uint16_t> lazy_tree_parts;
+    lazy_tree_parts.init_tree(aprFile, "particles");
+    lazy_tree_parts.open();
+
+    PixelData<uint16_t> lazy_constant;
+    APRReconstruction::reconstruct_constant_lazy(apr_it, tree_it, lazy_constant, lazy_parts, lazy_tree_parts, patch);
+
+    PixelData<uint16_t> lazy_level;
+    APRReconstruction::reconstruct_level_lazy(apr_it, tree_it, lazy_level, patch);
+
+    PixelData<uint16_t> lazy_smooth;
+    APRReconstruction::reconstruct_smooth_lazy(apr_it, tree_it, lazy_smooth, lazy_parts, lazy_tree_parts, patch);
+
+    // close files
+    lazy_parts.close();
+    lazy_tree_parts.close();
+    access.close();
+    tree_access.close();
+    aprFile.close();
+
+    /// ground truth
+    PixelData<uint16_t> gt_constant;
+    APRReconstruction::reconstruct_constant(test_data.apr, gt_constant, test_data.particles_intensities, tree_data, patch);
+
+    PixelData<uint16_t> gt_level;
+    APRReconstruction::reconstruct_level(test_data.apr, gt_level, patch);
+
+    PixelData<uint16_t> gt_smooth;
+    APRReconstruction::reconstruct_smooth(test_data.apr, gt_smooth, test_data.particles_intensities, tree_data, patch);
+
+    return (compareMeshes(gt_constant, lazy_constant) +
+            compareMeshes(gt_level, lazy_level) +
+            compareMeshes(gt_smooth, lazy_smooth)) == 0;
+}
+
+
+TEST_F(CreateSmallSphereTest, TEST_RECONSTRUCT_LAZY) {
+
+    ReconPatch patch;
+
+    // upsampled full reconstruction
+    patch.level_delta = 1;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // full reconstruction at original resolution
+    patch.level_delta = 0;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // downsampled full reconstruction
+    patch.level_delta = -2;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // arbitrarily set patch region
+    patch.z_begin = 17; patch.z_end = 118;
+    patch.x_begin = 19; patch.x_end = 63;
+    patch.y_begin = 3; patch.y_end = 111;
+
+    // upsampled patch reconstruction
+    patch.level_delta = 2;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // patch reconstruction at original resolution
+    patch.level_delta = 0;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+
+    // downsampled patch reconstruction
+    patch.level_delta = -1;
+    ASSERT_TRUE(test_reconstruct_lazy(test_data, patch));
+}
+
 
 int main(int argc, char **argv) {
 

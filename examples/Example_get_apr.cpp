@@ -79,7 +79,7 @@ int runAPR(cmdLineOptions options) {
     if(aprConverter.get_apr(apr, input_img)){
 
         ParticleData<uint16_t> particle_intensities;
-        particle_intensities.sample_parts_from_img_downsampled(apr,input_img); // sample your particles from your image
+        particle_intensities.sample_image(apr, input_img); // sample your particles from your image
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
 
         //output
@@ -103,9 +103,7 @@ int runAPR(cmdLineOptions options) {
 
         aprFile.open(save_loc + file_name + ".apr");
 
-        aprFile.set_read_write_tree(false); //not writing tree to file.
-
-        aprFile.write_apr(apr);
+        aprFile.write_apr(apr, 0, "t", options.store_tree);
         aprFile.write_particles("particles",particle_intensities);
 
         float apr_file_size = aprFile.current_file_size_MB();

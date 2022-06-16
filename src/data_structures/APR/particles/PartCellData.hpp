@@ -96,9 +96,26 @@ public:
         }
     }
 
+    // kept for backwards compatibility
     template<typename imageType>
-    void sample_parts_from_img_downsampled(APR& apr,PixelData<imageType>& img){
-        sample_parts_from_img_downsampled_gen(apr,*this,img);
+    [[deprecated("use PartCellData<DataType>::sample_image instead")]]
+    void sample_parts_from_img_downsampled(APR& apr, PixelData<imageType>& img){
+        sample_image(apr, img);
+    }
+
+    template<typename imageType>
+    void sample_image(APR& apr, PixelData<imageType>& img){
+        auto sum = [](const float x, const float y) -> float { return x + y; };
+        auto divide_by_8 = [](const float x) -> float { return x/8.0f; };
+        sample_parts_from_img_downsampled_gen(apr, *this, img, sum, divide_by_8);
+    }
+
+    template<typename ImageType, typename BinaryOperator, typename UnaryOperator>
+    void sample_image(APR& apr,
+                      PixelData<ImageType>& img,
+                      BinaryOperator reduction_operator,
+                      UnaryOperator constant_operator) {
+        sample_parts_from_img_downsampled_gen(apr, *this, img, reduction_operator, constant_operator);
     }
 
 private:

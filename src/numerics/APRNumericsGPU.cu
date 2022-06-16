@@ -4,10 +4,100 @@
 
 #include "APRNumericsGPU.hpp"
 
+
+template<typename InputType>
+void APRNumericsGPU::gradient_magnitude(GPUAccessHelper &access, GPUAccessHelper &tree_access,
+                                        VectorData<InputType> &inputParticles, VectorData<float> &outputParticles,
+                                        VectorData<float> &stencil_vec_y, VectorData<float> &stencil_vec_x,
+                                        VectorData<float> &stencil_vec_z) {
+
+    // initialize GPU access data
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
+    // check stencils
+    assert(stencil_vec_y.size() >= 27);
+    assert(stencil_vec_x.size() >= 27);
+    assert(stencil_vec_z.size() >= 27);
+    const bool downsampled_y = (stencil_vec_y.size() >= 27 * (access.level_max() - access.level_min()));
+    const bool downsampled_x = (stencil_vec_x.size() >= 27 * (access.level_max() - access.level_min()));
+    const bool downsampled_z = (stencil_vec_z.size() >= 27 * (access.level_max() - access.level_min()));
+
+    // initialize output
+    outputParticles.resize(access.total_number_particles());
+
+    // find non-empty rows
+    VectorData<int> ne_counter_ds;
+    VectorData<int> ne_counter_333;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_ds_gpu;
+    ScopedCudaMemHandler<int*, JUST_ALLOC> ne_rows_333_gpu;
+    compute_ne_rows_tree_cuda<16, 32>(tree_access, ne_counter_ds, ne_rows_ds_gpu);
+    compute_ne_rows_cuda<16, 32>(access, ne_counter_333, ne_rows_333_gpu, 2);
+
+    // allocate GPU memory
+    ScopedCudaMemHandler<InputType*, H2D> input_gpu(inputParticles.data(), inputParticles.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> output_gpu(outputParticles.data(), outputParticles.size());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> tmp_output(NULL, access.total_number_particles());
+    ScopedCudaMemHandler<float*, JUST_ALLOC> tree_gpu(NULL, tree_access.total_number_particles());
+    ScopedCudaMemHandler<float*, H2D> stencil_y_gpu(stencil_vec_y.data(), stencil_vec_y.size());
+    ScopedCudaMemHandler<float*, H2D> stencil_x_gpu(stencil_vec_x.data(), stencil_vec_x.size());
+    ScopedCudaMemHandler<float*, H2D> stencil_z_gpu(stencil_vec_z.data(), stencil_vec_z.size());
+
+    // compute block and grid size for elementwise operations
+    const size_t N = access.total_number_particles();
+    int blockSize, minGridSize, gridSize;
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, addSquare, 0, 0);
+    gridSize = (N + blockSize - 1) / blockSize;
+
+    // fill tree by average downsampling
+    downsample_avg(access, tree_access, input_gpu.get(), tree_gpu.get(), ne_rows_ds_gpu.get(), ne_counter_ds);
+    error_check( cudaDeviceSynchronize() )
+
+    // compute y gradient
+    isotropic_convolve_333_reflective(access, tree_access, input_gpu.get(), output_gpu.get(),
+                                      stencil_y_gpu.get(), tree_gpu.get(), ne_rows_333_gpu.get(),
+                                      ne_counter_333, downsampled_y);
+    error_check( cudaDeviceSynchronize() )
+
+    // square y gradient
+    elementWiseMult<<<blockSize, gridSize>>>(output_gpu.get(), output_gpu.get(), N);
+
+    // compute x gradient
+    isotropic_convolve_333_reflective(access, tree_access, input_gpu.get(), tmp_output.get(),
+                                      stencil_x_gpu.get(), tree_gpu.get(), ne_rows_333_gpu.get(),
+                                      ne_counter_333, downsampled_x);
+
+    error_check( cudaDeviceSynchronize() )
+
+    // add square of x gradient to output
+    addSquare<<<blockSize, gridSize>>>(output_gpu.get(), tmp_output.get(), N);
+
+    error_check( cudaDeviceSynchronize() )
+
+    // compute z gradient
+    isotropic_convolve_333_reflective(access, tree_access, input_gpu.get(), tmp_output.get(),
+                                      stencil_z_gpu.get(), tree_gpu.get(), ne_rows_333_gpu.get(),
+                                      ne_counter_333, downsampled_z);
+
+    error_check( cudaDeviceSynchronize() )
+
+    // add square of x gradient to output
+    addSquare<<<blockSize, gridSize>>>(output_gpu.get(), tmp_output.get(), N);
+
+    error_check( cudaDeviceSynchronize() )
+
+    elementWiseSqrt<<<blockSize, gridSize>>>(output_gpu.get(), N);
+
+    error_check( cudaDeviceSynchronize() )
+
+    output_gpu.copyD2H();
+}
+
+
 template<typename inputType, typename stencilType>
-void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input, stencilType* output,
-                     stencilType* psf, stencilType* psf_flipped, int kernel_size, int niter, bool use_stencil_downsample,
-                     bool resume) {
+void APRNumericsGPU::richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inputType* input,
+                                     stencilType* output, stencilType* psf, stencilType* psf_flipped, int kernel_size,
+                                     int niter, bool use_stencil_downsample, bool resume) {
 
     VectorData<int> ne_counter_ds;
     VectorData<int> ne_counter_333;
@@ -32,9 +122,9 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
 
     /// set block/grid size for cuda kernels
     const size_t numParts = access.total_number_particles();
-
-    dim3 grid_dim(8, 1, 1);
-    dim3 block_dim(256, 1, 1);
+    int block_dim, grid_dim, minGridSize;
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &block_dim, elementWiseMult<stencilType>, 0, 0);
+    grid_dim = (numParts + block_dim - 1) / block_dim;
 
     error_check( cudaDeviceSynchronize() )
 
@@ -96,9 +186,9 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, inpu
 
 
 template<typename inputType, typename stencilType>
-void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
-                     VectorData<stencilType>& output, PixelData<stencilType>& psf, int niter, bool use_stencil_downsample,
-                     bool normalize_stencil, bool resume) {
+void APRNumericsGPU::richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                     VectorData<stencilType>& output, PixelData<stencilType>& psf, int niter,
+                                     bool use_stencil_downsample, bool normalize_stencil, bool resume) {
 
     tree_access.init_gpu();
     access.init_gpu(tree_access);
@@ -119,39 +209,24 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
 
     VectorData<stencilType> psf_vec;
     VectorData<stencilType> psf_flipped_vec;
-
-    if(use_stencil_downsample) {
-        APRStencil::get_downsampled_stencils(psf, psf_vec, access.level_max() - access.level_min(), normalize_stencil);
-        APRStencil::get_downsampled_stencils(psf_flipped, psf_flipped_vec, access.level_max() - access.level_min(), normalize_stencil);
-    }
+    const int num_levels = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
+    APRStencil::get_downsampled_stencils(psf, psf_vec, num_levels, normalize_stencil);
+    APRStencil::get_downsampled_stencils(psf_flipped, psf_flipped_vec, num_levels, normalize_stencil);
 
     output.resize(input.size());
 
-    /// allocate GPU memory
-    ScopedCudaMemHandler<inputType*, JUST_ALLOC> input_gpu(input.data(), input.size());
+    /// allocate GPU memory and copy data
+    ScopedCudaMemHandler<inputType*, H2D> input_gpu(input.data(), input.size());
     ScopedCudaMemHandler<stencilType*, JUST_ALLOC> output_gpu(output.data(), output.size());
-    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_gpu;
-    ScopedCudaMemHandler<stencilType*, JUST_ALLOC> psf_flipped_gpu;
-
-    if(use_stencil_downsample) {
-        psf_gpu.initialize(psf_vec.data(), psf_vec.size());
-        psf_flipped_gpu.initialize(psf_flipped_vec.data(), psf_flipped_vec.size());
-    } else {
-        psf_gpu.initialize(psf.mesh.get(), psf.mesh.size());
-        psf_flipped_gpu.initialize(psf_flipped.mesh.get(), psf_flipped.mesh.size());
-    }
-
-    /// copy input and psf to the device
-    input_gpu.copyH2D();
-    psf_gpu.copyH2D();
-    psf_flipped_gpu.copyH2D();
+    ScopedCudaMemHandler<stencilType*, H2D> psf_gpu(psf_vec.data(), psf_vec.size());
+    ScopedCudaMemHandler<stencilType*, H2D> psf_flipped_gpu(psf_flipped_vec.data(), psf_flipped_vec.size());
 
     if(resume) {
         output_gpu.copyH2D();
     }
 
-    richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), psf_gpu.get(), psf_flipped_gpu.get(),
-                    kernel_size, niter, use_stencil_downsample, resume);
+    APRNumericsGPU::richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), psf_gpu.get(),
+                                    psf_flipped_gpu.get(), kernel_size, niter, use_stencil_downsample, resume);
     error_check( cudaDeviceSynchronize() )
 
     /// copy result back to host
@@ -159,8 +234,15 @@ void richardson_lucy(GPUAccessHelper& access, GPUAccessHelper& tree_access, Vect
 }
 
 
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, float*, float*, int, int, bool, bool);
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, float*, float*, int, int, bool, bool);
+template void APRNumericsGPU::gradient_magnitude(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
+template void APRNumericsGPU::gradient_magnitude(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
+template void APRNumericsGPU::gradient_magnitude(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint64_t>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
+template void APRNumericsGPU::gradient_magnitude(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&, VectorData<float>&);
 
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
-template void richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint8_t*, float*, float*, float*, int, int, bool, bool);
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, uint16_t*, float*, float*, float*, int, int, bool, bool);
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, float*, float*, float*, float*, int, int, bool, bool);
+
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint8_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<uint16_t>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);
+template void APRNumericsGPU::richardson_lucy(GPUAccessHelper&, GPUAccessHelper&, VectorData<float>&, VectorData<float>&, PixelData<float>&, int, bool, bool, bool);

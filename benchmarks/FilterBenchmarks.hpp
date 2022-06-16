@@ -817,13 +817,13 @@ inline void bench_richardson_lucy_apr(APR& apr, ParticleData<partsType>& parts, 
 
     // burn-in
     for(int i = 0; i < num_rep/10; ++i) {
-        richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, niter, true);
+        APRNumericsGPU::richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, niter, true);
     }
     cudaDeviceSynchronize();
 
     timer.start_timer("richardson lucy");
     for(int i = 0; i < num_rep; ++i) {
-        richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, niter, true);
+        APRNumericsGPU::richardson_lucy(access, tree_access, input_gpu.get(), output_gpu.get(), stencil_gpu.get(), stencil_gpu.get(), 5, niter, true);
     }
     cudaDeviceSynchronize();
     timer.stop_timer();

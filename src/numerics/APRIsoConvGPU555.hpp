@@ -13,10 +13,44 @@
 
 /// high-level functions including data transfer
 
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_555_direct(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input,
+                                   VectorData<outputType>& output, VectorData<stencilType>& stencil,
+                                   VectorData<treeType>& tree_data, bool reflective_bc);
+
+
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,
-                            VectorData<stencilType>& stencil, VectorData<treeType>& tree_data, bool reflective_bc = false,
-                            bool use_stencil_downsample = false, bool normalize_stencil = false);
+                            VectorData<stencilType>& stencil, VectorData<treeType>& tree_data, bool reflective_bc, bool use_stencil_downsample,
+                            bool normalize_stencil) {
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
+    assert(stencil.size() == 125);
+    VectorData<stencilType> stencil_vec;
+    const int nlevels = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
+    APRStencil::get_downsampled_stencils(stencil, stencil_vec, nlevels, normalize_stencil);
+    isotropic_convolve_555_direct(access, tree_access, input, output, stencil_vec, tree_data, reflective_bc);
+}
+
+
+template<typename inputType, typename outputType, typename stencilType, typename treeType>
+void isotropic_convolve_555(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,
+                            PixelData<stencilType>& stencil, VectorData<treeType>& tree_data, bool reflective_bc, bool use_stencil_downsample,
+                            bool normalize_stencil) {
+    tree_access.init_gpu();
+    access.init_gpu(tree_access);
+
+    assert(stencil.z_num == 5);
+    assert(stencil.x_num == 5);
+    assert(stencil.y_num == 5);
+    VectorData<stencilType> stencil_vec;
+    const int nlevels = use_stencil_downsample ? access.level_max() - access.level_min() : 1;
+    APRStencil::get_downsampled_stencils(stencil, stencil_vec, nlevels, normalize_stencil);
+    isotropic_convolve_555_direct(access, tree_access, input, output, stencil_vec, tree_data, reflective_bc);
+}
+
 
 template<typename inputType, typename outputType, typename stencilType, typename treeType>
 void isotropic_convolve_555_alt(GPUAccessHelper& access, GPUAccessHelper& tree_access, VectorData<inputType>& input, VectorData<outputType>& output,

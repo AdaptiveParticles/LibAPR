@@ -155,7 +155,7 @@ inline void bench_lazy_particle_data(APR& apr,ParticleData<partsType>& parts,int
 
     LazyData<uint16_t> parts_lazy;
 
-    parts_lazy.init_file(writeFile,"parts",true);
+    parts_lazy.init(writeFile, "parts");
 
     parts_lazy.open();
 

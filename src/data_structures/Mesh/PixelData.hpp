@@ -29,6 +29,39 @@
 #include "misc/CudaMemory.cuh"
 #endif
 
+struct PixelDataDim {
+    size_t y;
+    size_t x;
+    size_t z;
+
+    PixelDataDim(size_t y, size_t x, size_t z) : y(y), x(x), z(z) {}
+
+    size_t size() const { return y * x * z; }
+
+    PixelDataDim operator+(const PixelDataDim &rhs) const { return {y + rhs.y, x + rhs.x, z + rhs.z}; }
+    PixelDataDim operator-(const PixelDataDim &rhs) const { return {y - rhs.y, x - rhs.x, z - rhs.z}; }
+
+    template<typename INTEGER>
+    constexpr typename std::enable_if<std::is_integral<INTEGER>::value, PixelDataDim>::type
+    operator+(INTEGER i) const { return {y + i, x + i, z + i}; }
+
+    template<typename INTEGER>
+    constexpr typename std::enable_if<std::is_integral<INTEGER>::value, PixelDataDim>::type
+    operator-(INTEGER i) const { return *this + (-i); }
+
+    friend bool operator==(const PixelDataDim& lhs, const PixelDataDim& rhs) {
+        return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z);
+    }
+    friend bool operator!=(const PixelDataDim& lhs, const PixelDataDim& rhs) {
+        return !(lhs == rhs);
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const PixelDataDim &obj) {
+        os << "{" << obj.y << ", " << obj.x << ", " << obj.z << "}";
+        return os;
+    }
+};
+
 template <typename T>
 class ArrayWrapper
 {
@@ -436,6 +469,13 @@ public :
     PixelData(const PixelData<U> &aMesh, bool aShouldCopyData, bool aUsedPinnedMemory = false) {
         init(aMesh.y_num, aMesh.x_num, aMesh.z_num, aUsedPinnedMemory);
         if (aShouldCopyData) std::copy(aMesh.mesh.begin(), aMesh.mesh.end(), mesh.begin());
+    }
+
+    /**
+     * Returns dimensions of PixelData
+     */
+    PixelDataDim getDimension() const {
+        return {static_cast<size_t>(y_num), static_cast<size_t>(x_num), static_cast<size_t>(z_num)};
     }
 
     /**
@@ -993,20 +1033,30 @@ void const_upsample_img(PixelData<T>& input_us, PixelData<T>& input){
 }
 
 
-
-
-template<typename T>
-void downsamplePyrmaid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
+template<typename T, typename BinaryOperator, typename UnaryOperator>
+void downsamplePyramid(PixelData<T> &original_image,
+                       std::vector<PixelData<T>> &downsampled,
+                       size_t l_max,
+                       size_t l_min,
+                       BinaryOperator reduction_operator,
+                       UnaryOperator constant_operator) {
     downsampled.resize(l_max + 1); // each level is kept at same index
     downsampled.back().swap(original_image); // put original image at l_max index
 
-    // calculate downsampled in range (l_max, l_min]
-    auto sum = [](const float x, const float y) -> float { return x + y; };
-    auto divide_by_8 = [](const float x) -> float { return x/8.0f; };
     for (size_t level = l_max; level > l_min; --level) {
-        downsample(downsampled[level], downsampled[level - 1], sum, divide_by_8, true);
+        downsample(downsampled[level], downsampled[level - 1], reduction_operator, constant_operator, true);
     }
 }
+
+
+template<typename T>
+void downsamplePyramid(PixelData<T> &original_image, std::vector<PixelData<T>> &downsampled, size_t l_max, size_t l_min) {
+    auto sum = [](const float x, const float y) -> float { return x + y; };
+    auto divide_by_8 = [](const float x) -> float { return x/8.0f; };
+
+    downsamplePyramid(original_image, downsampled, l_max, l_min, sum, divide_by_8);
+}
+
 
 /**
  * Padds an array performing reflection, first y,x,z - reflecting around the edge pixel.

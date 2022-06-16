@@ -11,6 +11,7 @@
 
 #include <list>
 
+#include "AutoParameters.hpp"
 #include "data_structures/APR/APR.hpp"
 #include "data_structures/APR/particles/ParticleData.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
@@ -32,9 +33,6 @@
 
 template<typename ImageType>
 class APRConverter {
-
-    template<typename T>
-    friend class PyAPRConverter;
 
     template<typename T>
     friend class APRConverterBatch;
@@ -67,21 +65,38 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
-    template<typename T>
+    template <typename T>
     bool get_apr(APR &aAPR, PixelData<T> &input_image);
+
+    template <typename T>
+    bool get_apr_cpu(APR &aAPR, PixelData<T> &input_image);
+
+#ifdef APR_USE_CUDA
+    template <typename T>
+    bool get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
+#endif
 
     bool verbose = true;
 
     void get_apr_custom_grad_scale(APR& aAPR,PixelData<ImageType>& grad,PixelData<float>& lis,bool down_sampled = true);
 
-    void initPipelineAPR(APR &aAPR, int y_num, int x_num = 1, int z_num = 1){
-        //
-        //  Initializes the APR datastructures for the given image.
-        //
+    template <typename T>
+    bool initPipelineAPR(APR &aAPR, PixelData<T> &input_image) {
 
-        aAPR.aprInfo.init(y_num,x_num,z_num);
+        if (par.check_input) {
+            if (!check_input_dimensions(input_image)) {
+                std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
+                return false;
+            }
+        }
+
+        //  Initializes the APR datastructures for the given image.
+        aAPR.parameters = par;
+        aAPR.aprInfo.init(input_image.y_num,input_image.x_num,input_image.z_num);
         aAPR.linearAccess.genInfo = &aAPR.aprInfo;
         aAPR.apr_access.genInfo = &aAPR.aprInfo;
+
+        return true;
     }
 
 protected:
@@ -110,17 +125,10 @@ protected:
 
     void generateDatastructures(APR& aAPR);
 
-    template<typename T,typename S>
-    void autoParameters(const PixelData<T> &localIntensityScale,const PixelData<S> &grad);
-
-    template<typename T,typename S>
-    void autoParametersLiEntropy(const PixelData<T> &image, const PixelData<T> &localIntensityScale, const PixelData<S> &grad);
-
     template<typename T>
     bool check_input_dimensions(PixelData<T> &input_image);
 
-    void initPipelineMemory(int y_num,int x_num = 1,int z_num = 1);
-
+    void initPipelineMemory(int y_num, int x_num = 1, int z_num = 1);
 
 };
 
@@ -378,6 +386,8 @@ void APRConverter<ImageType>::generateDatastructures(APR& aAPR){
 
 /**
  * Main method for constructing the input steps to the computation to the APR before parameters are applied.
+ *
+ * Note: currently only used by the python wrappers for interactive parameter selection
  */
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_image) {
@@ -386,7 +396,7 @@ inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_imag
 
     aAPR.parameters = par;
 
-    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
+    initPipelineAPR(aAPR, input_image);
 
     computation_timer.start_timer("init_mem");
 
@@ -407,6 +417,8 @@ inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_imag
 
 /**
  * Main method for constructing the input steps to the computation to the APR before parameters are applied.
+ *
+ * Note: currently only used by the python wrappers for interactive parameter selection
  */
 template<typename ImageType>
 inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
@@ -423,71 +435,16 @@ inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
 }
 
 
+#ifdef APR_USE_CUDA
 /**
- * Main method for constructing the APR from an input image
+ * Implementation of pipeline for GPU/CUDA
+ *
+ * @param aAPR - the APR datastructure
+ * @param input_image - input image
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_image) {
-
-    aAPR.parameters = par;
-
-    if(par.check_input) {
-        if(!check_input_dimensions(input_image)) {
-            std::cout << "Input dimension check failed. Make sure the input image is filled in order x -> y -> z, or try using the option -swap_dimension" << std::endl;
-            return false;
-        }
-    }
-
-
-    initPipelineAPR(aAPR, input_image.y_num, input_image.x_num, input_image.z_num);
-
-#ifndef APR_USE_CUDA
-
-    total_timer.start_timer("full_pipeline");
-
-    computation_timer.start_timer("init_mem");
-
-    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
-
-    computation_timer.stop_timer();
-
-
-    computation_timer.start_timer("compute_L");
-
-    //Compute the local resolution estimate
-    computeL(aAPR,input_image);
-
-    computation_timer.stop_timer();
-
-    computation_timer.start_timer("apply_parameters");
-
-    if( par.auto_parameters ) {
-        method_timer.start_timer("autoParameters");
-//        autoParameters(local_scale_temp,grad_temp);
-        autoParametersLiEntropy(local_scale_temp2, local_scale_temp, grad_temp);
-        aAPR.parameters = par;
-        method_timer.stop_timer();
-    }
-
-    applyParameters(aAPR,par);
-
-    computation_timer.stop_timer();
-
-    computation_timer.start_timer("solve_for_apr");
-
-    solveForAPR(aAPR);
-
-    computation_timer.stop_timer();
-
-    computation_timer.start_timer("generate_data_structures");
-
-    generateDatastructures(aAPR);
-
-    computation_timer.stop_timer();
-
-    total_timer.stop_timer();
-
-#else
+inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input_image) {
+    if (!initPipelineAPR(aAPR, input_image)) return false;
 
 
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
@@ -501,19 +458,16 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
         computation_timer.start_timer("init_mem");
         PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
-
         /////////////////////////////////
         /// Pipeline
         ////////////////////////
-
-
         //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
         // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
 
         if (std::is_same<uint16_t, ImageType>::value) {
             bspline_offset = 100;
             image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-        } else if (std::is_same<uint8_t, ImageType>::value){
+        } else if (std::is_same<uint8_t, ImageType>::value) {
             bspline_offset = 5;
             image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
         } else {
@@ -561,13 +515,13 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             PixelData<float> lst(local_scale_temp, true);
 
 #ifdef HAVE_LIBTIFF
-            if(par.output_steps){
+            if (par.output_steps){
                 TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", lst);
             }
 #endif
 
 #ifdef HAVE_LIBTIFF
-            if(par.output_steps){
+            if (par.output_steps){
                 TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
             }
 #endif
@@ -581,165 +535,90 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T>& input_imag
             computation_timer.start_timer("generate_data_structures");
             generateDatastructures(aAPR);
             computation_timer.stop_timer();
-
-
         }
         std::cout << "Total n ENDED" << std::endl;
 
     }
     t.stop_timer();
     method_timer.stop_timer();
+
+    return true;
+}
 #endif
+
+
+/**
+ * Implementation of pipeline for CPU
+ *
+ * @param aAPR - the APR datastructure
+ * @param input_image - input image
+ */
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_apr_cpu(APR &aAPR, PixelData<T> &input_image) {
+
+    if (!initPipelineAPR(aAPR, input_image)) return false;
+
+    total_timer.start_timer("full_pipeline");
+
+    computation_timer.start_timer("init_mem");
+
+    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("compute_L");
+
+    //Compute the local resolution estimate
+    computeL(aAPR,input_image);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("apply_parameters");
+
+    if (par.auto_parameters) {
+        method_timer.start_timer("autoParameters");
+        autoParametersLiEntropy(par, local_scale_temp2, local_scale_temp, grad_temp, bspline_offset, verbose);
+        aAPR.parameters = par;
+        method_timer.stop_timer();
+    }
+
+    applyParameters(aAPR,par);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("solve_for_apr");
+
+    solveForAPR(aAPR);
+
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("generate_data_structures");
+
+    generateDatastructures(aAPR);
+
+    computation_timer.stop_timer();
+
+    total_timer.stop_timer();
 
     return true;
 }
 
-template<typename T>
-void compute_means(const std::vector<T>& data, float threshold, float& mean_back, float& mean_fore) {
-    float sum_fore=0.f, sum_back=0.f;
-    size_t count_fore=0, count_back=0;
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(none) shared(data, threshold) reduction(+:sum_fore, sum_back, count_fore, count_back)
-#endif
-    for(size_t idx = 0; idx < data.size(); ++idx) {
-        if(data[idx] > threshold) {
-            sum_fore += data[idx];
-            count_fore++;
-        } else {
-            sum_back += data[idx];
-            count_back++;
-        }
-    }
-    mean_fore = sum_fore / count_fore;
-    mean_back = sum_back / count_back;
-}
-
 
 /**
- * Compute threshold value by Li's iterative Minimum Cross Entropy method [1]
+ * Main method for constructing the APR from an input image
  *
- * Note: it is assumed that the input elements are non-negative (as is the case for the gradient and local intensity
- * scale). To apply the method to data that may be negative, subtract the minimum value from the input, and then add
- * that value to the computed threshold.
- *
- * [1] Li, C. H., & Tam, P. K. S. (1998). "An iterative algorithm for minimum cross entropy thresholding."
- *     Pattern recognition letters, 19(8), 771-776.
+ * @param aAPR - the APR data structure
+ * @param input_image - input image
  */
-template<typename T>
-float threshold_li(const std::vector<T> &input) {
-
-    if(input.empty()) { return 0.f; }     // return 0 if input is empty
-
-    const T image_min = *std::min_element(input.begin(), input.end());
-    const T image_max = *std::max_element(input.begin(), input.end());
-
-    if(image_min == image_max) { return image_min; }  // if all inputs are equal, return that value
-
-    float tolerance = 0.5f;   // tolerance 0.5 should suffice for integer inputs
-
-    // For floating point inputs we set the tolerance to the lesser of 0.01 and a fraction of the data range
-    // This could be improved, by instead taking e.g. half the smallest difference between any two non-equal elements
-    if(std::is_floating_point<T>::value) {
-        float range = image_max - image_min;
-        tolerance = std::min(0.01f, range*1e-4f);
-    }
-
-    // Take the mean of the input as initial value
-    float t_next = std::accumulate(input.begin(), input.end(), 0.f) / (float) input.size();
-    float t_curr = -2.f * tolerance; //this ensures that the first iteration is performed, since t_next is non-negative
-
-    // For integer inputs, we have to ensure a large enough initial value, such that mean_back > 0
-    if(!std::is_floating_point<T>::value) {
-        // if initial value is <1, try to increase it to 1.5 unless the range is too narrow
-        if(t_next < 1.f) {
-            t_next = std::min(1.5f, (image_min+image_max)/2.f);
-        }
-    }
-
-    // Perform Li iterations until convergence
-    while(std::abs(t_next - t_curr) > tolerance) {
-        t_curr = t_next;
-
-        // Compute averages of values above and below the current threshold
-        float mean_back, mean_fore;
-        compute_means(input, t_curr, mean_back, mean_fore);
-
-        // Handle the edge case where all values < t_curr are 0
-        if(mean_back == 0) {
-            std::wcout << "log(0) encountered in APRConverter::threshold_li, returning current threshold" << std::endl;
-            return t_curr;
-        }
-
-        // Update the threshold (one-point iteration)
-        t_next = (mean_fore - mean_back) / (std::log(mean_fore) - std::log(mean_back));
-    }
-    return t_next;
-}
-
-
-template<typename ImageType>
-template<typename T,typename S>
-void APRConverter<ImageType>::autoParametersLiEntropy(const PixelData<T> &image,
-                                                      const PixelData<T> &localIntensityScale,
-                                                      const PixelData<S> &grad) {
-
-    fine_grained_timer.start_timer("autoparameters: subsample buffers");
-
-    std::vector<S> grad_subsampled;
-    std::vector<T> lis_subsampled;
-
-    {   // intentional scope
-        /// First we extract the gradient and local intensity scale values at all locations where the image
-        /// intensity exceeds the intensity threshold. This allows better adaptation in certain cases, e.g.
-        /// when there is significant background AND signal noise/autofluorescence (provided that par.Ip_th
-        /// is set appropriately).
-        std::vector<S> grad_foreground(grad.mesh.size());
-        std::vector<T> lis_foreground(localIntensityScale.mesh.size());
-
-        const auto threshold = par.Ip_th + bspline_offset;
-        size_t counter = 0;
-        for(size_t idx = 0; idx < grad.mesh.size(); ++idx) {
-            if(image.mesh[idx] > threshold) {
-                grad_foreground[counter] = grad.mesh[idx];
-                lis_foreground[counter] = localIntensityScale.mesh[idx];
-                counter++;
-            }
-        }
-
-        const size_t num_foreground_pixels = counter;
-
-        grad_foreground.resize(num_foreground_pixels); //setting size to non-zero elements.
-        lis_foreground.resize(num_foreground_pixels);
-
-        /// Then we uniformly subsample these signals, as we typically don't need all elements to compute the thresholds
-        const size_t num_elements = std::min((size_t)32*512*512, num_foreground_pixels); //arbitrary number.
-        const size_t delta = num_foreground_pixels / num_elements;
-        grad_subsampled.resize(num_elements);
-        lis_subsampled.resize(num_elements);
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_image) {
+// TODO: CUDA pipeline is temporarily turned off and CPU version is always chosen.
+//       After revising a CUDA pipeline remove "#if true // " part.
+#if true // #ifndef APR_USE_CUDA
+    return get_apr_cpu(aAPR, input_image);
+#else
+    return get_apr_cuda(aAPR, input_image);
 #endif
-        for(size_t idx = 0; idx < num_elements; ++idx) {
-            grad_subsampled[idx] = grad_foreground[idx*delta];
-            lis_subsampled[idx] = lis_foreground[idx*delta];
-        }
-    }
-    fine_grained_timer.stop_timer();
-
-    fine_grained_timer.start_timer("autoparameters: compute gradient threshold");
-    par.grad_th = threshold_li(grad_subsampled);
-    fine_grained_timer.stop_timer();
-
-    fine_grained_timer.start_timer("autoparameters: compute sigma threshold");
-    par.sigma_th = threshold_li(lis_subsampled);
-    fine_grained_timer.stop_timer();
-
-    if(verbose) {
-        std::cout << "Automatic parameter tuning found sigma_th = " << par.sigma_th <<
-                     " and grad_th = " << par.grad_th << std::endl;
-    }
 }
 
 

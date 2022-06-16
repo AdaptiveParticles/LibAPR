@@ -58,8 +58,68 @@ public:
     void initialize_tree_access_sparse(std::vector<std::vector<SparseParticleCellMap>> &p_map);
 
     void initialize_linear_structure_sparse(APRParameters& apr_parameters,SparseGaps<SparseParticleCellMap>& p_map);
+
+    void initialize_tree_access_dense(std::vector<PixelData<uint8_t>> &p_map);
+
 };
 
+
+inline void LinearAccess::initialize_tree_access_dense(std::vector<PixelData<uint8_t>> &p_map) {
+    APRTimer timer(false);
+
+    initialize_xz_linear();
+
+    // fill number of particles in each row
+    timer.start_timer("init tree dense - fill number particles per row");
+    for(int level = level_max(); level >= level_min(); --level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+        for(int z = 0; z < z_num(level); ++z) {
+            for(int x = 0; x < x_num(level); ++x) {
+                size_t offset = (size_t) z * x_num(level) * y_num(level) + (size_t) x * y_num(level);
+                size_t counter = 0;
+
+                for(int y = 0; y < y_num(level); ++y) {
+                    counter += p_map[level].mesh[offset + y];
+                }
+                size_t row_index = level_xz_vec[level] + z * x_num(level) + x;
+                xz_end_vec[row_index] = counter;
+            }
+        }
+    }
+    timer.stop_timer();
+
+    timer.start_timer("init tree dense - cumulative sum");
+    std::partial_sum(xz_end_vec.begin(),xz_end_vec.end(),xz_end_vec.begin());
+    timer.stop_timer();
+
+    // set total number of particles
+    genInfo->total_number_particles = xz_end_vec.back();
+
+    timer.start_timer("init tree dense - allocate and fill y_vec");
+    y_vec.resize(genInfo->total_number_particles);
+
+    for(int level = level_max(); level >= level_min(); --level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+        for(int z = 0; z < z_num(level); ++z) {
+            for (int x = 0; x < x_num(level); ++x) {
+                size_t offset = (size_t) z * x_num(level) * y_num(level) + (size_t) x * y_num(level);
+                size_t row_index = level_xz_vec[level] + z * x_num(level) + x;
+                size_t particle_index = xz_end_vec[row_index-1];
+
+                for(int y = 0; y < y_num(level); ++y) {
+                    if(p_map[level].mesh[offset + y]) {
+                        y_vec[particle_index++] = y;
+                    }
+                }
+            }
+        }
+    }
+    timer.stop_timer();
+}
 
 
 inline void LinearAccess::initialize_tree_access_sparse(std::vector<std::vector<SparseParticleCellMap>> &p_map) {

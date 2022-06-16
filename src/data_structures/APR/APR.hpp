@@ -25,11 +25,16 @@ class APR {
 
 protected:
 
-    //APR Tree function
-    void initialize_apr_tree_sparse();
-    void initialize_apr_tree_sparse_linear();
-    void initialize_apr_tree();
-    void initialize_linear_access(LinearAccess& aprAccess,APRIterator& it);
+    // initialize tree RandomAccess
+    void initialize_tree_random_sparse();
+    void initialize_tree_random_dense();    // appears to be broken #TODO: remove or fix
+
+    // initialize tree LinearAccess
+    void initialize_tree_sparse();
+    void initialize_tree_dense();
+
+    void initialize_linear_access_from_random(LinearAccess& aprAccess, APRIterator& it);
+    void initialize_random_access_from_linear();
 
     //New Access
     LinearAccess linearAccess;
@@ -62,14 +67,9 @@ public:
 
     GPUAccessHelper gpuAPRHelper(){
         if(!apr_initialized){
-            if(!apr_initialized_random){
-                std::cerr << "No APR initialized" << std::endl;
-
-            } else {
-                initialize_linear();
-                apr_initialized = true;
-            }
+            initialize_linear();
         }
+
         return GPUAccessHelper(gpuAccess,linearAccess);
     }
 
@@ -78,6 +78,22 @@ public:
             initialize_tree_linear();
         }
         return GPUAccessHelper(gpuTreeAccess,linearAccessTree);
+    }
+
+
+    /**
+     * Initialize GPU access and copy data to device
+     * @param with_tree     include the tree access
+     */
+    void init_cuda(bool with_tree=true) {
+        auto apr_helper = gpuAPRHelper();
+        if(with_tree) {
+            auto tree_helper = gpuTreeHelper();
+            tree_helper.init_gpu();
+            apr_helper.init_gpu(tree_helper);
+        } else {
+            apr_helper.init_gpu();
+        }
     }
 #endif
 
@@ -104,7 +120,12 @@ public:
     inline uint64_t total_number_particles() const { return aprInfo.total_number_particles; }
     uint64_t org_dims(int dim) const { return aprInfo.org_dims[dim]; }
 
-    inline uint64_t total_number_tree_particles() const { return treeInfo.total_number_particles; }
+    inline uint64_t total_number_tree_particles() {
+        if(!tree_initialized && !tree_initialized_random) {
+            initialize_tree_linear();
+        }
+        return treeInfo.total_number_particles;
+    }
 
     inline int number_dimensions() const {
         return aprInfo.number_dimensions;
@@ -118,35 +139,22 @@ public:
     APRIterator random_iterator() {
 
         if(!apr_initialized_random){
-            initialize_random_access();
-            apr_initialized_random = true;
+            initialize_random();
         }
 
         return APRIterator(apr_access,aprInfo);
     }
 
     LinearIterator iterator() {
-        // Just checking if its initialized
-        if(!apr_initialized){
-            if(!apr_initialized_random){
-                std::cerr << "No APR initialized" << std::endl;
 
-            } else {
-                initialize_linear();
-                apr_initialized = true;
-            }
+        if(!apr_initialized){
+            initialize_linear();
         }
 
         return LinearIterator(linearAccess,aprInfo);
     }
 
     APRTreeIterator random_tree_iterator() {
-
-        if(!apr_initialized_random){
-            //the random tree iterator and the apr iteratator are joint at the hip.
-            initialize_random_access();
-            apr_initialized_random = true;
-        }
 
         if(!tree_initialized_random){
             initialize_tree_random();
@@ -156,7 +164,7 @@ public:
     }
 
     LinearIterator tree_iterator() {
-        // Checking if initialized.
+
         if(!tree_initialized){
             initialize_tree_linear();
         }
@@ -191,36 +199,48 @@ public:
 
     }
 
-
-protected:
-
-    bool initialize_tree_random(){
-        if(!tree_initialized_random){
-
-            initialize_apr_tree_sparse();
-            tree_initialized_random = true;
-
-        }
-        return tree_initialized_random;
-    }
-
     void initialize_linear(){
         if(!apr_initialized){
-            auto it = random_iterator();
-            initialize_linear_access(linearAccess,it);
-            apr_initialized = true;
+            if(!apr_initialized_random) {
+                std::cerr << "APR::initialize_linear - No APR initialized" << std::endl;
+            } else {
+                auto it = random_iterator();
+                initialize_linear_access_from_random(linearAccess, it);
+                apr_initialized = true;
+            }
         }
     }
 
-    void initialize_tree_linear(){
+    void initialize_random() {
+        if(!apr_initialized_random) {
+            if(!apr_initialized) {
+                std::cerr << "APR::initialize_random - No APR initialized" << std::endl;
+            } else {
+                initialize_random_access_from_linear();
+                apr_initialized_random = true;
+            }
+        }
+    }
+
+    void initialize_tree_linear(bool sparse=false){
+
         if(!tree_initialized){
-            initialize_apr_tree_sparse_linear();
+            if(sparse) {
+                initialize_tree_sparse();
+            } else {
+                initialize_tree_dense();
+            }
             tree_initialized = true;
         }
     }
 
-    void initialize_random_access();
+    void initialize_tree_random(){
 
+        if(!tree_initialized_random){
+            initialize_tree_random_sparse();
+            tree_initialized_random = true;
+        }
+    }
 
 };
 
@@ -228,17 +248,15 @@ protected:
 
 
 /**
-   * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
-   */
-void APR::initialize_linear_access(LinearAccess& aprAccess,APRIterator& it){
-
-    // TODO: Should be renamed.. random-> linear access. also need the reverse function
-
-    auto& lin_a = aprAccess;
+ * Initializes linear access apr structures from the random access data. The linear structure is faster in most
+ * cases, but require more memory and do not allow the same neighbor access as the random access iterators.
+ */
+void APR::initialize_linear_access_from_random(LinearAccess& lin_a, APRIterator& it){
 
     uint64_t counter = 0;
     uint64_t counter_xz = 1;
 
+    lin_a.genInfo = &aprInfo;
     lin_a.initialize_xz_linear();
 
     lin_a.y_vec.resize(it.total_number_particles());
@@ -256,21 +274,17 @@ void APR::initialize_linear_access(LinearAccess& aprAccess,APRIterator& it){
                     counter++;
                 }
 
-
-                lin_a.xz_end_vec[counter_xz] = (counter);
+                lin_a.xz_end_vec[counter_xz] = counter;
                 counter_xz++;
             }
         }
-
     }
-
-
 }
 
 /**
    * Initializes linear access apr structures, that require more memory, but are faster. However, the do not allow the same neighbour access as the random iterators
    */
-void APR::initialize_random_access(){
+void APR::initialize_random_access_from_linear(){
     //
     //  TODO: Note this is not performance orientataed, and should be depreciated in the future. (the whole random access iterations should be removed.)
     //
@@ -335,7 +349,6 @@ void APR::initialize_random_access(){
     }
 
     apr_access.initialize_structure_from_particle_cell_tree_sparse(parameters,particle_cell_tree);
-
 }
 
 
@@ -343,9 +356,9 @@ void APR::initialize_random_access(){
    * Initializes the APR tree datastructures using a dense structure for memory, these are all particle cells that are parents of particles in the APR
    * , alternatively can be thought of as the interior nodes of an APR represented as a binary tree.
    */
-void APR::initialize_apr_tree() {
+void APR::initialize_tree_random_dense() {
 
-    APRTimer timer(true);
+    APRTimer timer(false);
 
     auto apr_iterator = iterator();
 
@@ -465,7 +478,7 @@ void APR::initialize_apr_tree() {
 
 }
 
-void APR::initialize_apr_tree_sparse_linear() {
+void APR::initialize_tree_sparse() {
 
     APRTimer timer(false);
 
@@ -607,15 +620,76 @@ void APR::initialize_apr_tree_sparse_linear() {
 
 }
 
+
+void APR::initialize_tree_dense() {
+
+    APRTimer timer(false);
+    auto apr_iterator = iterator();
+
+    treeInfo.init_tree(org_dims(0),org_dims(1),org_dims(2));
+    linearAccessTree.genInfo = &treeInfo;
+
+    std::vector<PixelData<uint8_t>> particle_cell_parent_tree(treeInfo.l_max+1);
+
+    timer.start_timer("init tree - allocate dense tree structure");
+    for (int l = treeInfo.l_min; l <= treeInfo.l_max; ++l) {
+
+        particle_cell_parent_tree[l].initWithValue(treeInfo.y_num[l],
+                                                   treeInfo.x_num[l],
+                                                   treeInfo.z_num[l],
+                                                   0);
+    }
+    timer.stop_timer();
+
+    timer.start_timer("init tree - fill particle parents");
+    // fill in parents of APR particles
+    for(int level = apr_iterator.level_max(); level >= apr_iterator.level_min(); --level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(dynamic, 2) firstprivate(apr_iterator)
+#endif
+        for(int z = 0; z < apr_iterator.z_num(level); ++z) {
+            for(int x = 0; x < apr_iterator.x_num(level); ++x) {
+                for(apr_iterator.begin(level, z, x); apr_iterator < apr_iterator.end(); ++apr_iterator) {
+                    particle_cell_parent_tree[level-1].at(apr_iterator.y() / 2, x / 2, z / 2) = 1;
+                }
+            }
+        }
+    }
+    timer.stop_timer();
+
+    timer.start_timer("init tree - fill tree recursive");
+    // fill rest of tree, level by level
+    for(int level = treeInfo.l_max-1; level >= treeInfo.l_min; --level) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+        for(int z = 0; z < treeInfo.z_num[level]; ++z) {
+            for (int x = 0; x < treeInfo.x_num[level]; ++x) {
+                for(int y = 0; y < treeInfo.y_num[level]; ++y) {
+                    // suffices to check one child
+                    particle_cell_parent_tree[level].at(y, x, z) = particle_cell_parent_tree[level].at(y, x, z) | particle_cell_parent_tree[level+1].at(2*y, 2*x, 2*z);
+                }
+            }
+        }
+    }
+    timer.stop_timer();
+
+    timer.start_timer("create sparse data structure");
+    linearAccessTree.initialize_tree_access_dense(particle_cell_parent_tree);
+    timer.stop_timer();
+}
+
+
+
 /**
    * Initializes the APR tree datastructures using a sparse structure for reduced memory, these are all particle cells that are parents of particles in the APR
    * , alternatively can be thought of as the interior nodes of an APR represented as a binary tree.
    */
-void APR::initialize_apr_tree_sparse() {
+void APR::initialize_tree_random_sparse() {
 
     APRTimer timer(false);
 
-    auto apr_iterator = iterator();
+    auto apr_iterator = random_iterator();
 
     //need to create a local copy
 

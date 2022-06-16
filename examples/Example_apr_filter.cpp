@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     APRFile aprFile;
     aprFile.open(file_name,"READ");
     aprFile.read_apr(apr);
-    aprFile.read_particles(apr,"particles",parts);
+    aprFile.read_particles(apr, parts);
 
     timer.stop_timer();
 
@@ -58,11 +58,8 @@ int main(int argc, char **argv) {
         timer.start_timer("APR Convolution CUDA");
         auto access = apr.gpuAPRHelper();
         auto tree_access = apr.gpuTreeHelper();
-        VectorData<float> stencil_vd;
-        stencil_vd.resize(125); // stencil must be 5x5x5!
-        std::copy(stencil.mesh.begin(), stencil.mesh.end(), stencil_vd.begin());
         ParticleData<float> tree_data;
-        isotropic_convolve_555(access, tree_access, parts.data, output.data, stencil_vd, tree_data.data,
+        isotropic_convolve_555(access, tree_access, parts.data, output.data, stencil, tree_data.data,
                                /*reflect boundary*/true, /*downsample stencil*/true, /*normalize stencils*/true);
 
         done = true;

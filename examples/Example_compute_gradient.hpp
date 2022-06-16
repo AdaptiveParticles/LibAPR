@@ -17,6 +17,10 @@
 #include "numerics/APRNumerics.hpp"
 #include "numerics/APRReconstruction.hpp"
 
+#ifdef APR_USE_CUDA
+#include "numerics/APRNumericsGPU.hpp"
+#endif
+
 struct cmdLineOptions{
     std::string output = "";
     std::string stats = "";
@@ -26,6 +30,7 @@ struct cmdLineOptions{
     float dx = 1.0f;
     float dy = 1.0f;
     float dz = 1.0f;
+    bool use_cuda = false;
 };
 
 cmdLineOptions read_command_line_options(int argc, char **argv);

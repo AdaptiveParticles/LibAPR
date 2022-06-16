@@ -59,10 +59,29 @@ int main(int argc, char **argv) {
     ParticleData<float> output;
     std::vector<float> deltas = {options.dy, options.dx, options.dz};
 
-    if(options.sobel) {
-        APRNumerics::gradient_magnitude_sobel(apr, parts, output, deltas);
-    } else {
-        APRNumerics::gradient_magnitude_cfd(apr, parts, output, deltas);
+    bool done = false;
+
+    if(options.use_cuda) {
+#ifdef APR_USE_CUDA
+        auto access = apr.gpuAPRHelper();
+        auto tree_access = apr.gpuTreeHelper();
+        if(options.sobel) {
+            APRNumericsGPU::gradient_magnitude_sobel(access, tree_access, parts.data, output.data, deltas);
+        } else {
+            APRNumericsGPU::gradient_magnitude_cfd(access, tree_access, parts.data, output.data, deltas);
+        }
+        done = true;
+#else
+        std::cout << "Option -use_cuda was given, but LibAPR was not built with CUDA enabled. Using CPU implementation." << std::endl;
+#endif
+    }
+
+    if(!done) {
+        if (options.sobel) {
+            APRNumerics::gradient_magnitude_sobel(apr, parts, output, deltas);
+        } else {
+            APRNumerics::gradient_magnitude_cfd(apr, parts, output, deltas);
+        }
     }
     timer.stop_timer();
 
@@ -142,6 +161,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-dz"))
     {
         result.dz =  std::stof(get_command_option(argv, argv + argc, "-dz"));
+    }
+
+    if(command_option_exists(argv, argv + argc, "-use_cuda"))
+    {
+        result.use_cuda = true;
     }
 
 

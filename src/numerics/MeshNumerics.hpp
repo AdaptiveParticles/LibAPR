@@ -570,7 +570,75 @@ public:
 
         return (elapsed_seconds);
     }
+
+
+    template<typename T, typename S>
+    static void find_boundary(PixelData<T>& input, PixelData<S>& output) {
+
+        output.initWithResize(input.y_num, input.x_num, input.z_num);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(input, output)
+#endif
+        for(int z = 0; z < input.z_num; ++z) {
+            for(int x = 0; x < input.x_num; ++x) {
+                for(int y = 0; y < input.y_num; ++y) {
+                    output.at(y, x, z) = 0;
+                    const auto val = input.at(y, x, z);
+
+                    if(val && (find_neighbor(input, y, x, z, val) != val)) {
+                        output.at(y, x, z) = val;
+                    }
+                }
+            }
+        }
+    }
+
+
+    template<typename T, typename S>
+    static void dilate(PixelData<T>& input, PixelData<S>& output) {
+
+        output.initWithResize(input.y_num, input.x_num, input.z_num);
+        output.copyFromMesh(input);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) default(none) shared(input, output)
+#endif
+        for (int z = 0; z < input.z_num; ++z) {
+            for (int x = 0; x < input.x_num; ++x) {
+                for (int y = 0; y < input.y_num; ++y) {
+                    if (input.at(y, x, z) == 0) {
+                        output.at(y, x, z) = find_neighbor(input, y, x, z);
+                    }
+                }
+            }
+        }
+    }
 };
+
+
+template<typename T>
+inline T find_neighbor(const PixelData<T>& input, const int y, const int x, const int z, const T comp_val = 0) {
+    if(y > 0 && (input.at(y-1, x, z) != comp_val)) {
+        return input.at(y-1, x, z);
+    }
+    if(y < input.y_num-1 && (input.at(y+1, x, z) != comp_val)) {
+        return input.at(y+1, x, z);
+    }
+    if(x > 0 && (input.at(y, x-1, z) != comp_val)) {
+        return input.at(y, x-1, z);
+    }
+    if(x < input.x_num-1 && (input.at(y, x+1, z) != comp_val)) {
+        return input.at(y, x+1, z);
+    }
+    if(z > 0 && (input.at(y, x, z-1) != comp_val)) {
+        return input.at(y, x, z-1);
+    }
+    if(z < input.z_num-1 && (input.at(y, x, z+1) != comp_val)) {
+        return input.at(y, x, z+1);
+    }
+    return comp_val;
+}
 
 
 #endif //PARTPLAY_MESHNUMERICS_HPP
