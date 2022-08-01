@@ -251,7 +251,7 @@ ComputeGradient::BsplineParams ComputeGradient::prepareBSplineParams(size_t dimL
 
     const float norm_factor = powf((1 - 2.0*rho*cosf(omg) + powf(rho,2)),2);
 
-    std::cout << std::fixed << std::setprecision(9) << "CPU xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " minLen=" << minLen << " norm_factor=" << norm_factor << std::endl;
+    // std::cout << std::fixed << std::setprecision(9) << "CPU xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " minLen=" << minLen << " norm_factor=" << norm_factor << std::endl;
 
     // for boundaries
     std::vector<float> impulse_resp_vec_f(k0+1);  //forward

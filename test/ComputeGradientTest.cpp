@@ -718,33 +718,6 @@ namespace {
         EXPECT_EQ(compareMeshes(grad, gradCuda), 0);
     }
 
-    TEST(ComputeBspineTest, BSPLINE_FULL_XYZ_DIR_CUDA) {
-        APRTimer timer(true);
-
-        // Generate random mesh
-        using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 128, 129);
-
-        // Filter parameters
-        const float lambda = 3;
-        const float tolerance = 0.0001; // as defined in get_smooth_bspline_3D
-
-        // Calculate bspline on CPU
-        PixelData<ImgType> mCpu(m, true);
-        timer.start_timer("CPU bspline");
-        ComputeGradient().get_smooth_bspline_3D(mCpu, lambda);
-        timer.stop_timer();
-
-        // Calculate bspline on GPU
-        PixelData<ImgType> mGpu(m, true);
-        timer.start_timer("GPU bspline");
-        cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_ALL_DIR);
-        timer.stop_timer();
-
-        // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
-    }
-
     TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y_CUDA) {
         using ImgType = float;
 

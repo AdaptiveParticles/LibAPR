@@ -77,7 +77,7 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
             cnt++;
         }
     }
-    std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << std::endl;
+    if (cnt != 0) std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << std::endl;
     return cnt;
 }
 
@@ -115,7 +115,7 @@ inline int64_t compareParticles(const ParticleData<T> &expected, const ParticleD
 template <typename T>
 inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, float offset=0.0, bool useIdxNumbers = false) {
     PixelData<T> m(y, x, z);
-    std::cout << "Mesh info: " << m << std::endl;
+//    std::cout << "Mesh info: " << m << std::endl;
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);

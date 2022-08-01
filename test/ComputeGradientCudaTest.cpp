@@ -15,7 +15,7 @@ namespace {
     TYPED_TEST_SUITE_P(BsplineTest);
 
     TYPED_TEST_P(BsplineTest, testBsplineInXdirCUDA) {
-        APRTimer timer(true);
+        APRTimer timer(false);
 
         std::vector<std::pair<int, int>> yzSizes = {{1,   1},
                                                     {32,  32},
@@ -57,7 +57,7 @@ namespace {
     }
 
     TYPED_TEST_P(BsplineTest, testBsplineInZdirCUDA) {
-        APRTimer timer(true);
+        APRTimer timer(false);
 
         std::vector<std::pair<int, int>> xySizes = {{1,   1},
                                                     {32,  32},
@@ -144,7 +144,32 @@ namespace {
     using ImgTypes = ::testing::Types< float, uint16_t, int16_t, uint8_t>;
     INSTANTIATE_TYPED_TEST_SUITE_P(Testing, BsplineTest, ImgTypes);
 
+    TEST(ComputeBspineTest, BSPLINE_FULL_XYZ_DIR_CUDA) {
+        APRTimer timer(false);
 
+        // Generate random mesh
+        using ImgType = float;
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 128, 129, 100, 10);
+
+        // Filter parameters
+        const float lambda = 3;
+        const float tolerance = 0.0001; // as defined in get_smooth_bspline_3D
+
+        // Calculate bspline on CPU
+        PixelData<ImgType> mCpu(m, true);
+        timer.start_timer("CPU bspline");
+        ComputeGradient().get_smooth_bspline_3D(mCpu, lambda);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        PixelData<ImgType> mGpu(m, true);
+        timer.start_timer("GPU bspline");
+        cudaFilterBsplineFull(mGpu, lambda, tolerance, BSPLINE_ALL_DIR);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+    }
 #endif // APR_USE_CUDA
 
 }
