@@ -49,21 +49,25 @@ __global__ void invBsplineXdir(T *image, size_t x_num, size_t y_num, size_t z_nu
     const int workerIdx = blockIdx.y * blockDim.y + threadIdx.y ;
     const int nextElementOffset = y_num;
 
+    const float a1 = 1.0/6.0;
+    const float a2 = 4.0/6.0;
+    const float a3 = 1.0/6.0;
+
     if (workerIdx < y_num) {
         int currElementOffset = 0;
 
         T v1 = image[workerOffset + currElementOffset];
         T v2 = image[workerOffset + currElementOffset + nextElementOffset];
-        image[workerOffset + currElementOffset] = (2 * v2 + 4 * v1) / 6.0;
+        image[workerOffset + currElementOffset] = (a1 * v2 + a2 * v1 + a3 * v2);
 
         for (int x = 2; x < x_num; ++x) {
             T v3 = image[workerOffset + currElementOffset + 2 * nextElementOffset];
-            image[workerOffset + currElementOffset + nextElementOffset] = (v1 + 4 * v2 + v3) / 6.0;
+            image[workerOffset + currElementOffset + nextElementOffset] = (a1 * v1 + a2 * v2 + a3 * v3);
             v1 = v2;
             v2 = v3;
             currElementOffset += nextElementOffset;
         }
-        image[workerOffset + currElementOffset + nextElementOffset] = (2 * v1 + 4 * v2) / 6.0;
+        image[workerOffset + currElementOffset + nextElementOffset] = (a1 + a3) * v1 + a2 * v2;
     }
 }
 

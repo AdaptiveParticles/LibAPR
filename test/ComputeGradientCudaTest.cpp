@@ -170,6 +170,30 @@ namespace {
         // Compare GPU vs CPU
         EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
     }
+
+    TEST(ComputeInverseBspline, CALC_INV_BSPLINE_X_RND_CUDA) {
+        APRTimer timer(false);
+
+        // Generate random mesh
+        using ImgType = float;
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 61, 66, 100, 10);
+
+        // Calculate bspline on CPU
+        PixelData<ImgType> mCpu(m, true);
+        timer.start_timer("CPU inv bspline");
+        ComputeGradient().calc_inv_bspline_x(mCpu);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        PixelData<ImgType> mGpu(m, true);
+        timer.start_timer("GPU inv bspline");
+        cudaInverseBspline(mGpu,  INV_BSPLINE_X_DIR);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
+    }
+
 #endif // APR_USE_CUDA
 
 }
