@@ -1,28 +1,26 @@
-#include "ComputeGradientCuda.hpp"
-#include "APRParameters.hpp"
 #include <iostream>
-#include <memory>
+#include <chrono>
+#include <cstdint>
+#include <algorithm>
 
 #include <cuda_runtime.h>
-#include <device_launch_parameters.h>
 
+#include "ComputeGradientCuda.hpp"
+#include "APRParameters.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
-#include "dsGradient.cuh"
-
-#include "invBspline.cuh"
-#include <thrust/device_vector.h>
-#include <thrust/device_ptr.h>
-#include "bsplineXdir.cuh"
-#include "bsplineYdir.cuh"
-#include "bsplineZdir.cuh"
 #include "data_structures/Mesh/downsample.cuh"
 #include "algorithm/ComputePullingScheme.cuh"
-#include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/LocalIntensityScale.cuh"
 #include "misc/CudaTools.cuh"
 #include "misc/CudaMemory.cuh"
-#include <chrono>
-#include <cstdint>
+
+#include "dsGradient.cuh"
+#include "invBspline.cuh"
+#include "bsplineXdir.cuh"
+#include "bsplineYdir.cuh"
+#include "bsplineZdir.cuh"
+
+
 
 namespace {
     typedef struct {
@@ -38,45 +36,42 @@ namespace {
 
     float impulse_resp(float k, float rho, float omg) {
         //  Impulse Response Function
-        return (pow(rho, (std::abs(k))) * sin((std::abs(k) + 1) * omg)) / sin(omg);
+        return (powf(rho, (std::abs(k))) * sinf((std::abs(k) + 1) * omg)) / sinf(omg);
     }
 
     float impulse_resp_back(float k, float rho, float omg, float gamma, float c0) {
         //  Impulse Response Function (nominator eq. 4.8, denominator from eq. 4.7)
-        return c0 * pow(rho, std::abs(k)) * (cos(omg * std::abs(k)) + gamma * sin(omg * std::abs(k))) *
-               (1.0 / (pow((1 - 2.0 * rho * cos(omg) + pow(rho, 2)), 2)));
+        return c0 * powf(rho, std::abs(k)) * (cosf(omg * std::abs(k)) + gamma * sinf(omg * std::abs(k))) *
+               (1.0 / (powf((1 - 2.0 * rho * cosf(omg) + powf(rho, 2)), 2)));
     }
 
-    template<typename T>
-    BsplineParams prepareBsplineStuff(const PixelData<T> &image, float lambda, float tol, int maxFilterLen = -1) {
+    BsplineParams prepareBsplineStuff(size_t dimLen, float lambda, float tol, int maxFilterLen = -1) {
         // Recursive Filter Implimentation for Smoothing BSplines
         // B-Spline Signal Processing: Part II - Efficient Design and Applications, Unser 1993
 
-        float xi = 1 - 96 * lambda + 24 * lambda * sqrt(3 + 144 * lambda); // eq 4.6
-        float rho = (24 * lambda - 1 - sqrt(xi)) / (24 * lambda) *
-                    sqrt((1 / xi) * (48 * lambda + 24 * lambda * sqrt(3 + 144 * lambda))); // eq 4.5
-        float omg = atan(sqrt((1 / xi) * (144 * lambda - 1))); // eq 4.6
+        float xi = 1 - 96 * lambda + 24 * lambda * sqrtf(3 + 144 * lambda); // eq 4.6
+        float rho = (24 * lambda - 1 - sqrtf(xi)) / (24 * lambda) *
+                    sqrtf((1 / xi) * (48 * lambda + 24 * lambda * sqrtf(3 + 144 * lambda))); // eq 4.5
 
-        float c0 = (1 + pow(rho, 2)) / (1 - pow(rho, 2)) * (1 - 2 * rho * cos(omg) + pow(rho, 2)) /
-                   (1 + 2 * rho * cos(omg) + pow(rho, 2)); // eq 4.8
-        float gamma = (1 - pow(rho, 2)) / (1 + pow(rho, 2)) * (1 / tan(omg)); // eq 4.8
+        float omg = atan(sqrtf((1 / xi) * (144 * lambda - 1))); // eq 4.6
 
-        const float b1 = 2 * rho * cos(omg);
-        const float b2 = -pow(rho, 2.0);
+        float c0 = (1 + powf(rho, 2)) / (1 - powf(rho, 2)) * (1 - 2 * rho * cosf(omg) + powf(rho, 2)) /
+                   (1 + 2 * rho * cosf(omg) + powf(rho, 2)); // eq 4.8
+        float gamma = (1 - powf(rho, 2)) / (1 + powf(rho, 2)) * (1 / tan(omg)); // eq 4.8
 
-        const size_t idealK0Len = ceil(std::abs(log(tol) / log(rho)));
-        const size_t minDimension = std::min(image.z_num, std::min(image.x_num, image.y_num));
-        const size_t k0 = maxFilterLen > 0 ? maxFilterLen : std::min(idealK0Len, minDimension);
+        const float b1 = 2 * rho * cosf(omg);
+        const float b2 = -powf(rho, 2.0);
 
-        const float norm_factor = pow((1 - 2.0 * rho * cos(omg) + pow(rho, 2)), 2);
-        std::cout << "GPU: xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1
-                  << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
+        const size_t idealK0Len = ceil(std::abs(logf(tol) / logf(rho)));
+        const size_t k0 = maxFilterLen > 0 ? maxFilterLen : idealK0Len;
+        const size_t minLen = maxFilterLen > 0 ? maxFilterLen : std::min(idealK0Len, dimLen);
+
+        const float norm_factor = powf((1 - 2.0 * rho * cosf(omg) + powf(rho, 2)), 2);
+  
+        //std::cout << std::fixed << std::setprecision(9) << "GPU: xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1
+        //          << " b2=" << b2 << " k0=" << k0 << " minLen=" << minLen << " norm_factor=" << norm_factor << std::endl;
 
         // ------- Calculating boundary conditions
-
-        // forward boundaries
-        std::vector<float> impulse_resp_vec_f(k0 + 1);
-        for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
 
         size_t boundaryLen = sizeof(float) * k0;
         PinnedMemoryUniquePtr<float> bc1{(float*)getPinnedMemory(boundaryLen)};
@@ -84,11 +79,19 @@ namespace {
         PinnedMemoryUniquePtr<float> bc3{(float*)getPinnedMemory(boundaryLen)};
         PinnedMemoryUniquePtr<float> bc4{(float*)getPinnedMemory(boundaryLen)};
 
+        // forward boundaries
+        std::vector<float> impulse_resp_vec_f(k0 + 1);
+        for (size_t k = 0; k < impulse_resp_vec_f.size(); ++k) impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
+
         //y(0) init
         for (size_t k = 0; k < k0; ++k) bc1[k] = impulse_resp_vec_f[k];
+        for (size_t k = minLen; k < k0; ++k) bc1[minLen - 1] += bc1[k];
+
         //y(1) init
+        for (size_t k = 0; k < k0; ++k) bc2[k] = 0;
         bc2[1] = impulse_resp_vec_f[0];
         for (size_t k = 0; k < k0; ++k) bc2[k] += impulse_resp_vec_f[k + 1];
+        for (size_t k = minLen; k < k0; ++k) bc2[minLen - 1] += bc2[k];
 
         // backward boundaries
         std::vector<float> impulse_resp_vec_b(k0 + 1);
@@ -96,11 +99,16 @@ namespace {
             impulse_resp_vec_b[k] = impulse_resp_back(k, rho, omg, gamma, c0);
 
         //y(N-1) init
+        for (size_t k = 0; k < k0; ++k) bc3[k] = 0;
         bc3[0] = impulse_resp_vec_b[1];
         for (size_t k = 0; k < (k0 - 1); ++k) bc3[k + 1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k + 2];
+        for (size_t k = minLen; k < k0; ++k) bc3[minLen - 1] += bc3[k];
+
         //y(N) init
+        for (size_t k = 0; k < k0; ++k) bc4[k] = 0;
         bc4[0] = impulse_resp_vec_b[0];
         for (size_t k = 1; k < k0; ++k) bc4[k] += 2 * impulse_resp_vec_b[k];
+        for (size_t k = minLen; k < k0; ++k) bc4[minLen - 1] += bc4[k];
 
         return BsplineParams{
                 std::move(bc1),
@@ -166,9 +174,9 @@ void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_sc
 
     runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
 
-    runBsplineYdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, boundary, aStream);
-    runBsplineXdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
-    runBsplineZdir(cudaImage, image.x_num, image.y_num, image.z_num, bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
+    runBsplineYdir(cudaImage, image.getDimension(), bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, boundary, aStream);
+    runBsplineXdir(cudaImage, image.getDimension(), bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
+    runBsplineZdir(cudaImage, image.getDimension(), bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
 
     runKernelGradient(cudaImage, cudaGrad, image.x_num, image.y_num, image.z_num, local_scale_temp.x_num, local_scale_temp.y_num, par.dx, par.dy, par.dz, aStream);
 
@@ -249,7 +257,9 @@ public:
         iParameters(parameters),
         iBsplineOffset(bspline_offset),
         iMaxLevel(maxLevel),
-        params(prepareBsplineStuff(image, parameters.lambda, tolerance)),
+        // TODO: This is wrong and done only for compile. BsplineParams has to be computed seperately for each dimension.
+        //       Should be fixed when other parts of pipeline are ready.
+        params(prepareBsplineStuff((size_t)image.x_num, parameters.lambda, tolerance)),
         bc1(params.bc1.get(), params.k0, iStream),
         bc2(params.bc2.get(), params.k0, iStream),
         bc3(params.bc3.get(), params.k0, iStream),
@@ -336,29 +346,44 @@ template class GpuProcessingTask<float>;
 
 // explicit instantiation of handled types
 template void cudaFilterBsplineFull(PixelData<float> &, float, float, TypeOfRecBsplineFlags, int);
+template void cudaFilterBsplineFull(PixelData<uint16_t> &, float, float, TypeOfRecBsplineFlags, int);
+template void cudaFilterBsplineFull(PixelData<int16_t> &, float, float, TypeOfRecBsplineFlags, int);
+template void cudaFilterBsplineFull(PixelData<uint8_t> &, float, float, TypeOfRecBsplineFlags, int);
+
 template <typename ImgType>
 void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int maxFilterLen) {
     cudaStream_t  aStream = 0;
 
-    BsplineParams p = prepareBsplineStuff(input, lambda, tolerance, maxFilterLen);
-    ScopedCudaMemHandler<float*, H2D> bc1(p.bc1.get(), p.k0);
-    ScopedCudaMemHandler<float*, H2D> bc2(p.bc2.get(), p.k0);
-    ScopedCudaMemHandler<float*, H2D> bc3(p.bc3.get(), p.k0);
-    ScopedCudaMemHandler<float*, H2D> bc4(p.bc4.get(), p.k0);
+
     ScopedCudaMemHandler<PixelData<ImgType>, D2H | H2D> cudaInput(input);
 
-    APRTimer timer(true);
+    APRTimer timer(false);
     timer.start_timer("GpuDeviceTimeFull");
     if (flags & BSPLINE_Y_DIR) {
+        BsplineParams p = prepareBsplineStuff((size_t)input.y_num, lambda, tolerance, maxFilterLen);
+        ScopedCudaMemHandler<float*, H2D> bc1(p.bc1.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc2(p.bc2.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc3(p.bc3.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc4(p.bc4.get(), p.k0);
         int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
         ScopedCudaMemHandler<float*, JUST_ALLOC> boundary(nullptr, boundaryLen); // allocate memory on device
-        runBsplineYdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, boundary.get(), aStream);
+        runBsplineYdir(cudaInput.get(), input.getDimension(), bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, boundary.get(), aStream);
     }
     if (flags & BSPLINE_X_DIR) {
-        runBsplineXdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, aStream);
+        BsplineParams p = prepareBsplineStuff((size_t)input.x_num, lambda, tolerance, maxFilterLen);
+        ScopedCudaMemHandler<float*, H2D> bc1(p.bc1.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc2(p.bc2.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc3(p.bc3.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc4(p.bc4.get(), p.k0);
+        runBsplineXdir(cudaInput.get(), input.getDimension(), bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, aStream);
     }
     if (flags & BSPLINE_Z_DIR) {
-        runBsplineZdir(cudaInput.get(), input.x_num, input.y_num, input.z_num, bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, aStream);
+        BsplineParams p = prepareBsplineStuff((size_t)input.z_num, lambda, tolerance, maxFilterLen);
+        ScopedCudaMemHandler<float*, H2D> bc1(p.bc1.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc2(p.bc2.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc3(p.bc3.get(), p.k0);
+        ScopedCudaMemHandler<float*, H2D> bc4(p.bc4.get(), p.k0);
+        runBsplineZdir(cudaInput.get(), input.getDimension(), bc1.get(), bc2.get(), bc3.get(), bc4.get(), p.k0, p.b1, p.b2, p.norm_factor, aStream);
     }
     timer.stop_timer();
 }
@@ -404,7 +429,9 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
     ScopedCudaMemHandler<PixelData<float>, D2H> cudalocal_scale_temp2(local_scale_temp2);
 
     float tolerance = 0.0001;
-    BsplineParams p = prepareBsplineStuff(image, par.lambda, tolerance);
+    // TODO: This is wrong and done only for compile. BsplineParams has to be computed seperately for each dimension.
+    //       Should be fixed when other parts of pipeline are ready.
+    BsplineParams p = prepareBsplineStuff(image.x_num, par.lambda, tolerance);
 
     ScopedCudaMemHandler<float*, H2D> bc1 (p.bc1.get(), p.k0);
     ScopedCudaMemHandler<float*, H2D> bc2 (p.bc2.get(), p.k0);

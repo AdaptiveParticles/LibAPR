@@ -8,6 +8,8 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include <random>
+#include "data_structures/APR/particles/ParticleData.hpp"
+
 
 std::string get_source_directory_apr(){
   // returns path to the directory where utils.cpp is stored
@@ -102,25 +104,27 @@ inline int64_t compareParticles(const ParticleData<T> &expected, const ParticleD
 
 
 /**
- * Generates mesh with provided dims with random values in range [0, 1] * multiplier
+ * Generates mesh with provided dims with random values in range [0, 1] * multiplier + offset
  * @param y
  * @param x
  * @param z
  * @param multiplier
+ * @param offset
  * @return
  */
 template <typename T>
-inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
+inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, float offset=0.0, bool useIdxNumbers = false) {
     PixelData<T> m(y, x, z);
     std::cout << "Mesh info: " << m << std::endl;
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
     for (size_t i = 0; i < m.mesh.size(); ++i) {
-        m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier;
+        m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier + offset;
     }
     return m;
 }

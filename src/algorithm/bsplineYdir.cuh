@@ -5,12 +5,14 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cinttypes>
+#include "cudaMisc.cuh"
+
 
 /**
  * Runs bspline recursive filter in Y direction - divided into two phases:
  * 1. calculate boundary conditions
  * 2. run recursive filter as a set of 2D patches:
- * Each processed 2D patch consist of number of workes
+ * Each processed 2D patch consist of number of workers
  * (distributed in Y direction) and each of them is handling the whole row in Y-dir.
  * Next patches are build on next to it in the x-dir to cover whole x * z domain.
  *
@@ -57,22 +59,25 @@
 
 
 template<typename T>
-__global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t z_num,
+__global__ void bsplineYdirBoundary(T *image, PixelDataDim dim,
                                     const float *bc1_vec, const float *bc2_vec, const float *bc3_vec, const float *bc4_vec,
-                                    size_t k0, float *boundary) {
+                                    size_t k0, float norm_factor, float *boundary, bool *error) {
     const int xzIndexOfWorker = (blockIdx.x * blockDim.x) + threadIdx.x;
     const int xzIndexOfBlock = (blockIdx.x * blockDim.x);
 
     const int numOfWorkers = blockDim.x;
     const int currentWorkerId = threadIdx.x;
-    const size_t workersOffset = xzIndexOfBlock * y_num; // per each (x,z) coordinate we have y-row
+    const size_t workersOffset = xzIndexOfBlock * dim.y; // per each (x,z) coordinate we have y-row
 
-    const int64_t maxXZoffset = x_num * z_num;
+    const int64_t maxXZoffset = dim.x * dim.z;
+
+    const size_t dirLen = dim.y;
+    const size_t minLen = min(dirLen, k0);
 
     extern __shared__ float sharedMem[];
     float *bc1_vec2 = &sharedMem[0];
     float *bc2_vec2 = &bc1_vec2[k0];
-    T *cache = (T*)&bc2_vec2[k0];
+    float *cache = (float*)&bc2_vec2[k0];
 
     // Read from global mem to cache
     for (int i = currentWorkerId; i < k0 * numOfWorkers; i += numOfWorkers) {
@@ -83,18 +88,18 @@ __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t
         int offs = i % k0;
         int work = i / k0;
         if (work + xzIndexOfBlock < maxXZoffset) {
-            cache[work * k0 + offs] = image[workersOffset + y_num * work + offs];
+            cache[work * k0 + offs] = image[workersOffset + dim.y * work + offs];
         }
     }
     __syncthreads();
 
     //forwards direction
-    if (xzIndexOfWorker < x_num * z_num) {
+    if (xzIndexOfWorker < dim.x * dim.z) {
         float temp1 = 0;
         float temp2 = 0;
-        for (size_t k = 0; k < k0; ++k) {
-            temp1 += bc1_vec2[k] * cache[currentWorkerId * k0 + k];
-            temp2 += bc2_vec2[k] * cache[currentWorkerId * k0 + k];
+        for (size_t k = 0; k < minLen; ++k) {
+            temp1 += bc1_vec2[k] * (T)cache[currentWorkerId * k0 + k];
+            temp2 += bc2_vec2[k] * (T)cache[currentWorkerId * k0 + k];
         }
         boundary[xzIndexOfWorker*4 + 0] = temp1;
         boundary[xzIndexOfWorker*4 + 1] = temp2;
@@ -111,49 +116,54 @@ __global__ void bsplineYdirBoundary(T *image, size_t x_num, size_t y_num, size_t
         int offs = i % k0;
         int work = i / k0;
         if (work + xzIndexOfBlock < maxXZoffset) {
-            cache[work * k0 + offs] = image[workersOffset + y_num * work + y_num - 1 - offs];
+            cache[work * k0 + offs] = image[workersOffset + dim.y * work + dim.y - 1 - offs];
         }
     }
     __syncthreads();
 
+    size_t errorCnt = 0;
+
     //forwards direction
-    if (xzIndexOfWorker < x_num * z_num) {
+    if (xzIndexOfWorker < dim.x * dim.z) {
         float temp3 = 0;
         float temp4 = 0;
-        for (size_t k = 0; k < k0; ++k) {
-            temp3 += bc1_vec2[k] * cache[currentWorkerId * k0 + k];
-            temp4 += bc2_vec2[k] * cache[currentWorkerId * k0 + k];
+        for (size_t k = 0; k < minLen; ++k) {
+            temp3 += bc1_vec2[k] * (T)cache[currentWorkerId * k0 + k];
+            temp4 += bc2_vec2[k] * (T)cache[currentWorkerId * k0 + k];
         }
-        boundary[xzIndexOfWorker*4 + 2] = temp3;
-        boundary[xzIndexOfWorker*4 + 3] = temp4;
+        boundary[xzIndexOfWorker*4 + 2] = round<T>(temp3 * norm_factor, errorCnt);
+        boundary[xzIndexOfWorker*4 + 3] = round<T>(temp4 * norm_factor, errorCnt);
     }
+
+    if (errorCnt > 0) *error = true;
 }
 
 constexpr int blockWidth = 32;
 constexpr int numOfThreads = 32;
 extern __shared__ char sharedMemProcess[];
 template<typename T>
-__global__ void bsplineYdirProcess(T *image, const size_t x_num, const size_t y_num, const size_t z_num, size_t k0,
-                                   const float b1, const float b2, const float norm_factor, float *boundary) {
+__global__ void bsplineYdirProcess(T *image, const PixelDataDim dim, size_t k0,
+                                   const float b1, const float b2, const float norm_factor, float *boundary, bool *error) {
     const int numOfWorkers = blockDim.x;
     const int currentWorkerId = threadIdx.x;
     const int xzOffset = blockIdx.x * blockDim.x;
-    const int64_t maxXZoffset = x_num * z_num;
-    const int64_t workersOffset = xzOffset * y_num;
+    const int64_t maxXZoffset = dim.x * dim.z;
+    const int64_t workersOffset = xzOffset * dim.y;
 
-    T (*cache)[blockWidth + 0] = (T (*)[blockWidth + 0]) &sharedMemProcess[0];
+    float (*cache)[blockWidth + 0] = (float (*)[blockWidth + 0]) &sharedMemProcess[0];
 
     float temp1, temp2;
+    size_t errorCnt = 0;
 
     // ---------------- forward direction -------------------------------------------
-    for (int yBlockBegin = 0; yBlockBegin < y_num - 2; yBlockBegin += blockWidth) {
+    for (int yBlockBegin = 0; yBlockBegin < dim.y - 2; yBlockBegin += blockWidth) {
 
         // Read from global mem to cache
         for (int i = currentWorkerId; i < blockWidth * numOfWorkers; i += numOfWorkers) {
             int offs = i % blockWidth;
             int work = i / blockWidth;
-            if (offs + yBlockBegin < (y_num - 2) && work + xzOffset < maxXZoffset) {
-                cache[work][(offs + work)%blockWidth] = image[workersOffset + y_num * work + offs + yBlockBegin];
+            if (offs + yBlockBegin < (dim.y - 2) && work + xzOffset < maxXZoffset) {
+                cache[work][(offs + work)%blockWidth] = image[workersOffset + dim.y * work + offs + yBlockBegin];
             }
         }
         __syncthreads();
@@ -166,8 +176,8 @@ __global__ void bsplineYdirProcess(T *image, const size_t x_num, const size_t y_
                 cache[currentWorkerId][(0 + currentWorkerId)%blockWidth] = temp1;
                 cache[currentWorkerId][(1 + currentWorkerId)%blockWidth] = temp2;
             }
-            for (size_t k = yBlockBegin == 0 ? 2 : 0; k < blockWidth && k + yBlockBegin < y_num - 2; ++k) {
-                float  temp = temp1*b2 + temp2*b1 + cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
+            for (size_t k = yBlockBegin == 0 ? 2 : 0; k < blockWidth && k + yBlockBegin < dim.y - 2; ++k) {
+                float  temp = temp2*b1 + temp1*b2 + (T)cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
                 cache[currentWorkerId][(k + currentWorkerId)%blockWidth] = temp;
                 temp1 = temp2;
                 temp2 = temp;
@@ -179,36 +189,37 @@ __global__ void bsplineYdirProcess(T *image, const size_t x_num, const size_t y_
         for (int i = currentWorkerId; i < blockWidth * numOfWorkers; i += numOfWorkers) {
             int offs = i % blockWidth;
             int work = i / blockWidth;
-            if (offs + yBlockBegin < (y_num - 2) && work + xzOffset < maxXZoffset) {
-                image[workersOffset + y_num * work + offs + yBlockBegin] = cache[work][(offs + work)%blockWidth];
+            if (offs + yBlockBegin < (dim.y - 2) && work + xzOffset < maxXZoffset) {
+                image[workersOffset + dim.y * work + offs + yBlockBegin] = round<T>(cache[work][(offs + work)%blockWidth], errorCnt);
             }
         }
         __syncthreads();
     }
 
     // ---------------- backward direction -------------------------------------------
-    for (int yBlockBegin = y_num - 1; yBlockBegin >= 0; yBlockBegin -= blockWidth) {
+    for (int yBlockBegin = dim.y - 1; yBlockBegin >= 0; yBlockBegin -= blockWidth) {
 
         // Read from global mem to cache
         for (int i = currentWorkerId; i < blockWidth * numOfWorkers; i += numOfWorkers) {
             int offs = i % blockWidth;
             int work = i / blockWidth;
             if (yBlockBegin - offs >= 0 && work + xzOffset < maxXZoffset) {
-                cache[work][(offs + work)%blockWidth] = image[workersOffset + y_num * work - offs + yBlockBegin];
+                cache[work][(offs + work)%blockWidth] = image[workersOffset + dim.y * work - offs + yBlockBegin];
             }
         }
         __syncthreads();
 
         // Do operations
         if (xzOffset + currentWorkerId < maxXZoffset) {
-            if (yBlockBegin == y_num - 1) {
-                temp1 = boundary[(xzOffset + currentWorkerId) * 4 + 3];
-                temp2 = boundary[(xzOffset + currentWorkerId) * 4 + 2];
+            if (yBlockBegin == dim.y - 1) {
+                temp1 = boundary[(xzOffset + currentWorkerId) * 4 + 3] / norm_factor;
+                temp2 = boundary[(xzOffset + currentWorkerId) * 4 + 2] / norm_factor;
                 cache[currentWorkerId][(0 + currentWorkerId)%blockWidth] = norm_factor * temp1;
                 cache[currentWorkerId][(1 + currentWorkerId)%blockWidth] = norm_factor * temp2;
             }
-            for (int64_t k = yBlockBegin == y_num - 1 ? 2 : 0; k < blockWidth && yBlockBegin - k >= 0; ++k) {
-                float  temp = temp2*b1 + temp1*b2 + cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
+            int64_t k2 = yBlockBegin == dim.y - 1 ? 2 : 0;
+            for (int64_t k = yBlockBegin == dim.y - 1 ? 2 : 0; k < blockWidth && yBlockBegin - k >= 0; ++k) {
+                float  temp = temp2*b1 + temp1*b2 + (T)cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
                 cache[currentWorkerId][(k + currentWorkerId)%blockWidth] = temp * norm_factor;
                 temp1 = temp2;
                 temp2 = temp;
@@ -221,25 +232,36 @@ __global__ void bsplineYdirProcess(T *image, const size_t x_num, const size_t y_
             int offs = i % blockWidth;
             int work = i / blockWidth;
             if (yBlockBegin - offs >= 0 && work + xzOffset < maxXZoffset) {
-                image[workersOffset + y_num * work - offs + yBlockBegin] = cache[work][(offs + work)%blockWidth];
+                image[workersOffset + dim.y * work - offs + yBlockBegin] = round<T>(cache[work][(offs + work)%blockWidth], errorCnt);
             }
         }
         __syncthreads();
     }
+
+    if (errorCnt > 0) *error = true;
 }
 
 /**
  * Function for launching a kernel
  */
 template <typename T>
-void runBsplineYdir(T *cudaImage, size_t x_num, size_t y_num, size_t z_num,
+void runBsplineYdir(T *cudaImage, PixelDataDim dim,
                     const float *bc1, const float *bc2, const float *bc3, const float *bc4,
                     size_t k0, float b1, float b2, float norm_factor, float *boundary, cudaStream_t aStream) {
     dim3 threadsPerBlock(numOfThreads);
-    dim3 numBlocks((x_num * z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
-    size_t sharedMemSize = (2 /*bc vectors*/) * (k0) * sizeof(float) + numOfThreads * (k0) * sizeof(T);
-    bsplineYdirBoundary<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, x_num, y_num, z_num, bc1, bc2, bc3, bc4, k0, boundary);
-    sharedMemSize = numOfThreads * blockWidth * sizeof(T);
-    bsplineYdirProcess<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>> (cudaImage, x_num, y_num, z_num, k0, b1, b2, norm_factor, boundary);
+    dim3 numBlocks((dim.x * dim.z + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    size_t sharedMemSize = (2 /*bc vectors*/) * (k0) * sizeof(float) + numOfThreads * (k0) * sizeof(float);
+    bool isErrorDetected = false;
+    {
+        ScopedCudaMemHandler<bool *, H2D | D2H> error(&isErrorDetected, 1);
+        bsplineYdirBoundary<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, bc1, bc2, bc3,bc4, k0, norm_factor, boundary, error.get());
+        sharedMemSize = numOfThreads * blockWidth * sizeof(float);
+        bsplineYdirProcess<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, k0, b1, b2, norm_factor, boundary, error.get());
+    }
+
+    if (isErrorDetected) {
+        throw std::invalid_argument("integer under-/overflow encountered in CUDA bsplineYdir - "
+                                    "try squashing the input image to a narrower range or use APRConverter<float>");
+    }
 }
 #endif

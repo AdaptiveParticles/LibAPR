@@ -2,9 +2,11 @@
 #define BSPLINE_Z_DIR_H
 
 
+#include "cudaMisc.cuh"
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cinttypes>
+
 
 /**
  * Runs bspline recursive filter in Z direction. Each processed 2D patch consist of number of workes
@@ -60,22 +62,24 @@
  * @param norm_factor - filter norm factor
  */
 template<typename T>
-__global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
+__global__ void bsplineZdir(T *image, PixelDataDim dim,
                             const float *bc1, const float *bc2, const float *bc3, const float *bc4, size_t k0,
-                            float b1, float b2, float norm_factor) {
+                            float b1, float b2, float norm_factor, bool *error) {
 
     const int yDirOffset = blockIdx.y * blockDim.y + threadIdx.y;
-    const size_t xDirOffset = (blockIdx.z * blockDim.z + threadIdx.z) * y_num; // x is in 'z' to have good memory coalescing
-    const size_t nextElementZdirOffset = x_num * y_num;
-    const size_t dirLen = z_num;
+    const size_t xDirOffset = (blockIdx.z * blockDim.z + threadIdx.z) * dim.y; // x is in 'z' to have good memory coalescing
+    const size_t nextElementZdirOffset = dim.x * dim.y;
+    const size_t dirLen = dim.z;
+    const size_t minLen = min(dirLen, k0);
 
-    if (yDirOffset < y_num) {
+    if (yDirOffset < dim.y) {
         float temp1 = 0;
         float temp2 = 0;
         float temp3 = 0;
         float temp4 = 0;
+
         // calculate boundary values
-        for (int k = 0; k < k0; ++k) {
+        for (int k = 0; k < minLen; ++k) {
             T val = image[xDirOffset + k * nextElementZdirOffset + yDirOffset];
             temp1 += bc1[k] * val;
             temp2 += bc2[k] * val;
@@ -84,18 +88,20 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
             temp4 += bc4[k] * val;
         }
 
+        size_t errorCnt = 0;
+
         // set boundary values in two first and two last points processed direction
-        image[xDirOffset + 0 * nextElementZdirOffset + yDirOffset] = temp1;
-        image[xDirOffset + 1 * nextElementZdirOffset + yDirOffset] = temp2;
-        image[xDirOffset + (dirLen - 2) * nextElementZdirOffset + yDirOffset] = temp3 * norm_factor;
-        image[xDirOffset + (dirLen - 1) * nextElementZdirOffset + yDirOffset] = temp4 * norm_factor;
+        image[xDirOffset + 0 * nextElementZdirOffset + yDirOffset] = round<T>(temp1, errorCnt);
+        image[xDirOffset + 1 * nextElementZdirOffset + yDirOffset] = round<T>(temp2, errorCnt);
+        image[xDirOffset + (dirLen - 2) * nextElementZdirOffset + yDirOffset] = round<T>(temp3 * norm_factor, errorCnt);
+        image[xDirOffset + (dirLen - 1) * nextElementZdirOffset + yDirOffset] = round<T>(temp4 * norm_factor, errorCnt);
 
         // Causal Filter loop
         int64_t offset = xDirOffset + 2 * nextElementZdirOffset + yDirOffset;
         int64_t offsetLimit = xDirOffset + (dirLen - 2) * nextElementZdirOffset;
         while (offset < offsetLimit) {
             __syncthreads(); // only needed for speed imporovement (memory coalescing)
-            const float temp = temp1 * b2 + temp2 * b1 + image[offset];
+            const float temp = round<T>(image[offset] + b1 * temp2 + b2 * temp1, errorCnt);
             image[offset] = temp;
             temp1 = temp2;
             temp2 = temp;
@@ -108,13 +114,15 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
         offsetLimit = xDirOffset;
         while (offset >= offsetLimit) {
             __syncthreads(); // only needed for speed imporovement (memory coalescing)
-            const float temp = temp3 * b1 + temp4 * b2 + image[offset];
-            image[offset] = temp * norm_factor;
+            const float temp = image[offset] + b1 * temp3 + b2 * temp4;
+            image[offset] = round<T>(temp * norm_factor, errorCnt);
             temp4 = temp3;
             temp3 = temp;
 
             offset -= nextElementZdirOffset;
         }
+
+        if (errorCnt > 0) *error = true;
     }
 }
 
@@ -122,15 +130,26 @@ __global__ void bsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_num,
  * Function for launching a kernel
  */
 template<typename T>
-void runBsplineZdir(T *cudaImage, size_t x_num, size_t y_num, size_t z_num,
+void runBsplineZdir(T *cudaImage, PixelDataDim dim,
                     const float *bc1, const float *bc2, const float *bc3, const float *bc4,
                     size_t k0, float b1, float b2, float norm_factor, cudaStream_t aStream) {
     constexpr int numOfWorkersYdir = 128;
     dim3 threadsPerBlockZ(1, numOfWorkersYdir, 1);
     dim3 numBlocksZ(1,
-                    (y_num + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
-                    (x_num + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x);
-    bsplineZdir<T> <<<numBlocksZ, threadsPerBlockZ, 0, aStream>>> (cudaImage, x_num, y_num, z_num, bc1, bc2, bc3, bc4, k0, b1, b2, norm_factor);
+                    (dim.y + threadsPerBlockZ.y - 1) / threadsPerBlockZ.y,
+                    (dim.x + threadsPerBlockZ.x - 1) / threadsPerBlockZ.x);
+    // In case of error this will be set to true by one of the kernels (CUDA does not guarantee which kernel will set global variable if more then one kernel
+    // access it but this is enough for us to know that somewhere in one on more kernels overflow was detected.
+    bool isErrorDetected = false;
+    {
+        ScopedCudaMemHandler<bool*, H2D | D2H> error(&isErrorDetected, 1);
+        bsplineZdir<T> <<<numBlocksZ, threadsPerBlockZ, 0, aStream>>> (cudaImage, dim, bc1, bc2, bc3, bc4, k0, b1, b2, norm_factor, error.get());
+    }
+
+    if (isErrorDetected) {
+        throw std::invalid_argument("integer under-/overflow encountered in CUDA bsplineZdir - "
+                                    "try squashing the input image to a narrower range or use APRConverter<float>");
+    }
 }
 
 #endif

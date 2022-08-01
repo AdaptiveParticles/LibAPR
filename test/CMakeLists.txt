@@ -14,8 +14,8 @@ buildTarget(testPullingScheme PullingSchemeTest.cpp)
 #APR GPU Tests
 if(APR_USE_CUDA)
    buildTarget(testAPRCuda APRTestCuda.cpp)
+   buildTarget(testComputeGradientCuda ComputeGradientCudaTest.cpp)
 endif()
-
 
 if(APR_BUILD_EXAMPLES)
     buildTarget(testExamples ExamplesTest.cpp)

@@ -65,6 +65,20 @@ public:
 
     inline float impulse_resp_back(float k, float rho, float omg, float gamma, float c0);
 
+    typedef struct {
+        std::vector<float> bc1_vec;
+        std::vector<float> bc2_vec;
+        std::vector<float> bc3_vec;
+        std::vector<float> bc4_vec;
+        size_t k0;
+        float b1;
+        float b2;
+        float norm_factor;
+        size_t minLen;
+    } BsplineParams;
+
+    BsplineParams prepareBSplineParams(size_t dimLen, float lambda, float tol, int maxFilterLen = -1);
+
 };
 
 template<typename ImageType,typename tempType>
@@ -208,16 +222,99 @@ void ComputeGradient::get_smooth_bspline_3D(PixelData<T>& input, float lambda) {
 inline float ComputeGradient::impulse_resp(float k,float rho,float omg){
     //  Impulse Response Function
 
-    return (pow(rho,(std::abs(k)))*sin((std::abs(k) + 1)*omg)) / sin(omg);
+    return (powf(rho,(std::abs(k)))*sinf((std::abs(k) + 1)*omg)) / sinf(omg);
 
 }
 
 inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,float gamma,float c0){
     //  Impulse Response Function (nominator eq. 4.8, denominator from eq. 4.7)
 
-    return c0*pow(rho,std::abs(k))*(cos(omg*std::abs(k)) + gamma*sin(omg*std::abs(k)))*(1.0/(pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2)));
+    return c0*powf(rho,std::abs(k))*(cosf(omg*std::abs(k)) + gamma*sinf(omg*std::abs(k)))*(1.0/(powf((1 - 2.0*rho*cosf(omg) + pow(rho,2)),2)));
 }
 
+ComputeGradient::BsplineParams ComputeGradient::prepareBSplineParams(size_t dimLen, float lambda, float tol, int maxFilterLen) {
+    // Recursive Filter Implementation for Smoothing BSplines
+    // B-Spline Signal Processing: Part 11-Efficient Design and Applications, Unser 1993
+
+    float xi = 1 - 96*lambda + 24*lambda * sqrtf(3 + 144*lambda);
+    float rho = (24*lambda - 1 - sqrtf(xi)) / (24*lambda) * sqrtf((1/xi) * (48*lambda + 24*lambda * sqrtf(3 + 144*lambda)));
+    float omg = atan(sqrtf((1/xi) * (144*lambda - 1)));
+    float c0 = (1 + powf(rho,2)) / (1-powf(rho,2)) * (1 - 2*rho * cosf(omg) + powf(rho,2)) / (1 + 2*rho*cosf(omg) + powf(rho,2));
+    float gamma = (1 - powf(rho,2)) / (1+powf(rho,2)) * (1 / tan(omg));
+
+    const float b1 = 2*rho*cosf(omg);
+    const float b2 = -powf(rho,2.0);
+
+    const size_t idealK0Len = ceil(std::abs(logf(tol) / logf(rho)));
+    const size_t k0 = maxFilterLen > 0 ? maxFilterLen : idealK0Len;
+    const size_t minLen = maxFilterLen > 0 ? maxFilterLen : std::min(idealK0Len, dimLen);
+
+    const float norm_factor = powf((1 - 2.0*rho*cosf(omg) + powf(rho,2)),2);
+
+    std::cout << std::fixed << std::setprecision(9) << "CPU xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " minLen=" << minLen << " norm_factor=" << norm_factor << std::endl;
+
+    // for boundaries
+    std::vector<float> impulse_resp_vec_f(k0+1);  //forward
+    for (size_t k = 0; k < (k0+1); ++k) {
+        impulse_resp_vec_f[k] = impulse_resp(k, rho, omg);
+    }
+    std::vector<float> impulse_resp_vec_b(k0+1);  //backward
+    for (size_t k = 0; k < (k0+1); ++k) {
+        impulse_resp_vec_b[k] = impulse_resp_back(k, rho, omg, gamma, c0);
+    }
+
+    std::vector<float> bc1_vec(k0, 0);  //forward
+    //y(1) init
+    bc1_vec[1] = impulse_resp_vec_f[0];
+    for (size_t k = 0; k < k0; ++k) {
+        bc1_vec[k] += impulse_resp_vec_f[k+1];
+    }
+    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
+    for (size_t k = minLen; k < k0; k++) {
+        bc1_vec[minLen-1] += bc1_vec[k];
+    }
+
+    std::vector<float> bc2_vec(k0, 0);  //backward
+    //y(0) init
+    for (size_t k = 0; k < k0; ++k) {
+        bc2_vec[k] = impulse_resp_vec_f[k];
+    }
+    for (size_t k = minLen; k < k0; k++) {
+        bc2_vec[minLen-1] += bc2_vec[k];
+    }
+
+    std::vector<float> bc3_vec(k0, 0);  //forward
+    //y(N-1) init
+    bc3_vec[0] = impulse_resp_vec_b[1];
+    for (size_t k = 0; k < (k0-1); ++k) {
+        bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
+    }
+    for (size_t k = minLen; k < k0;k++) {
+        bc3_vec[minLen-1] += bc3_vec[k];
+    }
+
+    std::vector<float> bc4_vec(k0, 0);  //backward
+    //y(N) init
+    bc4_vec[0] = impulse_resp_vec_b[0];
+    for (size_t k = 1; k < k0; ++k) {
+        bc4_vec[k] += 2*impulse_resp_vec_b[k];
+    }
+    for (size_t k = minLen; k < k0; k++) {
+        bc4_vec[minLen-1] += bc4_vec[k];
+    }
+
+    return BsplineParams {
+        std::move(bc1_vec),
+        std::move(bc2_vec),
+        std::move(bc3_vec),
+        std::move(bc4_vec),
+        k0,
+        b1,
+        b2,
+        norm_factor,
+        minLen
+    };
+}
 
 /**
  * floating point output -> no rounding or under-/overflow check
@@ -239,6 +336,7 @@ round(float val, size_t &errCount) {
 
     if(val < std::numeric_limits<T>::min() || val > std::numeric_limits<T>::max()) {
         errCount++;
+        std::cout << val << " " << (float)std::numeric_limits<T>::min() << " " << (float)std::numeric_limits<T>::max() << std::endl;
     }
     return val;
 }
@@ -250,84 +348,14 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
     //
     //  Bevan Cheeseman 2016
     //
-    // Recursive Filter Implimentation for Smoothing BSplines
+    // Recursive Filter Implementation for Smoothing BSplines
     // B-Spline Signal Processing: Part 11-Efficient Design and Applications, Unser 1993
-
-    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda); // eq 4.6
-    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda))); // eq 4.5
-    float omg = atan(sqrt((1/xi)*(144*lambda - 1))); // eq 4.6
-
-    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2)); // eq 4.8
-    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg)); // eq 4.8
-
-    const float b1 = 2*rho*cos(omg);
-    const float b2 = -pow(rho,2.0);
 
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
-//    const size_t minLen = y_num;
-    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))),y_num);
 
-    const size_t k0 = k0Len > 0 ? k0Len : (size_t)(ceil(std::abs(log(tol)/log(rho))));
-
-
-    const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
-//    std::cout << "CPUy xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
-    // for boundaries
-    std::vector<float> impulse_resp_vec_f(k0+3);  //forward
-    for (size_t k = 0; k < (k0+3); ++k) {
-        impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
-    }
-
-    std::vector<float> impulse_resp_vec_b(k0+3);  //backward
-    for (size_t k = 0; k < (k0+3); ++k) {
-        impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
-    }
-
-    std::vector<float> bc1_vec(k0, 0);  //forward
-    //y(1) init
-    bc1_vec[1] = impulse_resp_vec_f[0];
-    for (size_t k = 0; k < k0; ++k) {
-        bc1_vec[k] += impulse_resp_vec_f[k+1];
-    }
-
-    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
-    for(size_t k = (minLen); k < k0;k++){
-        bc1_vec[minLen-1] += bc1_vec[k];
-    }
-
-    std::vector<float> bc2_vec(k0, 0);  //backward
-    //y(0) init
-    for (size_t k = 0; k < k0; ++k) {
-        bc2_vec[k] = impulse_resp_vec_f[k];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc2_vec[minLen-1] += bc2_vec[k];
-    }
-
-    std::vector<float> bc3_vec(k0, 0);  //forward
-    //y(N-1) init
-    bc3_vec[0] = impulse_resp_vec_b[1];
-    for (size_t k = 0; k < (k0-1); ++k) {
-        bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc3_vec[minLen-1] += bc3_vec[k];
-    }
-
-    std::vector<float> bc4_vec(k0, 0);  //backward
-    //y(N) init
-    bc4_vec[0] = impulse_resp_vec_b[0];
-    for (size_t k = 1; k < k0; ++k) {
-        bc4_vec[k] += 2*impulse_resp_vec_b[k];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc4_vec[minLen-1] += bc4_vec[k];
-    }
+    auto p = prepareBSplineParams(y_num, lambda, tol, k0Len);
 
     APRTimer btime;
     btime.verbose_flag = false;
@@ -350,36 +378,34 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
             const size_t iynum = x * y_num;
 
             //boundary conditions
-            for (size_t k = 0; k < minLen; ++k) {
-                temp1 += bc1_vec[k]*image.mesh[jxnumynum + iynum + k];
-                temp2 += bc2_vec[k]*image.mesh[jxnumynum + iynum + k];
+            for (size_t k = 0; k < p.minLen; ++k) {
+                temp1 += p.bc1_vec[k]*image.mesh[jxnumynum + iynum + k];
+                temp2 += p.bc2_vec[k]*image.mesh[jxnumynum + iynum + k];
             }
 
             //boundary conditions
-            for (size_t k = 0; k < minLen; ++k) {
-                temp3 += bc3_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
-                temp4 += bc4_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
+            for (size_t k = 0; k < p.minLen; ++k) {
+                temp3 += p.bc3_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
+                temp4 += p.bc4_vec[k]*image.mesh[jxnumynum + iynum + y_num - 1 - k];
             }
 
             //initialize the sequence
-            image.mesh[jxnumynum + iynum + 0] = temp2;
-            image.mesh[jxnumynum + iynum + 1] = temp1;
+            image.mesh[jxnumynum + iynum + 0] = round<T>(temp2, error_count);
+            image.mesh[jxnumynum + iynum + 1] = round<T>(temp1, error_count);
 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + 2); it !=  (image.mesh.begin()+jxnumynum + iynum + y_num); ++it) {
-                float  temp = temp1*b1 + temp2*b2 + *it;
+
+                float  temp = temp1*p.b1 + temp2*p.b2 + *it;
                 *it = round<T>(temp, error_count);
                 temp2 = temp1;
                 temp1 = temp;
             }
 
-            image.mesh[jxnumynum + iynum + y_num - 2] = round<T>(temp3*norm_factor, error_count);
-            image.mesh[jxnumynum + iynum + y_num - 1] = round<T>(temp4*norm_factor, error_count);
-
-
+            image.mesh[jxnumynum + iynum + y_num - 2] = round<T>(temp3*p.norm_factor, error_count);
+            image.mesh[jxnumynum + iynum + y_num - 1] = round<T>(temp4*p.norm_factor, error_count);
         }
     }
     btime.stop_timer();
-
 
     btime.start_timer("backward_loop_y");
     #ifdef HAVE_OPENMP
@@ -391,13 +417,12 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
         for (int64_t i = x_num - 1; i >= 0; --i) {
             const size_t iynum = i * y_num;
 
-            float temp2 = image.mesh[jxnumynum + iynum + y_num - 1]/norm_factor;
-            float temp1 = image.mesh[jxnumynum + iynum + y_num - 2]/norm_factor;
+            float temp2 = image.mesh[jxnumynum + iynum + y_num - 1]/p.norm_factor;
+            float temp1 = image.mesh[jxnumynum + iynum + y_num - 2]/p.norm_factor;
 
             for (auto it = (image.mesh.begin()+jxnumynum + iynum + y_num-3); it !=  (image.mesh.begin()+jxnumynum + iynum-1); --it) {
-                float temp = temp1*b1 + temp2*b2 + *it;
-
-                *it = round<T>(temp*norm_factor, error_count);
+                float temp = temp1*p.b1 + temp2*p.b2 + *it;
+                *it = round<T>(temp*p.norm_factor, error_count);
 
                 temp2 = temp1;
                 temp1 = temp;
@@ -417,90 +442,13 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
     //
     //  Bevan Cheeseman 2016
     //
-    //  Recursive Filter Implimentation for Smoothing BSplines
-
-    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
-    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
-    float omg = atan(sqrt((1/xi)*(144*lambda - 1)));
-    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
-    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
-
-    const float b1 = 2*rho*cos(omg);
-    const float b2 = -pow(rho,2.0);
+    //  Recursive Filter Implementation for Smoothing BSplines
 
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
-    //const size_t minLen = std::min(z_num, std::min(x_num, y_num));
-    //const size_t minLen = z_num;
 
-    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), z_num);
-
-    const size_t k0 = k0Len > 0 ? k0Len :(size_t)(ceil(std::abs(log(tol)/log(rho))));
-
-    const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
-//    std::cout << "CPUz xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
-
-    //////////////////////////////////////////////////////////////
-    //
-    //  Setting up boundary conditions
-    //
-    //////////////////////////////////////////////////////////////
-
-    std::vector<float> impulse_resp_vec_f(k0+3);  //forward
-    for (size_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
-    }
-
-    std::vector<float> impulse_resp_vec_b(k0+3);  //backward
-    for (size_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
-    }
-
-    std::vector<float> bc1_vec(k0, 0);  //forward
-    //y(1) init
-    bc1_vec[1] = impulse_resp_vec_f[0];
-    for(size_t k = 0; k < k0; k++){
-        bc1_vec[k] += impulse_resp_vec_f[k+1];
-    }
-
-    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
-    for(size_t k = (minLen); k < k0;k++){
-        bc1_vec[minLen-1] += bc1_vec[k];
-    }
-
-
-    std::vector<float> bc2_vec(k0, 0);  //backward
-    //y(0) init
-    for(size_t k = 0; k < k0; k++){
-        bc2_vec[k] = impulse_resp_vec_f[k];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc2_vec[minLen-1] += bc2_vec[k];
-    }
-
-    std::vector<float> bc3_vec(k0, 0);  //forward
-    //y(N-1) init
-    bc3_vec[0] = impulse_resp_vec_b[1];
-    for(size_t k = 0; k < (k0-1); k++){
-        bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc3_vec[minLen-1] += bc3_vec[k];
-    }
-
-    std::vector<float> bc4_vec(k0, 0);  //backward
-    //y(N) init
-    bc4_vec[0] = impulse_resp_vec_b[0];
-    for(size_t k = 1; k < k0; k++){
-        bc4_vec[k] += 2*impulse_resp_vec_b[k];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc4_vec[minLen-1] += bc4_vec[k];
-    }
+    auto p = prepareBSplineParams(z_num, lambda, tol, k0Len);
 
     //forwards direction
     std::vector<float> temp_vec1(y_num,0);
@@ -523,18 +471,18 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 
         size_t iynum = i * y_num;
 
-        for (size_t j = 0; j < minLen; ++j) {
+        for (size_t j = 0; j < p.minLen; ++j) {
             size_t index = j * x_num * y_num + iynum;
             #ifdef HAVE_OPENMP
 	        #pragma omp simd
             #endif
             for (int64_t k = y_num - 1; k >= 0; k--) {
                 //forwards boundary condition
-                temp_vec1[k] += bc1_vec[j] * image.mesh[index + k];
-                temp_vec2[k] += bc2_vec[j] * image.mesh[index + k];
+                temp_vec1[k] += p.bc1_vec[j] * image.mesh[index + k];
+                temp_vec2[k] += p.bc2_vec[j] * image.mesh[index + k];
                 //backwards boundary condition
-                temp_vec3[k] += bc3_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
-                temp_vec4[k] += bc4_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
+                temp_vec3[k] += p.bc3_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
+                temp_vec4[k] += p.bc4_vec[j] * image.mesh[(z_num - 1 - j)*x_num*y_num + iynum + k];
             }
         }
 
@@ -557,7 +505,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 	        #pragma omp simd
             #endif
             for (size_t k = 0; k < y_num; ++k) {
-                temp_vec2[k] = round<T>(1.0f*image.mesh[index + k] + b1*temp_vec1[k] + b2*temp_vec2[k], error_count);
+                temp_vec2[k] = round<T>(image.mesh[index + k] + p.b1*temp_vec1[k] + p.b2*temp_vec2[k], error_count);
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -568,12 +516,12 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
-            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = round<T>(temp_vec4[k]*norm_factor, error_count);
+            image.mesh[(z_num - 1)*x_num*y_num  + iynum + k] = round<T>(temp_vec4[k]*p.norm_factor, error_count);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
-            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = round<T>(temp_vec3[k]*norm_factor, error_count);
+            image.mesh[(z_num - 2)*x_num*y_num  + iynum + k] = round<T>(temp_vec3[k]*p.norm_factor, error_count);
         }
 
         //main loop
@@ -584,8 +532,8 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 	        #pragma omp simd
             #endif
             for (int64_t k = y_num - 1; k >= 0; --k) {
-                float temp = (image.mesh[index + k] +  b1*temp_vec3[k] + b2*temp_vec4[k]);
-                image.mesh[index + k] = round<T>(temp*norm_factor, error_count);
+                float temp = (image.mesh[index + k] + p.b1*temp_vec3[k] + p.b2*temp_vec4[k]);
+                image.mesh[index + k] = round<T>(temp*p.norm_factor, error_count);
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
             }
@@ -605,85 +553,11 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     //
     //  Recursive Filter Implimentation for Smoothing BSplines
 
-    float xi = 1 - 96*lambda + 24*lambda*sqrt(3 + 144*lambda);
-    float rho = (24*lambda - 1 - sqrt(xi))/(24*lambda)*sqrt((1/xi)*(48*lambda + 24*lambda*sqrt(3 + 144*lambda)));
-    float omg = atan(sqrt((1/xi)*(144*lambda - 1)));
-    float c0 = (1+ pow(rho,2))/(1-pow(rho,2)) * (1 - 2*rho*cos(omg) + pow(rho,2))/(1 + 2*rho*cos(omg) + pow(rho,2));
-    float gamma = (1-pow(rho,2))/(1+pow(rho,2)) * (1/tan(omg));
-
-    const float b1 = 2*rho*cos(omg);
-    const float b2 = -pow(rho,2.0);
-
     const size_t z_num = image.z_num;
     const size_t x_num = image.x_num;
     const size_t y_num = image.y_num;
 
-//    const size_t minLen = x_num;
-    const size_t minLen = k0Len > 0 ? k0Len : std::min((size_t)(ceil(std::abs(log(tol)/log(rho)))), x_num);
-    const size_t k0 = k0Len > 0 ? k0Len : ((size_t)(ceil(std::abs(log(tol)/log(rho)))));
-    const float norm_factor = pow((1 - 2.0*rho*cos(omg) + pow(rho,2)),2);
-
-//    std::cout << "CPUx xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1 << " b2=" << b2 << " k0=" << k0 << " norm_factor=" << norm_factor << std::endl;
-
-    //////////////////////////////////////////////////////////////
-    //
-    //  Setting up boundary conditions
-    //
-    //////////////////////////////////////////////////////////////
-
-    std::vector<float> impulse_resp_vec_f(k0+3);  //forward
-    for (size_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_f[k] = impulse_resp(k,rho,omg);
-    }
-
-    std::vector<float> impulse_resp_vec_b(k0+3);  //backward
-    for (size_t k = 0; k < (k0+3);k++){
-        impulse_resp_vec_b[k] = impulse_resp_back(k,rho,omg,gamma,c0);
-    }
-
-    std::vector<float> bc1_vec(k0, 0);  //forward
-    //y(1) init
-    bc1_vec[1] = impulse_resp_vec_f[0];
-    for(size_t k = 0; k < k0;k++){
-        bc1_vec[k] += impulse_resp_vec_f[k+1];
-    }
-
-    //assumes a constant value at the end of the filter when the required ghost is bigger then the image
-    for(size_t k = (minLen); k < k0;k++){
-        bc1_vec[minLen-1] += bc1_vec[k];
-    }
-
-    std::vector<float> bc2_vec(k0, 0);  //backward
-    //y(0) init
-    for(size_t k = 0; k < k0;k++){
-        bc2_vec[k] = impulse_resp_vec_f[k];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc2_vec[minLen-1] += bc2_vec[k];
-    }
-
-    std::vector<float> bc3_vec(k0, 0);  //forward
-    //y(N-1) init
-    bc3_vec[0] = impulse_resp_vec_b[1];
-    for(size_t k = 0; k < (k0-1);k++){
-        bc3_vec[k+1] += impulse_resp_vec_b[k] + impulse_resp_vec_b[k+2];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc3_vec[minLen-1] += bc3_vec[k];
-    }
-
-    std::vector<float> bc4_vec(k0, 0);  //backward
-    //y(N) init
-    bc4_vec[0] = impulse_resp_vec_b[0];
-    for(size_t k = 1; k < k0;k++){
-        bc4_vec[k] += 2*impulse_resp_vec_b[k];
-    }
-
-    for(size_t k = (minLen); k < k0;k++){
-        bc4_vec[minLen-1] += bc4_vec[k];
-    }
+    auto p = prepareBSplineParams(x_num, lambda, tol, k0Len);
 
     //forwards direction
 
@@ -705,15 +579,15 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
 
         size_t jxnumynum = j * y_num * x_num;
 
-        for (size_t i = 0; i < minLen; ++i) {
+        for (size_t i = 0; i < p.minLen; ++i) {
 
             for (size_t k = 0; k < y_num; ++k) {
                 //forwards boundary condition
-                temp_vec1[k] += bc1_vec[i]*image.mesh[jxnumynum + i*y_num + k];
-                temp_vec2[k] += bc2_vec[i]*image.mesh[jxnumynum + i*y_num + k];
+                temp_vec1[k] += p.bc1_vec[i]*image.mesh[jxnumynum + i*y_num + k];
+                temp_vec2[k] += p.bc2_vec[i]*image.mesh[jxnumynum + i*y_num + k];
                 //backwards boundary condition
-                temp_vec3[k] += bc3_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
-                temp_vec4[k] += bc4_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
+                temp_vec3[k] += p.bc3_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
+                temp_vec4[k] += p.bc4_vec[i]*image.mesh[jxnumynum + (x_num - 1 - i)*y_num + k];
             }
         }
 
@@ -735,7 +609,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
             #pragma omp simd
             #endif
             for (int64_t k = y_num - 1; k >= 0; k--) {
-                temp_vec2[k] = round<T>(image.mesh[index + k] + b1*temp_vec1[k] + b2*temp_vec2[k], error_count);
+                temp_vec2[k] = round<T>(image.mesh[index + k] + p.b1*temp_vec1[k] + p.b2*temp_vec2[k], error_count);
             }
 
             std::swap(temp_vec1, temp_vec2);
@@ -748,12 +622,12 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         //initialization
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N)
-            image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = round<T>(temp_vec4[k]*norm_factor, error_count);
+            image.mesh[jxnumynum  + (x_num - 1)*y_num + k] = round<T>(temp_vec4[k]*p.norm_factor, error_count);
         }
 
         for (int64_t k = y_num - 1; k >= 0; --k) {
             //y(N-1)
-            image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = round<T>(temp_vec3[k]*norm_factor, error_count);
+            image.mesh[jxnumynum  + (x_num - 2)*y_num + k] = round<T>(temp_vec3[k]*p.norm_factor, error_count);
         }
 
         //main loop
@@ -764,8 +638,8 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
             #pragma omp simd
             #endif
             for (int64_t k = y_num - 1; k >= 0; k--){
-                float temp = (image.mesh[index + k] + b1*temp_vec3[ k]+  b2*temp_vec4[ k]);
-                image.mesh[index + k] = round<T>(temp*norm_factor, error_count);
+                float temp = (image.mesh[index + k] + p.b1*temp_vec3[ k]+  p.b2*temp_vec4[ k]);
+                image.mesh[index + k] = round<T>(temp*p.norm_factor, error_count);
                 temp_vec4[k] = temp_vec3[k];
                 temp_vec3[k] = temp;
             }

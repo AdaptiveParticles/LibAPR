@@ -233,8 +233,9 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     ////////////////////////
 
     fine_grained_timer.start_timer("offset image");
-    //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
+    // offset image by factor (this is required if there are zero areas in the background with
+    // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+    // Warning both of these could result in over-flow!
 
     if (std::is_same<uint16_t, ImageType>::value) {
         bspline_offset = 100;
@@ -461,8 +462,9 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
         /////////////////////////////////
         /// Pipeline
         ////////////////////////
-        //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-        // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
+        // offset image by factor (this is required if there are zero areas in the background with
+        // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+        // Warning both of these could result in over-flow!
 
         if (std::is_same<uint16_t, ImageType>::value) {
             bspline_offset = 100;
