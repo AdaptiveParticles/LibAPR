@@ -687,8 +687,7 @@ void ComputeGradient::calc_inv_bspline_y(PixelData<T>& input){
             }
 
             //LHS boundary condition
-            input.mesh[j*x_num*y_num + i*y_num] = a2*temp_vec[0];
-            input.mesh[j*x_num*y_num + i*y_num] += (a1+a3)*temp_vec[1];
+            input.mesh[j*x_num*y_num + i*y_num] = a1*temp_vec[1] + a2*temp_vec[0] + a3 * temp_vec[1];
 
             for (int64_t k = 1; k < (y_num-1);k++){
                 const int64_t idx = j * x_num * y_num + i * y_num + k;
@@ -696,8 +695,7 @@ void ComputeGradient::calc_inv_bspline_y(PixelData<T>& input){
             }
 
             //RHS boundary condition
-            input.mesh[j*x_num*y_num + i*y_num + y_num - 1] = (a1+a3)*temp_vec[y_num - 2];
-            input.mesh[j*x_num*y_num + i*y_num + y_num - 1] += a2*temp_vec[y_num - 1];
+            input.mesh[j*x_num*y_num + i*y_num + y_num - 1] = a1*temp_vec[y_num - 2] + a2*temp_vec[y_num - 1] + a3*temp_vec[y_num - 2];
         }
     }
 }

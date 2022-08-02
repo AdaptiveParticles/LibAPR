@@ -9,14 +9,18 @@ __global__ void invBsplineYdir(T *image, size_t x_num, size_t y_num, size_t z_nu
     int workerOffset = workerIdx;
     int loopNum = 0;
 
-    T p = 0;
-    T v = 0;
+    const float a1 = 1.0/6.0;
+    const float a2 = 4.0/6.0;
+    const float a3 = 1.0/6.0;
+
+    float p = 0;
+    float v = 0;
     bool notLastInRow = true;
     while (workerOffset < y_num) {
         if (notLastInRow) v = image[workersOffset + workerOffset];
-        T temp = __shfl_sync(active, v, workerIdx + blockDim.y - 1, blockDim.y);
+        float temp = __shfl_sync(active, v, workerIdx + blockDim.y - 1, blockDim.y);
         p = notLastInRow ? temp : p;
-        T n = __shfl_sync(active, v, workerIdx + 1, blockDim.y);
+        float n = __shfl_sync(active, v, workerIdx + 1, blockDim.y);
 
         // handle boundary (reflective mode)
         if (workerOffset == 0) p = n;
@@ -24,7 +28,7 @@ __global__ void invBsplineYdir(T *image, size_t x_num, size_t y_num, size_t z_nu
 
         notLastInRow = (workerIdx + 1 + loopNum) % blockDim.y != 0;
         if (notLastInRow) {
-            v = (p + v * 4 + n) / 6.0;
+            v = a1 * p + a2 * v + a3 * n;
             image[workersOffset + workerOffset] = v;
             workerOffset += blockDim.y;
         }
@@ -58,7 +62,7 @@ __global__ void invBsplineXdir(T *image, size_t x_num, size_t y_num, size_t z_nu
 
         T v1 = image[workerOffset + currElementOffset];
         T v2 = image[workerOffset + currElementOffset + nextElementOffset];
-        image[workerOffset + currElementOffset] = (a1 * v2 + a2 * v1 + a3 * v2);
+        image[workerOffset + currElementOffset] = a1 * v2 + a2 * v1 + a3 * v2;
 
         for (int x = 2; x < x_num; ++x) {
             T v3 = image[workerOffset + currElementOffset + 2 * nextElementOffset];
@@ -87,21 +91,25 @@ __global__ void invBsplineZdir(T *image, size_t x_num, size_t y_num, size_t z_nu
     const int workerIdx = blockIdx.y * blockDim.y + threadIdx.y ;
     const int nextElementOffset = x_num * y_num;
 
+    const float a1 = 1.0/6.0;
+    const float a2 = 4.0/6.0;
+    const float a3 = 1.0/6.0;
+
     if (workerIdx < y_num) {
         int currElementOffset = 0;
 
         T v1 = image[workerOffset + currElementOffset];
         T v2 = image[workerOffset + currElementOffset + nextElementOffset];
-        image[workerOffset + currElementOffset] = (2 * v2 + 4 * v1) / 6.0;
+        image[workerOffset + currElementOffset] = a1 * v2 + a2 * v1 + a1 * v2;
 
         for (int x = 2; x < z_num; ++x) {
             T v3 = image[workerOffset + currElementOffset + 2 * nextElementOffset];
-            image[workerOffset + currElementOffset + nextElementOffset] = (v1 + 4 * v2 + v3) / 6.0;
+            image[workerOffset + currElementOffset + nextElementOffset] = a1 * v1 + a2 * v2 + a3 * v3;
             v1 = v2;
             v2 = v3;
             currElementOffset += nextElementOffset;
         }
-        image[workerOffset + currElementOffset + nextElementOffset] = (2 * v1 + 4 * v2) / 6.0;
+        image[workerOffset + currElementOffset + nextElementOffset] = (a1 + a3) * v1 + a2 * v2;
     }
 }
 

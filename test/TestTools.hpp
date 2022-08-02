@@ -72,7 +72,7 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
     for (size_t i = 0; i < expected.mesh.size(); ++i) {
         if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
-                std::cout << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+                std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " error = " << (float)expected.mesh[i] - (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
             }
             cnt++;
         }
@@ -93,7 +93,7 @@ inline int64_t compareParticles(const ParticleData<T> &expected, const ParticleD
     for (size_t i = 0; i < expected.size(); ++i) {
         if (std::abs(expected[i] - tested[i]) > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
-                std::cout << "ERROR expected vs tested particle: " << (float)expected[i] << " vs " << (float)tested[i] << " IDX:" << i << std::endl;
+                std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested particle: " << (float)expected[i] << " vs " << (float)tested[i] << " IDX:" << i << std::endl;
             }
             cnt++;
         }

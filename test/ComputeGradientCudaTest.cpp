@@ -10,6 +10,11 @@ namespace {
 
 #ifdef APR_USE_CUDA
 
+
+    // ========================================================================
+    // BSPLINE tests
+    // ========================================================================
+
     template <typename T>
     class BsplineTest : public testing::Test {};
     TYPED_TEST_SUITE_P(BsplineTest);
@@ -168,8 +173,13 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
     }
+
+
+    // ========================================================================
+    // INV. BSPLINE tests
+    // ========================================================================
 
     TEST(ComputeInverseBspline, CALC_INV_BSPLINE_X_RND_CUDA) {
         APRTimer timer(false);
@@ -194,6 +204,76 @@ namespace {
         EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
     }
 
+    TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Z_RND_CUDA) {
+        APRTimer timer(false);
+
+        // Generate random mesh
+        using ImgType = float;
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(128, 61, 66, 100, 10);
+
+        // Calculate bspline on CPU
+        PixelData<ImgType> mCpu(m, true);
+        timer.start_timer("CPU inv bspline");
+        ComputeGradient().calc_inv_bspline_z(mCpu);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        PixelData<ImgType> mGpu(m, true);
+        timer.start_timer("GPU inv bspline");
+        cudaInverseBspline(mGpu,  INV_BSPLINE_Z_DIR);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
+    }
+
+    TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y_RND_CUDA) {
+        APRTimer timer(false);
+
+        // Generate random mesh
+        using ImgType = float;
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(127, 61, 71, 100, 10);
+
+        // Calculate bspline on CPU
+        PixelData<ImgType> mCpu(m, true);
+        timer.start_timer("CPU inv bspline");
+        ComputeGradient().calc_inv_bspline_y(mCpu);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        PixelData<ImgType> mGpu(m, true);
+        timer.start_timer("GPU inv bspline");
+        cudaInverseBspline(mGpu,  INV_BSPLINE_Y_DIR);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
+    }
+
+    TEST(ComputeInverseBspline, CALC_INV_BSPLINE_FULL_XYZ_DIR_RND_CUDA) {
+        APRTimer timer(false);
+
+        // Generate random mesh
+        using ImgType = float;
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(32,32,32,100, 10);
+
+        // Calculate bspline on CPU
+        PixelData<ImgType> mCpu(m, true);
+        timer.start_timer("CPU inv bspline");
+        ComputeGradient().calc_inv_bspline_y(mCpu);
+        ComputeGradient().calc_inv_bspline_x(mCpu);
+        ComputeGradient().calc_inv_bspline_z(mCpu);
+        timer.stop_timer();
+
+        // Calculate bspline on GPU
+        PixelData<ImgType> mGpu(m, true);
+        timer.start_timer("GPU inv bspline");
+        cudaInverseBspline(mGpu,  INV_BSPLINE_ALL_DIR);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
+    }
 #endif // APR_USE_CUDA
 
 }
