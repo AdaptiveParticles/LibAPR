@@ -172,13 +172,13 @@ void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_sc
                      BsplineParams &p, float *bc1, float *bc2, float *bc3, float *bc4, float *boundary,
                      float bspline_offset, const APRParameters &par, cudaStream_t aStream) {
 
-    runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
+    //runThresholdImg(cudaImage, image.x_num, image.y_num, image.z_num, par.Ip_th + bspline_offset, aStream);
 
     runBsplineYdir(cudaImage, image.getDimension(), bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, boundary, aStream);
     runBsplineXdir(cudaImage, image.getDimension(), bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
     runBsplineZdir(cudaImage, image.getDimension(), bc1, bc2, bc3, bc4, p.k0, p.b1, p.b2, p.norm_factor, aStream);
 
-    runKernelGradient(cudaImage, cudaGrad, image.x_num, image.y_num, image.z_num, local_scale_temp.x_num, local_scale_temp.y_num, par.dx, par.dy, par.dz, aStream);
+    runKernelGradient(cudaImage, cudaGrad, image.getDimension(), local_scale_temp.getDimension(), par.dx, par.dy, par.dz, aStream);
 
     runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
 
@@ -186,7 +186,7 @@ void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_sc
     runInvBsplineXdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
     runInvBsplineZdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
 
-    runThreshold(cudalocal_scale_temp, cudaGrad, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, par.Ip_th, aStream);
+    //runThreshold(cudalocal_scale_temp, cudaGrad, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, par.Ip_th, aStream);
 }
 
 class CurrentTime {
@@ -468,5 +468,5 @@ void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, co
     ScopedCudaMemHandler<PixelData<float>, H2D | D2H> cudaInput(input);
     ScopedCudaMemHandler<PixelData<float>, D2H> cudaGrad(grad);
 
-    runKernelGradient(cudaInput.get(), cudaGrad.get(), input.x_num, input.y_num, input.z_num, grad.x_num, grad.y_num, hx, hy, hz, 0);
+    runKernelGradient(cudaInput.get(), cudaGrad.get(), input.getDimension(), grad.getDimension(), hx, hy, hz, 0);
 }

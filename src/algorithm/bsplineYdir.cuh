@@ -217,7 +217,6 @@ __global__ void bsplineYdirProcess(T *image, const PixelDataDim dim, size_t k0,
                 cache[currentWorkerId][(0 + currentWorkerId)%blockWidth] = norm_factor * temp1;
                 cache[currentWorkerId][(1 + currentWorkerId)%blockWidth] = norm_factor * temp2;
             }
-            int64_t k2 = yBlockBegin == dim.y - 1 ? 2 : 0;
             for (int64_t k = yBlockBegin == dim.y - 1 ? 2 : 0; k < blockWidth && yBlockBegin - k >= 0; ++k) {
                 float  temp = temp2*b1 + temp1*b2 + (T)cache[currentWorkerId][(k + currentWorkerId)%blockWidth];
                 cache[currentWorkerId][(k + currentWorkerId)%blockWidth] = temp * norm_factor;

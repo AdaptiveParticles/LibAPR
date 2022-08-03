@@ -887,11 +887,15 @@ void ComputeGradient::calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelDat
 
                 //compute the boundary values
                 if (y_num >= 2) {
-                    temp[0] = sqrt(pow((right[0] - left[0]) / (2 * hx), 2.0) + pow((down[0] - up[0]) / (2 * hz), 2.0) +
-                                   pow((center[1] - center[0 /* boundary */]) / (2 * hy), 2.0));
-                    temp[y_num - 1] = sqrt(pow((right[y_num - 1] - left[y_num - 1]) / (2 * hx), 2.0) +
-                                           pow((down[y_num - 1] - up[y_num - 1]) / (2 * hz), 2.0) +
-                                           pow((center[y_num - 1 /* boundary */] - center[y_num - 2]) / (2 * hy), 2.0));
+                    float dx = (right[0] - left[0]) / (2 * hx);
+                    float dz = (down[0] - up[0]) / (2 * hz);
+                    float dy = (center[1] - center[0 /* boundary */]) / (2 * hy);
+                    temp[0] = sqrtf(dx*dx + dz*dz + dy*dy);
+
+                    dx = (right[y_num - 1] - left[y_num - 1]) / (2 * hx);
+                    dz = (down[y_num - 1] - up[y_num - 1]) / (2 * hz);
+                    dy = (center[y_num - 1 /* boundary */] - center[y_num - 2]) / (2 * hy);
+                    temp[y_num - 1] = sqrtf(dx*dx + dz*dz + dy*dy);
                 } else {
                     temp[0] = 0; // same values minus same values in x/y/z
                 }
@@ -901,8 +905,10 @@ void ComputeGradient::calc_bspline_fd_ds_mag(const PixelData<S> &input, PixelDat
 #pragma omp simd
 #endif
                 for (size_t y = 1; y < y_num - 1; ++y) {
-                    temp[y] = sqrt(pow((right[y] - left[y]) / (2 * hx), 2.0) + pow((down[y] - up[y]) / (2 * hz), 2.0) +
-                                   pow((center[y + 1] - center[y - 1]) / (2 * hy), 2.0));
+                    float dx = (right[y] - left[y]) / (2 * hx);
+                    float dz = (down[y] - up[y]) / (2 * hz);
+                    float dy = (center[y + 1] - center[y - 1]) / (2 * hy);
+                    temp[y] = sqrtf(dx*dx + dz*dz + dy*dy);
                 }
 
                 // Set as a downsampled gradient maximum from 2x2x2 gradient cubes

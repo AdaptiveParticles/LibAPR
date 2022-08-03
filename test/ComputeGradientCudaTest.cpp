@@ -274,6 +274,37 @@ namespace {
         // Compare GPU vs CPU
         EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
     }
+
+    // ========================================================================
+    // Downsampled gradient
+    // ========================================================================
+
+    TEST(ComputeGradientTest, GPU_VS_CPU_ON_RANDOM_VALUES) {
+        APRTimer timer(false);
+
+        // Generate random mesh
+        using ImgType = float;
+        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(31, 32, 33, 100);
+
+        // Calculate gradient on CPU
+        PixelData<ImgType> grad;
+        grad.initDownsampled(m, 0);
+        timer.start_timer("CPU gradient");
+        ComputeGradient().calc_bspline_fd_ds_mag(m, grad, 1, 1, 1);
+        timer.stop_timer();
+
+        // Calculate gradient on GPU
+        PixelData<ImgType> gradCuda;
+        gradCuda.initDownsampled(m, 0);
+        timer.start_timer("GPU gradient");
+        cudaDownsampledGradient(m, gradCuda, 1, 1, 1);
+        timer.stop_timer();
+
+        // Compare GPU vs CPU
+        EXPECT_EQ(compareMeshes(grad, gradCuda, 0.0000001), 0);
+    }
+
+
 #endif // APR_USE_CUDA
 
 }
