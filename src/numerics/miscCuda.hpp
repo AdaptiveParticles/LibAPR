@@ -91,8 +91,8 @@ __global__ void addSquare(float* in1, const float* in2, size_t size);
 __global__ void elementWiseSqrt(float* input, size_t size);
 
 
-template<typename T>
-__global__ void copyKernel(const T* in, T* out, const size_t size);
+template<typename T, typename S>
+__global__ void copyKernel(const T* in, S* out, const size_t size);
 
 
 template<typename T>

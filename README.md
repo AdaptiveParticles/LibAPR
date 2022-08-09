@@ -12,29 +12,16 @@ Labeled Zebrafish nuclei: Gopi Shah, Huisken Lab ([MPI-CBG](https://www.mpi-cbg.
 
 ## Python support
 
-We now provide python wrappers in a separate repository [PyLibAPR](https://github.com/AdaptiveParticles/PyLibAPR)
+We provide python wrappers in a separate repository [pyapr](https://github.com/AdaptiveParticles/pyapr). This is likely
+the simplest option to first try and use the APR. 
 
-In addition to providing wrappers for most of the LibAPR functionality, the Python library contains a number of new features that simplify the generation and handling of the APR. For example:
+In addition to providing wrappers for most of the LibAPR functionality, the Python library contains a number of new 
+features that simplify the generation and handling of the APR. For example:
 
 * Interactive APR conversion
 * Interactive APR z-slice viewer
 * Interactive APR raycast (maximum intensity projection) viewer
 * Interactive lossy compression of particle intensities
-
-
-## Version 2.0 release notes
-
-The library has changed significantly since release 1.1. __There are changes to IO and iteration that are not compatible 
-with the older version__. 
-
-* New (additional) linear access data structure, explicitly storing coordinates in the sparse dimension, 
-  similar to Compressed Sparse Row.
-* Block-based decomposition of the APR generation pipeline, allowing conversion of very large images.
-* Expanded and improved functionality for image processing directly on the APR:
-  * APR filtering (spatial convolutions).
-  * [APRNumerics](./src/numerics/APRNumerics.hpp) module, including e.g. gradient computations and Richardson-Lucy deconvolution.
-  * CUDA GPU-accelerated convolutions and RL deconvolution (currently only supports dense 3x3x3 and 5x5x5 stencils)
-
 
 ## Dependencies
 
@@ -42,9 +29,6 @@ with the older version__.
 * OpenMP > 3.0 (optional, but recommended)
 * CMake 3.6 or higher
 * LibTIFF 4.0 or higher
-
-
-NB: This update to 2.0 introduces changes to IO and iteration that are not compatable with old versions.
 
 If compiling with APR_DENOISE flag the package also requires:
 * Eigen3.
@@ -67,6 +51,7 @@ cmake -DAPR_USE_OPENMP=OFF ..
 
 | Option | Description | Default value |
 |:--|:--|:--|
+| APR_INSTALL | Install library | OFF |
 | APR_BUILD_SHARED_LIB | Build shared library | OFF |
 | APR_BUILD_STATIC_LIB | Build static library | ON |
 | APR_BUILD_EXAMPLES | Build executable examples | OFF |
@@ -76,15 +61,18 @@ cmake -DAPR_USE_OPENMP=OFF ..
 | APR_PREFER_EXTERNAL_GTEST | Use installed gtest instead of included sources | ON |
 | APR_PREFER_EXTERNAL_BLOSC | Use installed blosc instead of included sources | ON |
 | APR_USE_OPENMP | Enable multithreading via OpenMP | ON |
-| APR_USE_CUDA | Enable CUDA (Under development - APR conversion pipeline is currently not working with CUDA enabled) | OFF |
+| APR_USE_CUDA | Enable CUDA functionality (under development) | OFF |
+| APR_DENOISE | Enable denoising code (requires Eigen3) | OFF |
 
 ### Building on Linux
 
-On Ubuntu, install the `cmake`, `build-essential`, `libhdf5-dev` and `libtiff5-dev` packages (on other distributions, refer to the documentation there, the package names will be similar). OpenMP support is provided by the GCC compiler installed as part of the `build-essential` package.
+On Ubuntu, install the `cmake`, `build-essential`, `libhdf5-dev` and `libtiff5-dev` packages (on other distributions, 
+refer to the documentation there, the package names will be similar). OpenMP support is provided by the GCC compiler 
+installed as part of the `build-essential` package.
 
-For denoising support also requires: `libeigen3-dev`
+Denoising support also requires `libeigen3-dev`.
 
-In the directory of the cloned repository, run
+In the directory of the cloned repository, run:
 
 ```
 mkdir build
@@ -97,9 +85,11 @@ This will create the `libapr.so` library in the `build` directory.
 
 ### Building on OSX
 
-On OSX, install the `cmake`, `hdf5` and `libtiff`  [homebrew](https://brew.sh) packages and have the [Xcode command line tools](http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/) installed.
+On OSX, install the `cmake`, `hdf5` and `libtiff`  [homebrew](https://brew.sh) packages and have the 
+[Xcode command line tools](http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/) installed.
 
-If you want to compile with OpenMP support (Recommended), also install the `llvm` and `libomp` package via homebrew as the clang version shipped by Apple currently does not support OpenMP.
+If you want to compile with OpenMP support (Recommended), also install the `llvm` and `libomp` package via homebrew as 
+the clang version shipped by Apple currently does not support OpenMP.
 
 In the directory of the cloned repository, run
 
@@ -160,11 +150,11 @@ Note: not recently tested.
 
 ## Install instructions 
 
-Please see: INSTALL_INSTRUCTIONS.md and https://github.com/AdaptiveParticles/APR_cpp_project_example for a minimal project using the APR.
+Please see [INSTALL_INSTRUCTIONS](INSTALL_INSTRUCTIONS.md) and https://github.com/AdaptiveParticles/APR_cpp_project_example for a minimal project using the APR.
 
 ## Examples and Documentation
 
-There are 12 basic examples, that show how to generate and compute with the APR. These can be built by adding 
+There are 14 basic examples, that show how to generate and compute with the APR. These can be built by adding 
 -DAPR_BUILD_EXAMPLES=ON to the cmake command.
 
 | Example | How to ... |
@@ -181,10 +171,13 @@ There are 12 basic examples, that show how to generate and compute with the APR.
 | [Example_compute_gradient](./examples/Example_compute_gradient.cpp) | compute the gradient magnitude of an APR. |
 | [Example_apr_filter](./examples/Example_apr_filter.cpp) | apply a filter (convolution) to an APR. |
 | [Example_apr_deconvolution](./examples/Example_apr_deconvolution.cpp) | perform Richardson-Lucy deconvolution on an APR. |
+| [Exampe_denoise](./examples/Example_denoise.cpp) | denoise an APR (experimental) |
+| [Example_lazy_access](./examples/Example_lazy_access.cpp) | lazily iterate over APR particles and their spatial properties | 
 
 All examples except `Example_get_apr` and `Example_get_apr_by_block` require an already produced APR, such as those created by `Example_get_apr*`.
 
-For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf).
+For tutorial on how to use the examples, and explanation of data-structures see [the library guide](./docs/lib_guide.pdf) 
+(note: this is outdated - in particular code examples may not work and some discussed parameters do not exist anymore).
 
 ## LibAPR Tests
 
@@ -196,7 +189,9 @@ on the command line in your build folder. Please let us know by creating an issu
 
 ## Java wrappers
 
-Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/krzysg/LibAPR-java-wrapper) Not compatable with recent releases.
+Basic Java wrappers can be found at [LibAPR-java-wrapper](https://github.com/AdaptiveParticles/LibAPR-java-wrapper). 
+
+Note: not compatable with recent releases.
 
 ## Coming soon
 

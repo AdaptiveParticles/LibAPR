@@ -25,11 +25,11 @@ option(APR_DENOISE "enable denoising code" OFF)
 
 # Validation of options
 if (NOT APR_BUILD_SHARED_LIB AND NOT APR_BUILD_STATIC_LIB)
-    message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be build!")
+    message(FATAL_ERROR "At least one target: APR_BUILD_SHARED_LIB or APR_BUILD_STATIC_LIB must be enabled")
 endif()
 if (NOT APR_USE_LIBTIFF)
     if (APR_TESTS OR APR_BUILD_EXAMPLES)
-        message(FATAL_ERROR "Building tests orexamples not possible when APR_USE_LIBTIFF=OFF!")
+        message(FATAL_ERROR "Building tests or examples is not possible when APR_USE_LIBTIFF=OFF")
     endif()
 endif()
 
@@ -42,7 +42,7 @@ list(APPEND CMAKE_MODULE_PATH
 ###############################################################################
 
 set (APR_VERSION_MAJOR 2)
-set (APR_VERSION_MINOR 0)
+set (APR_VERSION_MINOR 1)
 set (APR_VERSION_PATCH 0)
 set (APR_VERSION_STRING ${APR_VERSION_MAJOR}.${APR_VERSION_MINOR}.${APR_VERSION_PATCH})
 
