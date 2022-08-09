@@ -950,15 +950,16 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
                 const size_t shy = std::min(2*y + 1, y_num - 1);
                 const size_t idx = z * x_num_ds * y_num_ds + x * y_num_ds + y;
                 outMesh[idx] =  constant_operator(
-                        reduce(reduce(reduce(reduce(reduce(reduce(reduce(        // inMesh coordinates
+                        reduce(reduce(reduce(reduce(                             // inMesh coordinates
                                inMesh[2*z * x_num * y_num + 2*x * y_num + 2*y],  // z,   x,   y
-                               inMesh[2*z * x_num * y_num + 2*x * y_num + shy]), // z,   x,   y+1
                                inMesh[2*z * x_num * y_num + shx * y_num + 2*y]), // z,   x+1, y
-                               inMesh[2*z * x_num * y_num + shx * y_num + shy]), // z,   x+1, y+1
                                inMesh[shz * x_num * y_num + 2*x * y_num + 2*y]), // z+1, x,   y
-                               inMesh[shz * x_num * y_num + 2*x * y_num + shy]), // z+1, x,   y+1
                                inMesh[shz * x_num * y_num + shx * y_num + 2*y]), // z+1, x+1, y
-                               inMesh[shz * x_num * y_num + shx * y_num + shy])  // z+1, x+1, y+1
+                               reduce(reduce(reduce(
+                               inMesh[2*z * x_num * y_num + 2*x * y_num + shy],  // z,   x,   y+1
+                               inMesh[2*z * x_num * y_num + shx * y_num + shy]), // z,   x+1, y+1
+                               inMesh[shz * x_num * y_num + 2*x * y_num + shy]), // z+1, x,   y+1
+                               inMesh[shz * x_num * y_num + shx * y_num + shy])) // z+1, x+1, y+1
                 );
             }
         }

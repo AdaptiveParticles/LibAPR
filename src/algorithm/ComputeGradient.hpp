@@ -129,7 +129,6 @@ inline void ComputeGradient::get_gradient(PixelData<ImageType> &image_temp, Pixe
             timer.stop_timer();
         }
     }
-
 }
 
 

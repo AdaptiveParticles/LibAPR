@@ -24,14 +24,14 @@ __global__ void downsampleMean(const T *input, S *output, size_t x_num, size_t y
     size_t idx = (zi * x_num + xi) * y_num + yi;
 
     // Go through all elements in 2x2
-    T v = input[idx];
+    S v = input[idx];
     v +=  input[idx + xs * y_num];
     v +=  input[idx +              zs * x_num * y_num];
     v +=  input[idx + xs * y_num + zs * x_num * y_num];
 
     // Get data from odd thread to even one
     const int workerIdx = threadIdx.y;
-    T a = __shfl_sync(__activemask(), v, workerIdx + 1);
+    S a = __shfl_sync(__activemask(), v, workerIdx + 1);
 
     // downsampled dimensions twice smaller (rounded up)
 

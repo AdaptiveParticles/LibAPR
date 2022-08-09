@@ -8,15 +8,24 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-//#include <math_functions.h>
 #include <cuda_runtime_api.h>
-//#include <cuda_runtime.h>
-
-
 #include <iostream>
 #include <chrono>
+
 #include "data_structures/Mesh/PixelData.hpp"
 
+
+#define checkCuda(ans) { cudaAssert((ans), __FILE__, __LINE__); }
+inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+#if defined(DEBUG) || defined(_DEBUG)
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"GPUassert: (%d) %s %s %d\n", code, cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+#endif
+}
 
 inline void waitForCuda() {
     cudaDeviceSynchronize();
@@ -211,6 +220,17 @@ public:
         initialize();
     }
 
+    ScopedCudaMemHandler (ScopedCudaMemHandler &&obj) {
+        iData = obj.iData;
+        obj.iData = nullptr;
+        iSize = obj.iSize;
+        obj.iSize = 0;
+        iBytes = obj.iBytes;
+        obj.iBytes = 0;
+        iStream = obj.iStream;
+        obj.iStream = nullptr;
+        iCudaMemory = std::move(obj.iCudaMemory);
+    }
 
     ~ScopedCudaMemHandler() {
         if (DIRECTION & D2H) {
@@ -223,15 +243,21 @@ public:
     size_t getNumOfBytes() const {return iBytes; }
 
     void copyH2D() {
-        cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);
+        if (iData != nullptr) {
+            checkCuda(cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream));
+        }
     }
 
     void copyH2D(const size_t numElements) {
-        cudaMemcpyAsync(iCudaMemory.get(), iData, numElements*DataSize, cudaMemcpyHostToDevice, iStream);
+        if (iData != nullptr) {
+            checkCuda(cudaMemcpyAsync(iCudaMemory.get(), iData, numElements*DataSize, cudaMemcpyHostToDevice, iStream));
+        }
     }
 
     void copyD2H() {
-        cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
+        if (iData != nullptr) {
+            checkCuda(cudaMemcpyAsync((void *) iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream));
+        }
     }
 
 private:
@@ -240,7 +266,7 @@ private:
 
     void initialize() {
         ElementType *mem = nullptr;
-        cudaMalloc(&mem, iBytes);
+        checkCuda(cudaMalloc(&mem, iBytes));
         iCudaMemory.reset(mem);
         if (DIRECTION & H2D) {
             copyH2D();
