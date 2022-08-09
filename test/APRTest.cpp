@@ -4233,16 +4233,14 @@ TEST_F(CreateSmallSphereTest, RUN_RICHARDSON_LUCY) {
 }
 
 
-TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
-
-    PixelData<float> stencil_pd(5, 5, 5);
+bool check_downsample_stencil(const int size_y, const int size_x, const int size_z, const bool normalize) {
+    PixelData<float> stencil_pd(size_y, size_x, size_z);
+    const int N = size_z * size_x * size_y;
     VectorData<float> stencil_vd;
-    stencil_vd.resize(125);
-
-    float sum = 62.0f * 125.0f;
-    for(int i = 0; i < 125; ++i) {
-        stencil_pd.mesh[i] = ((float) i) / sum;
-        stencil_vd[i] = ((float) i) / sum;
+    stencil_vd.resize(N);
+    for(int i = 0; i < N; ++i) {
+        stencil_pd.mesh[i] = i+1;
+        stencil_vd[i] = i+1;
     }
 
     VectorData<float> stencil_vec_vd;
@@ -4251,46 +4249,57 @@ TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
 
     int nlevels = 7;
 
-    APRStencil::get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, false);
-    APRStencil::get_downsampled_stencils(stencil_pd, pd_vec, nlevels, false);
-    APRStencil::get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, false);
+    APRStencil::get_downsampled_stencils(stencil_pd, stencil_vec_pd, nlevels, normalize);
+    APRStencil::get_downsampled_stencils(stencil_pd, pd_vec, nlevels, normalize);
+    APRStencil::get_downsampled_stencils(stencil_vd, stencil_vec_vd, nlevels, normalize);
 
     // compare outputs for PixelData and VectorData inputs
-    bool success = true;
-    ASSERT_EQ(stencil_vec_vd.size(), stencil_vec_pd.size());
+
+    if(stencil_vec_vd.size() != stencil_vec_pd.size()) {
+        return false;
+    }
 
     std::cout << "comparing downsampled stencils for VectorData and PixelData inputs" << std::endl;
 
     for(size_t i = 0; i < stencil_vec_pd.size(); ++i) {
         if( std::abs( stencil_vec_pd[i] - stencil_vec_vd[i] ) > 1e-5 ) {
             std::cout << "stencil_vec_vd = " << stencil_vec_vd[i] << " stencil_vec_pd = " << stencil_vec_pd[i] << " at index " << i << std::endl;
-            success = false;
+            return false;
         }
     }
 
-    if(success) {
-        std::cout << "OK!" << std::endl;
-    }
+    std::cout << "OK!" << std::endl;
 
     std::cout << "comparing downsampeld stencils for VectorData and std::vector<PixelData> output" << std::endl;
-    success = true;
-    int c = 0;
+    size_t c = 0;
     for(size_t dlvl = 0; dlvl < pd_vec.size(); ++dlvl) {
         for(size_t i = 0; i < pd_vec[dlvl].mesh.size(); ++i) {
             if( std::abs( pd_vec[dlvl].mesh[i] - stencil_vec_pd[c] ) > 1e-5 ) {
                 std::cout << "pd_vec = " << pd_vec[dlvl].mesh[i] << " stencil_vec_pd = " << stencil_vec_pd[c] <<
                           " at dlvl = " << dlvl << " and i = " << i << std::endl;
-                success = false;
+                return false;
             }
             c++;
         }
     }
 
-    ASSERT_EQ(c, stencil_vec_pd.size());
-    if(success) {
-        std::cout << "OK!" << std::endl;
+    if(c != stencil_vec_pd.size()) {
+        return false;
     }
 
+    std::cout << "OK!" << std::endl;
+
+    return true;
+}
+
+
+TEST_F(CreateSmallSphereTest, CHECK_DOWNSAMPLE_STENCIL) {
+    ASSERT_TRUE(check_downsample_stencil(3, 3, 3, false));
+    ASSERT_TRUE(check_downsample_stencil(7, 7, 7, false));
+    ASSERT_TRUE(check_downsample_stencil(13, 13, 13, false));
+    ASSERT_TRUE(check_downsample_stencil(5, 5, 5, true));
+    ASSERT_TRUE(check_downsample_stencil(7, 7, 7, true));
+    ASSERT_TRUE(check_downsample_stencil(11, 11, 11, true));
 }
 
 

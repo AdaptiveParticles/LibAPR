@@ -43,6 +43,32 @@ __global__ void elementWiseDiv(const T* numerator,
 }
 
 
+/**
+ * Add the square of one vector to another. For 0 <= idx < size:
+ *      in1[idx] += in2[idx] * in2[idx];
+ */
+__global__ void addSquare(float* in1,
+                          const float* in2,
+                          const size_t size) {
+
+    for(size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < size; idx += blockDim.x * gridDim.x) {
+        in1[idx] += in2[idx] * in2[idx];
+    }
+}
+
+
+/**
+ * Take the square root of each element in the input vector
+ */
+__global__ void elementWiseSqrt(float* __restrict__ input,
+                                const size_t size) {
+
+    for(size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < size; idx += blockDim.x * gridDim.x) {
+        input[idx] = sqrtf(input[idx]);
+    }
+}
+
+
 template<typename T>
 __global__ void copyKernel(const T* in, T* out, const size_t size){
 

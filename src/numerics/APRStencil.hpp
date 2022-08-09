@@ -77,41 +77,6 @@ namespace APRStencil {
     }
 
 
-    inline int compute_stencil_vec_size(const int kernel_size, const int nlevels) {
-        int output_size = kernel_size * kernel_size * kernel_size;
-        int step_size = 1;
-
-        for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
-            step_size *= 2;
-            int ds_size = std::max((kernel_size + step_size - 1) / step_size, 3);
-            output_size += ds_size * ds_size * ds_size;
-        }
-
-        return output_size;
-    }
-
-
-    template<typename T, typename S>
-    void get_downsampled_stencils(const PixelData<T> &aInput, VectorData<S> &aOutput, const int nlevels,
-                                  const bool normalize = false) {
-
-        const int kernel_size = aInput.y_num;
-
-        aOutput.resize(compute_stencil_vec_size(kernel_size, nlevels));
-
-        std::copy(aInput.mesh.begin(), aInput.mesh.end(), aOutput.begin());
-
-        int c = aInput.mesh.size();
-        PixelData<S> stencil_ds;
-        for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
-
-            downsample_stencil(aInput, stencil_ds, level_delta, normalize);
-            std::copy(stencil_ds.mesh.begin(), stencil_ds.mesh.end(), aOutput.begin() + c);
-            c += stencil_ds.mesh.size();
-        }
-    }
-
-
     template<typename T, typename S>
     void get_downsampled_stencils(const PixelData<T> &aInput, std::vector<PixelData<S>> &aOutput, const int nlevels,
                                   const bool normalize = false) {
@@ -127,6 +92,42 @@ namespace APRStencil {
         for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
             downsample_stencil(aInput, aOutput[level_delta], level_delta, normalize);
         }
+    }
+
+
+    template<typename T, typename S>
+    void get_downsampled_stencils(const PixelData<T> &aInput, VectorData<S> &aOutput, const int nlevels,
+                                  const bool normalize = false) {
+
+        std::vector<PixelData<S>> stencil_vec;
+        get_downsampled_stencils(aInput, stencil_vec, nlevels, normalize);
+
+        size_t num_elements = 0;
+        for(auto& pd : stencil_vec) {
+            num_elements += pd.mesh.size();
+        }
+        aOutput.resize(num_elements);
+
+        size_t offset = 0;
+        for(auto& pd : stencil_vec) {
+            std::copy(pd.mesh.begin(), pd.mesh.end(), aOutput.begin() + offset);
+            offset += pd.mesh.size();
+        }
+    }
+
+
+    template<typename T, typename S>
+    void get_downsampled_stencils(const VectorData<T> &aInput, VectorData<S> &aOutput, const int nlevels,
+                                  const bool normalize = false) {
+
+        const int kernel_size = (int) std::round(std::cbrt((float) aInput.size()));
+        PixelData<T> input_as_pd(kernel_size, kernel_size, kernel_size);
+        if(input_as_pd.mesh.size() != aInput.size()){
+            throw std::invalid_argument("input stencil size is not cubic");
+        }
+
+        std::copy(aInput.begin(), aInput.end(), input_as_pd.mesh.begin());
+        get_downsampled_stencils(input_as_pd, aOutput, nlevels, normalize);
     }
 
 
@@ -150,89 +151,21 @@ namespace APRStencil {
         }
     }
 
-
     template<typename T, typename S>
-    void downsample_stencil(const VectorData<T> &aInput, VectorData<S> &aOutput, const int level_delta,
-                            const bool normalize = false) {
+    void get_rescaled_stencils(const PixelData<T> &aInput, VectorData<S> &aOutput, const int nlevels) {
+        std::vector<PixelData<S>> stencil_vec;
+        get_rescaled_stencils(aInput, stencil_vec, nlevels);
 
-        /// assumes input kernel has same size in x, y, and z dimensions
-        const int kernel_size = (int) std::round(std::cbrt((float) aInput.size()));
-
-        const int step_size = (int) std::pow(2.0f, (float) level_delta);
-        const int factor = (int) std::pow((float) step_size, 3.0f);
-
-        const int ds_kernel_size = std::max((kernel_size + step_size - 1) / step_size, 3);
-
-        aOutput.resize(ds_kernel_size * ds_kernel_size * ds_kernel_size, 0);
-
-        int offset = ((ds_kernel_size / 2) * step_size - kernel_size / 2);
-
-        for (int iz = 0; iz < kernel_size; ++iz) {
-            for (int ix = 0; ix < kernel_size; ++ix) {
-                for (int iy = 0; iy < kernel_size; ++iy) {
-
-                    for (int dz = 0; dz < ds_kernel_size; ++dz) {
-
-                        int z_start = std::max(dz * step_size, offset + iz);
-                        int z_end = std::min(dz * step_size + step_size, offset + iz + step_size);
-                        float overlap_z = (z_end > z_start) ? z_end - z_start : 0;
-
-                        for (int dx = 0; dx < ds_kernel_size; ++dx) {
-
-                            int x_start = std::max(dx * step_size, offset + ix);
-                            int x_end = std::min(dx * step_size + step_size, offset + ix + step_size);
-                            float overlap_x = (x_end > x_start) ? x_end - x_start : 0;
-
-                            for (int dy = 0; dy < ds_kernel_size; ++dy) {
-
-                                int y_start = std::max(dy * step_size, offset + iy);
-                                int y_end = std::min(dy * step_size + step_size, offset + iy + step_size);
-                                float overlap_y = (y_end > y_start) ? y_end - y_start : 0;
-
-                                float overlap = overlap_x * overlap_y * overlap_z;
-
-                                aOutput[dz * ds_kernel_size * ds_kernel_size + dx * ds_kernel_size + dy] +=
-                                        overlap * aInput[iz * kernel_size * kernel_size + ix * kernel_size + iy];
-                            }
-                        }
-                    }
-
-                }
-            }
+        size_t num_elements = 0;
+        for(auto& pd : stencil_vec) {
+            num_elements += pd.mesh.size();
         }
+        aOutput.resize(num_elements);
 
-        float sum = 0;
-        for (size_t i = 0; i < aOutput.size(); ++i) {
-            aOutput[i] /= factor;
-            sum += aOutput[i];
-        }
-
-        if (normalize) {
-            float nfactor = 1.0f / sum;
-            for (size_t i = 0; i < aOutput.size(); ++i) {
-                aOutput[i] *= nfactor;
-            }
-        }
-    }
-
-
-    template<typename T, typename S>
-    void get_downsampled_stencils(const VectorData<T> &aInput, VectorData<S> &aOutput, const int nlevels,
-                                  const bool normalize = false) {
-
-        const int kernel_size = (int) std::round(std::cbrt((float) aInput.size()));
-
-        aOutput.resize(compute_stencil_vec_size(kernel_size, nlevels));
-
-        std::copy(aInput.begin(), aInput.end(), aOutput.begin());
-
-        int c = aInput.size();
-        VectorData<S> stencil_ds;
-        for (int level_delta = 1; level_delta < nlevels; ++level_delta) {
-
-            downsample_stencil(aInput, stencil_ds, level_delta, normalize);
-            std::copy(stencil_ds.begin(), stencil_ds.end(), aOutput.begin() + c);
-            c += stencil_ds.size();
+        size_t offset = 0;
+        for(auto& pd : stencil_vec) {
+            std::copy(pd.mesh.begin(), pd.mesh.end(), aOutput.begin() + offset);
+            offset += pd.mesh.size();
         }
     }
 
