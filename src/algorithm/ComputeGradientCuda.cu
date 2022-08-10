@@ -129,6 +129,33 @@ namespace {
                 norm_factor
         };
     }
+
+    auto transferSpline(BsplineParams &aParams) {
+        ScopedCudaMemHandler<float*, H2D> bc1(aParams.bc1.get(), aParams.k0);
+        ScopedCudaMemHandler<float*, H2D> bc2(aParams.bc2.get(), aParams.k0);
+        ScopedCudaMemHandler<float*, H2D> bc3(aParams.bc3.get(), aParams.k0);
+        ScopedCudaMemHandler<float*, H2D> bc4(aParams.bc4.get(), aParams.k0);
+
+        return std::pair<BsplineParamsCuda, BsplineParamsCudaMemoryHandlers> {
+                BsplineParamsCuda {
+                        bc1.get(),
+                        bc2.get(),
+                        bc3.get(),
+                        bc4.get(),
+                        aParams.k0,
+                        aParams.b1,
+                        aParams.b2,
+                        aParams.norm_factor
+                },
+
+                BsplineParamsCudaMemoryHandlers {
+                        std::move(bc1),
+                        std::move(bc2),
+                        std::move(bc3),
+                        std::move(bc4)
+                }
+        };
+    }
 }
 
 /**
@@ -297,11 +324,22 @@ public:
         CurrentTime ct;
         uint64_t start = ct.microseconds();
 
-        // TODO: Need to be fixed !!!!!!!!!!1
+        // TODO: temporarily bspline params are generated here
+        //       In principle this is OK and correct but would be faster (for processing series of same size images) if
+        //       they would be calculated in constructor of GpuProcessingTaskImpl class (once).
+        BsplineParams px = prepareBsplineStuff(iCpuImage.x_num, iParameters.lambda, tolerance);
+        auto cudax = transferSpline(px);
+        auto splineCudaX = cudax.first;
+        BsplineParams py = prepareBsplineStuff(iCpuImage.y_num, iParameters.lambda, tolerance);
+        auto cuday = transferSpline(py);
+        auto splineCudaY = cuday.first;
+        BsplineParams pz = prepareBsplineStuff(iCpuImage.z_num, iParameters.lambda, tolerance);
+        auto cudaz = transferSpline(pz);
+        auto splineCudaZ = cudaz.first;
 
-//        getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
-//                        params, bc1.get(), bc2.get(), bc3.get(), bc4.get(), boundary.get(),
-//                        iBsplineOffset, iParameters, iStream);
+        getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
+                         splineCudaX, splineCudaY, splineCudaZ, boundary.get(),
+                        iBsplineOffset, iParameters, iStream);
         std::cout << "1: " << ct.microseconds() - start << std::endl;
         runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), iStream);
         std::cout << "2: " << ct.microseconds() - start << std::endl;
@@ -357,32 +395,7 @@ template void cudaFilterBsplineFull(PixelData<uint16_t> &, float, float, TypeOfR
 template void cudaFilterBsplineFull(PixelData<int16_t> &, float, float, TypeOfRecBsplineFlags, int);
 template void cudaFilterBsplineFull(PixelData<uint8_t> &, float, float, TypeOfRecBsplineFlags, int);
 
-auto transferSpline(BsplineParams &aParams) {
-    ScopedCudaMemHandler<float*, H2D> bc1(aParams.bc1.get(), aParams.k0);
-    ScopedCudaMemHandler<float*, H2D> bc2(aParams.bc2.get(), aParams.k0);
-    ScopedCudaMemHandler<float*, H2D> bc3(aParams.bc3.get(), aParams.k0);
-    ScopedCudaMemHandler<float*, H2D> bc4(aParams.bc4.get(), aParams.k0);
 
-    return std::pair<BsplineParamsCuda, BsplineParamsCudaMemoryHandlers> {
-            BsplineParamsCuda {
-                    bc1.get(),
-                    bc2.get(),
-                    bc3.get(),
-                    bc4.get(),
-                    aParams.k0,
-                    aParams.b1,
-                    aParams.b2,
-                    aParams.norm_factor
-            },
-
-            BsplineParamsCudaMemoryHandlers {
-                    std::move(bc1),
-                    std::move(bc2),
-                    std::move(bc3),
-                    std::move(bc4)
-            }
-    };
-}
 
 template <typename ImgType>
 void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolerance, TypeOfRecBsplineFlags flags, int maxFilterLen) {
