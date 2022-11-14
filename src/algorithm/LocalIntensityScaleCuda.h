@@ -15,8 +15,9 @@ constexpr TypeOfMeanFlags MEAN_X_DIR = 0x02;
 constexpr TypeOfMeanFlags MEAN_Z_DIR = 0x04;
 constexpr TypeOfMeanFlags MEAN_ALL_DIR = MEAN_Y_DIR | MEAN_X_DIR | MEAN_Z_DIR;
 
+// TODO: remember to revert by default boundaryReflect=true (or check with CPU code what is current 'default').
 template <typename T>
-void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags = MEAN_ALL_DIR);
+void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags = MEAN_ALL_DIR, bool boundaryReflect = false);
 
 template <typename T>
 void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par);

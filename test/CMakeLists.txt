@@ -15,6 +15,7 @@ buildTarget(testPullingScheme PullingSchemeTest.cpp)
 if(APR_USE_CUDA)
    buildTarget(testAPRCuda APRTestCuda.cpp)
    buildTarget(testComputeGradientCuda ComputeGradientCudaTest.cpp)
+   buildTarget(testLocalIntensityScaleCuda LocalIntensityScaleCudaTest.cpp)
 endif()
 
 if(APR_BUILD_EXAMPLES)
