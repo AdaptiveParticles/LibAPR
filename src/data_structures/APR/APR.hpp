@@ -23,7 +23,7 @@ class APR {
     friend class APRConverterBatch;
     friend class APRBenchHelper;
 
-protected:
+public:
 
     // initialize tree RandomAccess
     void initialize_tree_random_sparse();
@@ -59,8 +59,6 @@ protected:
     GenInfo treeInfo;
 
     APRParameters parameters; // this is here to keep a record of what parameters were used, to then be written if needed.
-
-public:
 
 #ifdef APR_USE_CUDA
 
