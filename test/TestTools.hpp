@@ -68,16 +68,26 @@ inline bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
  */
 template <typename T>
 inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+    if (expected.getDimension() != tested.getDimension()) {
+        std::stringstream errMsg;
+        errMsg << "Dimensions of expected and tested meshes differ! " << expected.getDimension() << " vs " << tested.getDimension();
+        throw std::runtime_error(errMsg.str());
+    }
+
     int cnt = 0;
+    double maxErrorFound = 0;
+
     for (size_t i = 0; i < expected.mesh.size(); ++i) {
-        if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError) {
+        auto diff = std::abs(expected.mesh[i] - tested.mesh[i]);
+        if (diff > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
                 std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " error = " << (float)expected.mesh[i] - (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
             }
             cnt++;
         }
+        if (diff > maxErrorFound) maxErrorFound = diff;
     }
-    if (cnt != 0) std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << std::endl;
+    if (cnt != 0) std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << " maxErrorFound = " << maxErrorFound << std::endl;
     return cnt;
 }
 
@@ -112,7 +122,6 @@ inline int64_t compareParticles(const ParticleTypeA &expected, const ParticleTyp
     return cnt;
 }
 
-
 /**
  * Generates mesh with provided dims with random values in range [0, 1] * multiplier + offset
  * @param y
@@ -120,6 +129,7 @@ inline int64_t compareParticles(const ParticleTypeA &expected, const ParticleTyp
  * @param z
  * @param multiplier
  * @param offset
+ * @param useIdxNumbers - instead of random values put values from 0..sizeof(mesh)-1
  * @return
  */
 template <typename T>
@@ -137,6 +147,19 @@ inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier
         m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier + offset;
     }
     return m;
+}
+
+/**
+ * Generates mesh with provided dims with random values in range [0, 1] * multiplier + offset
+ * @param dim - dimension of generated mesh
+ * @param multiplier
+ * @param offset
+ * @param useIdxNumbers - instead of random values put values from 0..sizeof(mesh)-1
+ * @return
+ */
+template <typename T>
+inline PixelData<T> getRandInitializedMesh(PixelDataDim dim, float multiplier = 2.0f, float offset=0.0, bool useIdxNumbers = false) {
+    return getRandInitializedMesh<T>(dim.y, dim.x, dim.z, multiplier, offset, useIdxNumbers);
 }
 
 struct TestBenchStats{

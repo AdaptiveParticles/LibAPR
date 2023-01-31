@@ -175,8 +175,16 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
         int boundaryPtr = (beginPtr - 1 - 1 + (2*offset+1)) % divisor;
 
         while (saveElementOffset < currElementOffset) {
-            if (!boundaryReflect) count = count - 1;
-            sum -= data[beginPtr][workerIdx];
+            // If filter length is too big in comparison to processed dimension
+            // do not decrease 'count' and do not remove first element from moving filter
+            // since 'sum' of filter elements contains all elements from processed dimension:
+            // dim elements:        xxxxxx
+            // filter elements:  oooooo^ooooo   (o - offset elements, ^ - middle of the filter)
+            // In such a case first 'o' element should not be removed when filter moves right.
+            if (x_num - (currElementOffset - saveElementOffset)/nextElementOffset > offset || boundaryReflect) {
+                if (!boundaryReflect) count = count - 1;
+                sum -= data[beginPtr][workerIdx];
+            }
 
             if (boundaryReflect) {
                 sum += data[boundaryPtr][workerIdx];
@@ -410,9 +418,9 @@ template <typename T>
 void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags, bool boundaryReflect) {
     ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
     APRTimer timer(true);
-    timer.start_timer("GpuDeviceTimeFull");
+//    timer.start_timer("GpuDeviceTimeFull");
     runMean(cudaImage.get(), image, offset, offset, offset, flags, 0, boundaryReflect);
-    timer.stop_timer();
+//    timer.stop_timer();
 }
 
 // explicit instantiation of handled types

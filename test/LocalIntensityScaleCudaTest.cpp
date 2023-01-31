@@ -10,33 +10,260 @@ namespace {
 
 #ifdef APR_USE_CUDA
 
-    // ------------------------------------------------------------------------
-    // TODO: REMOVE IT after dev.
-    // ------------------------------------------------------------------------
-    TEST(LocalIntensityScaleCudaTest, REMOVE_ME_AFTER_DEVELOPMENT) {
-        int y_num = 2;
-        int x_num = 3;
-        int z_num = 2;
-        PixelData<float> m(y_num, x_num, z_num, 0);
-        PixelData<float> m2(y_num, x_num, z_num, 0);
-        PixelData<float> m3(y_num, x_num, z_num,0);
-        float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8, 9 ,10, 11, 12};
+    TEST(LocalIntensityScaleCudaTest, CPU_AND_GPU_TEST_X_DIR_VS_MANUALLY_CALCULATED_VALUES) {
+        // Belows data is precomputed for x-len = 5 (and maximum offset = 4) so do not change these numbers!
+        constexpr PixelDataDim const dim{1, 5, 1};
+        float expectedData[2][5][dim.x] = {
+                        {   // with no boundary values
+                            {1.00, 2.00, 3.00, 4.00, 5.00},  // offset = 0
+                            {1.50, 2.00, 3.00, 4.00, 4.50},  // offset = 1
+                            {2.00, 2.50, 3.00, 3.50, 4.00},  // offset = 2
+                             {2.50, 3.00, 3.00, 3.00, 3.5},  // offset = 3
+                            {3.00, 3.00, 3.00, 3.00, 3.00}   // offset = 4
+                        },
+                        {   // with boundary values
+                            {1.00, 2.00, 3.00, 4.00, 5.00},
+                            {1.66, 2.00, 3.00, 4.00, 4.33},
+                            {2.20, 2.40, 3.00, 3.60, 3.80},
+                            {2.71, 2.85, 3.00, 3.14, 3.28},
+                            {3.22, 3.11, 3.00, 2.88, 2.77}
+                        }
+                    };
 
+
+        APRTimer timer(false); // set to true to see timings
+
+        PixelData<float> m(dim);
+        float dataIn[] = {1, 2, 3, 4, 5};
         initFromZYXarray(m, dataIn);
-        initFromZYXarray(m2, dataIn);
-        initFromZYXarray(m3, dataIn);
+
         LocalIntensityScale lis;
-        int off = 0;
-        lis.calc_sat_mean_x(m, off);
-        m.printMesh(1);
-        calcMean(m3, off, MEAN_X_DIR);
-        m3.printMesh(1);
-//        lis.calc_sat_mean_y(m2, off);
-//        m2.printMesh(1);
 
+        for (int boundary = 0; boundary <= 1; ++ boundary) {
+            // boundary = 0 there is no reflected boundary
+            // boudnary = 1 there is boundary reflect
+            for (int offset = 0; offset <= 4; ++offset) {
+//                std::cout << "OFFSET=" << offset << " boundary=" << (boundary > 0) << std::endl;
 
-        compareMeshes(m3, m, 0.00000001);
+                // Run on CPU
+                PixelData<float> mCpu(m, true);
+                timer.start_timer("CPU mean X-DIR");
+                lis.calc_sat_mean_x(mCpu, offset, (boundary > 0));
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                timer.start_timer("GPU mean X-DIR");
+                calcMean(mGpu, offset, MEAN_X_DIR, (boundary > 0));
+                timer.stop_timer();
+
+                // Compare results
+                PixelData<float> expected(dim);
+                initFromZYXarray(expected, expectedData[boundary][offset]);
+                EXPECT_EQ(compareMeshes(expected, mGpu, 0.01), 0);
+                EXPECT_EQ(compareMeshes(expected, mCpu, 0.01), 0);
+
+                // Also GPU and CPU should give exactly same output
+                EXPECT_EQ(compareMeshes(mGpu, mCpu, 0), 0);
+            }
+        }
     }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WITH_AND_WITHOUT_BOUNDARY_X_DIR_RANDOM_VALUES) {
+        APRTimer timer(false);
+
+        constexpr PixelDataDim const dim{63, 65, 96};
+        PixelData<float> m = getRandInitializedMesh<float>(dim, 50, 10);
+
+        LocalIntensityScale lis;
+
+        for (int boundary = 0; boundary <= 1; ++ boundary) {
+            // boundary = 0 there is no reflected boundary
+            // boudnary = 1 there is boundary reflect
+            for (int offset = 0; offset <= 6; ++offset) {
+                //std::cout << "OFFSET=" << offset << " boundary=" << (boundary > 0) << std::endl;
+
+                PixelData<float> mCpu;
+                mCpu.init(m);
+                mCpu.copyFromMesh(m);
+                timer.start_timer("CPU mean X-DIR");
+                lis.calc_sat_mean_x(mCpu, offset, (boundary > 0));
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                timer.start_timer("GPU mean X-DIR");
+                calcMean(mGpu, offset, MEAN_X_DIR, (boundary > 0));
+                timer.stop_timer();
+
+                // Compare results
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
+            }
+        }
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Below tests are not yet fixed.
+    // ------------------------------------------------------------------------
+
+    TEST(LocalIntensityScaleCudaTest, CPU_AND_GPU_TEST_Z_DIR_VS_MANUALLY_CALCULATED_VALUES) {
+        // Belows data is precomputed for x-len = 5 (and maximum offset = 4) so do not change these numbers!
+        constexpr PixelDataDim const dim{1, 5, 1};
+        float expectedData[2][5][dim.x] = {
+                {   // with no boundary values
+                        {1.00, 2.00, 3.00, 4.00, 5.00},  // offset = 0
+                        {1.50, 2.00, 3.00, 4.00, 4.50},  // offset = 1
+                        {2.00, 2.50, 3.00, 3.50, 4.00},  // offset = 2
+                        {2.50, 3.00, 3.00, 3.00, 3.5},  // offset = 3
+                        {3.00, 3.00, 3.00, 3.00, 3.00}   // offset = 4
+                },
+                {   // with boundary values
+                        {1.00, 2.00, 3.00, 4.00, 5.00},
+                        {1.66, 2.00, 3.00, 4.00, 4.33},
+                        {2.20, 2.40, 3.00, 3.60, 3.80},
+                        {2.71, 2.85, 3.00, 3.14, 3.28},
+                        {3.22, 3.11, 3.00, 2.88, 2.77}
+                }
+        };
+
+
+        APRTimer timer(false); // set to true to see timings
+
+        PixelData<float> m(dim);
+        float dataIn[] = {1, 2, 3, 4, 5};
+        initFromZYXarray(m, dataIn);
+
+        LocalIntensityScale lis;
+
+        for (int boundary = 0; boundary <= 1; ++ boundary) {
+            // boundary = 0 there is no reflected boundary
+            // boudnary = 1 there is boundary reflect
+            for (int offset = 0; offset <= 4; ++offset) {
+//                std::cout << "OFFSET=" << offset << " boundary=" << (boundary > 0) << std::endl;
+
+                // Run on CPU
+                PixelData<float> mCpu(m, true);
+                timer.start_timer("CPU mean X-DIR");
+                lis.calc_sat_mean_x(mCpu, offset, (boundary > 0));
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                timer.start_timer("GPU mean X-DIR");
+                calcMean(mGpu, offset, MEAN_X_DIR, (boundary > 0));
+                timer.stop_timer();
+
+                // Compare results
+                PixelData<float> expected(dim);
+                initFromZYXarray(expected, expectedData[boundary][offset]);
+                EXPECT_EQ(compareMeshes(expected, mGpu, 0.01), 0);
+                EXPECT_EQ(compareMeshes(expected, mCpu, 0.01), 0);
+
+                // Also GPU and CPU should give exactly same output
+                EXPECT_EQ(compareMeshes(mGpu, mCpu, 0), 0);
+            }
+        }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WITH_AND_WITHOUT_BOUNDARY_Z_DIR_RANDOM_VALUES) {
+        APRTimer timer(false);
+
+        constexpr PixelDataDim const dim{63, 65, 96};
+        PixelData<float> m = getRandInitializedMesh<float>(dim, 50, 10);
+
+        LocalIntensityScale lis;
+
+        for (int boundary = 0; boundary <= 1; ++ boundary) {
+            // boundary = 0 there is no reflected boundary
+            // boudnary = 1 there is boundary reflect
+            for (int offset = 0; offset <= 6; ++offset) {
+                //std::cout << "OFFSET=" << offset << " boundary=" << (boundary > 0) << std::endl;
+
+                // Run on CPU
+//                PixelData<float> mCpu2;
+//                PixelData<float> mCpuPadded;
+//                timer.start_timer("CPU old mean X-DIR");
+//                paddPixels(m, mCpuPadded, 0, offset * boundary, 0);
+//                lis.calc_sat_mean_x_orig(mCpuPadded, offset);
+//                unpaddPixels(mCpuPadded, mCpu2, dim.y, dim.x, dim.z);
+//                timer.stop_timer();
+
+                PixelData<float> mCpu;
+                mCpu.init(m);
+                mCpu.copyFromMesh(m);
+                timer.start_timer("CPU mean X-DIR");
+                lis.calc_sat_mean_x(mCpu, offset, (boundary > 0));
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                timer.start_timer("GPU mean X-DIR");
+                calcMean(mGpu, offset, MEAN_X_DIR, (boundary > 0));
+                timer.stop_timer();
+
+
+                // Compare results
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
+            }
+        }
+    }
+
+//    TEST(LocalIntensityScaleCudaTest, REMOVE_ME_AFTER_DEVELOPMENT) {
+//        int y_num = 1;
+//        int x_num = 5;
+//        int z_num = 1;
+//#if 1
+//            PixelData<float> m(y_num, x_num, z_num, 0);
+//            PixelData<float> m2(y_num, x_num, z_num, 0);
+//            PixelData<float> m3(y_num, x_num, z_num, 0);
+//            PixelData<float> m4(y_num, x_num, z_num, 0);
+//            float dataIn[] = {1, 2, 3, 4, 5};
+////            float dataIn[] = {75.4539260864, 42.5445404053, 0.00003, 4, 0.00005, 6, 0.00007, 8, 0.00009, 10, 0.000011, 12};
+//
+//            initFromZYXarray(m, dataIn);
+//            initFromZYXarray(m2, dataIn);
+//            initFromZYXarray(m3, dataIn);
+//            initFromZYXarray(m4, dataIn);
+//#else
+//            PixelData<float> m = getRandInitializedMesh<float>(y_num, x_num, z_num, 200, 0);
+//            PixelData<float> m2(m, true);
+//            PixelData<float> m3(m, true);
+//            PixelData<float> m4(m, true);
+//#endif
+//
+//        LocalIntensityScale lis;
+//
+//        int off = 4;
+//
+//        std::cout << "INP:"; m.printMesh(1);
+//
+//        bool boundary = true;
+//
+//        APRTimer timer(true);
+//        calcMean(m3, off, MEAN_X_DIR, boundary);
+//        timer.start_timer("new");
+//        lis.calc_sat_mean_x(m2, off, boundary);
+//        timer.stop_timer();
+//
+//        timer.start_timer("old");
+//        PixelData<float> mCpuPadded;
+//        paddPixels(m, mCpuPadded, 0, off, 0);
+//        lis.calc_sat_mean_x_orig(mCpuPadded, off);
+//        unpaddPixels(mCpuPadded, m4, m.y_num, m.x_num, m.z_num);
+//        timer.stop_timer();
+//
+//        std::cout << "CPU: "; m2.printMesh(1);
+//        std::cout << "GPU: "; m3.printMesh(1);
+//        std::cout << "CPU old: "; m4.printMesh(1);
+//
+//        std::cout << "GPU vs NEW\n";
+//        compareMeshes(m3, m2, 0.00000001, 3);
+//        std::cout << "OLD vs GPU\n";
+//        compareMeshes(m4, m3, 0.00000001, 3);
+//        std::cout << "OLD vs NEW\n";
+//        EXPECT_EQ(compareMeshes(m4, m2, 0.00000001, 3), 0);
+//    }
     // ------------------------------------------------------------------------
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Y_DIR) {
@@ -65,31 +292,7 @@ namespace {
         }
     }
 
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_X_DIR) {
-        APRTimer timer(true);
-        PixelData<float> m = getRandInitializedMesh<float>(22, 33, 22, 255);
 
-        LocalIntensityScale lis;
-        for (int offset = 0; offset < 6; ++offset) {
-
-            std::cout << " ============================== " << offset << std::endl;
-
-            // Run on CPU
-            PixelData<float> mCpu(m, true);
-            timer.start_timer("CPU mean X-DIR");
-            lis.calc_sat_mean_x(mCpu, offset);
-            timer.stop_timer();
-
-            // Run on GPU
-            PixelData<float> mGpu(m, true);
-            timer.start_timer("GPU mean X-DIR");
-            calcMean(mGpu, offset, MEAN_X_DIR);
-            timer.stop_timer();
-
-            // Compare results
-            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.001), 0);
-        }
-    }
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Z_DIR) {
         APRTimer timer(true);
@@ -154,45 +357,15 @@ namespace {
         }
     }
 
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_X_DIR) {
-        APRTimer timer(true);
-        //PixelData<float> m(1, 13, 1, 0);
-        //float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
-        //initFromZYXarray(m, dataIn);
-        PixelData<float> m = getRandInitializedMesh<float>(31, 33, 13, 25, 10);
 
-        LocalIntensityScale lis;
-
-        for (int boundary = 0; boundary <= 1; ++ boundary) {
-            // boundary = 0 there is no reflected boundary
-            // boudnary = 1 there is boundary reflect
-            for (int offset = 0; offset < 6; ++offset) {
-                // Run on CPU
-                PixelData<float> mCpuPadded;
-                paddPixels(m, mCpuPadded, 0, offset * boundary, 0);
-                timer.start_timer("CPU mean X-DIR");
-                lis.calc_sat_mean_x(mCpuPadded, offset);
-                PixelData<float> mCpu;
-                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
-                timer.stop_timer();
-
-                // Run on GPU
-                PixelData<float> mGpu(m, true);
-                timer.start_timer("GPU mean X-DIR");
-                calcMean(mGpu, offset, MEAN_X_DIR, (boundary > 0));
-                timer.stop_timer();
-
-                // Compare results
-                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.0000001), 0);
-            }
-        }
-    }
 
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Z_DIR) {
         APRTimer timer(true);
-        PixelData<float> m(1, 1, 13, 0);
-        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
-        initFromZYXarray(m, dataIn);
+//        PixelData<float> m(1, 1, 13, 0);
+//        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
+//        initFromZYXarray(m, dataIn);
+        PixelData<float> m = getRandInitializedMesh<float>(31, 33, 13, 25, 10);
+
 
         LocalIntensityScale lis;
 

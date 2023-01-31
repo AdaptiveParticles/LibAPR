@@ -21,7 +21,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_y(m, 0);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
         }
         {   // OFFSET=1
 
@@ -34,7 +34,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_y(m, 1);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
         }
         {   // OFFSET=2 (+symmetricity check)
 
@@ -47,7 +47,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_y(m, 2);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
 
             // check if data in opposite order gives same result
             float dataIn2[] = {24,21,18,15,12,9,6,3};
@@ -57,7 +57,7 @@ namespace {
 
             lis.calc_sat_mean_y(m, 2);
 
-            ASSERT_TRUE(compare(m, expect2, 0.05));
+            ASSERT_TRUE(compare(m, expect2, 0.000001));
         }
     }
 
@@ -73,7 +73,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_x(m, 0);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
         }
         {   // OFFSET=1
 
@@ -86,7 +86,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_x(m, 1);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
         }
         {   // OFFSET=2 (+symmetricity check)
 
@@ -99,7 +99,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_x(m, 2);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
 
             // check if data in opposite order gives same result
             float dataIn2[] = {24,21,18,15,12,9,6,3};
@@ -109,7 +109,7 @@ namespace {
 
             lis.calc_sat_mean_x(m, 2);
 
-            ASSERT_TRUE(compare(m, expect2, 0.05));
+            ASSERT_TRUE(compare(m, expect2, 0.000001));
         }
     }
 
@@ -125,7 +125,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_z(m, 0);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
         }
         {   // OFFSET=1
 
@@ -138,7 +138,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_z(m, 1);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
         }
         {   // OFFSET=2 (+symmetricity check)
 
@@ -151,7 +151,7 @@ namespace {
             LocalIntensityScale lis;
             lis.calc_sat_mean_z(m, 2);
 
-            ASSERT_TRUE(compare(m, expect, 0.05));
+            ASSERT_TRUE(compare(m, expect, 0.000001));
 
             // check if data in opposite order gives same result
             float dataIn2[] = {24,21,18,15,12,9,6,3};
@@ -161,7 +161,7 @@ namespace {
 
             lis.calc_sat_mean_z(m, 2);
 
-            ASSERT_TRUE(compare(m, expect2, 0.05));
+            ASSERT_TRUE(compare(m, expect2, 0.000001));
         }
     }
 

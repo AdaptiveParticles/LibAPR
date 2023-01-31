@@ -338,6 +338,16 @@ namespace {
             ASSERT_EQ(md.mesh.size(), 100*200*300);
         }
 
+        // size provided
+        {
+            PixelDataDim dim(100, 200, 300);
+            PixelData<int> md(dim);
+            ASSERT_EQ(md.x_num, 200);
+            ASSERT_EQ(md.y_num, 100);
+            ASSERT_EQ(md.z_num, 300);
+            ASSERT_EQ(md.mesh.size(), 100*200*300);
+        }
+
         // mesh provided
         {
             // generate some data

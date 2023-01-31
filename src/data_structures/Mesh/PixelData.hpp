@@ -34,7 +34,7 @@ struct PixelDataDim {
     size_t x;
     size_t z;
 
-    PixelDataDim(size_t y, size_t x, size_t z) : y(y), x(x), z(z) {}
+    constexpr PixelDataDim(size_t y, size_t x, size_t z) : y(y), x(x), z(z) {}
 
     size_t size() const { return y * x * z; }
 
@@ -435,6 +435,19 @@ public :
      * @param aInitVal - initial value of all elements
      */
     PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { initWithValue(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
+
+    /**
+     * Constructor - initialize initial size of mesh to provided values
+     * @param aDims - PixelDataDim with length of each dimension
+     */
+    PixelData(PixelDataDim aDims) { init(aDims.y, aDims.x, aDims.z); }
+
+    /**
+     * Constructor - creates mesh with provided dimentions initialized to aInitVal
+     * @param aDims - PixelDataDim with length of each dimension
+     * @param aInitVal - initial value of all elements
+     */
+    PixelData(PixelDataDim aDims, T aInitVal) { initWithValue(aDims.y, aDims.x, aDims.z, aInitVal); }
 
     /**
      * Move constructor
