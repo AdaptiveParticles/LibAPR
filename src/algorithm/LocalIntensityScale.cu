@@ -140,35 +140,42 @@ __global__ void meanXdir(T *image, int offset, size_t x_num, size_t y_num, size_
             currElementOffset += nextElementOffset;
             ++count;
         }
-        currElementOffset -= nextElementOffset;
-        --count;
+
         if (boundaryReflect) {
-            count = divisor;
+            count += offset; // elements in above loop in range [1, offset] were summed twice
         }
 
         // Pointer in circular buffer
-        int beginPtr = offset;
+        int beginPtr = (offset + 1) % divisor;
 
-        // main loop going through all elements in range [0, x_num-offset)
-        for (int x = 0; x < x_num - offset; ++x) {
+        // main loop going through all elements in range [0, x_num - 1 - offset], so till last element that
+        // does not need handling RHS for offset '^'
+        // x x x x ... x x x x x x x
+        //                 o o ^ o o
+        //
+        const int lastElement = x_num - 1 - offset;
+        for (int x = 0; x <= lastElement; ++x) {
+            // Calculate and save currently processed element and move to the new one
+            image[workerOffset + saveElementOffset] = sum / count;
+            saveElementOffset += nextElementOffset;
+
+            // There is no more elements to process in that loop, all stuff left to be processed is already in 'data' buffer
+            if (x == lastElement) break;
+
             // Read new element
             T v = image[workerOffset + currElementOffset];
 
             // Update sum to cover [-offset, offset] of currently processed element
-            sum += v;
             sum -= data[beginPtr][workerIdx];
+            sum += v;
 
-            // Save and move pointer
+            // Store new element in circularBuffer
             data[beginPtr][workerIdx] = v;
-            beginPtr = (beginPtr + 1) % divisor;
 
-            // Update count and save currently processed element
+            // Move to next elements to read and in circular buffer
             count = min(count + 1, divisor);
-            image[workerOffset + saveElementOffset] = sum / count;
-
-            // Move to next elements
+            beginPtr = (beginPtr + 1) % divisor;
             currElementOffset += nextElementOffset;
-            saveElementOffset += nextElementOffset;
         }
 
         // Handle last #offset elements on RHS

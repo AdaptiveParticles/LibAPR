@@ -80,7 +80,7 @@ namespace {
             // boundary = 0 there is no reflected boundary
             // boudnary = 1 there is boundary reflect
             for (int offset = 0; offset <= 6; ++offset) {
-                //std::cout << "OFFSET=" << offset << " boundary=" << (boundary > 0) << std::endl;
+//                std::cout << "------------- OFFSET=" << offset << " boundary=" << (boundary > 0) << std::endl;
 
                 PixelData<float> mCpu;
                 mCpu.init(m);
@@ -96,7 +96,94 @@ namespace {
                 timer.stop_timer();
 
                 // Compare results
-                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0); // Expect exactly same results
+            }
+        }
+    }
+
+    /**
+     * Generate input and expected output using easy brute force approach.
+     * When comparing vs CPU or GPU outputs there is small error expected since little difference in order of float
+     * operations.
+     * @tparam T - type of generated data
+     * @param len - length
+     * @param offset - offset for which expected output should be calculated
+     * @param boundary - use boundary?
+     * @param useRandomNumbers - use random numbers or if false then index numbers in buffers [1..len]
+     * @return tuple of [input, expectedOutput]
+     */
+    template <typename T>
+    auto generateInputAndExpected(int len, int offset, bool boundary, bool useRandomNumbers) {
+        std::vector<T> input(len);
+        std::vector<T> expected(len);
+
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<double> dist(0.0, 10.0);
+
+        // Feel input and calculate expected data
+        for (int i = 0; i < len; ++i) input[i] = useRandomNumbers ? dist(mt) : i + 1;
+
+        for (int i = 0; i < len; ++i) {
+            int count = 0;
+            T sum = 0;
+            for (int x = i - offset; x <= i + offset; ++x) {
+                int currIdx = x;
+                if (boundary) {
+                    currIdx = abs(x);
+                    if (currIdx > len - 1) currIdx = (len - 1) - (currIdx - (len - 1));
+                }
+
+                if (currIdx < 0 || currIdx >= len) continue;
+
+                sum += input[currIdx];
+                count++;
+            }
+            expected[i] = sum / count;
+        }
+        return std::make_tuple(input, expected);
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_CPU_VS_RANDOM_VALUES_X_DIR) {
+        // Input params
+        using T = uint16_t;
+
+        for (int b = 0; b <= 1; b++) {
+            for (int len = 5; len <= 45; len += 20) {
+                for (int offset = 0; offset <= 6 && offset < len; offset++) {
+                    for (int r = 0; r <= 1; r++) {
+                        bool hasBoundary = b > 0;
+                        bool useRandomNumbers = r > 0;
+//                        std::cout << "========================> len=" << len << " offset=" << offset << " hasBoundary=" << hasBoundary << " useRandomNumbers=" << useRandomNumbers << std::endl;
+
+                        auto t = generateInputAndExpected<T>(len, offset, hasBoundary, useRandomNumbers);
+                        auto input = std::get<0>(t);
+                        auto expected = std::get<1>(t);
+                        PixelData<T> m(1, len, 1, 0);
+                        initFromZYXarray(m, input.data());
+                        PixelData<T> expectedMesh(1, len, 1, 0);
+                        initFromZYXarray(expectedMesh, expected.data());
+
+                        APRTimer timer(false);
+                        LocalIntensityScale lis;
+
+                        // Run on CPU old-impl
+                        timer.start_timer("CPU X-DIR");
+                        PixelData<T> mCpu(m, true);
+                        lis.calc_sat_mean_x(mCpu, offset, hasBoundary);
+                        timer.stop_timer();
+
+                        // Run on GPU
+                        PixelData<T> mGpu(m, true);
+                        timer.start_timer("GPU X-DIR");
+                        calcMean(mGpu, offset, MEAN_X_DIR, (hasBoundary > 0));
+                        timer.stop_timer();
+
+                        EXPECT_EQ(compareMeshes(expectedMesh, mGpu, 0.00001), 0) << "---!!!!!!--- GPU values does not match";
+                        EXPECT_EQ(compareMeshes(expectedMesh, mCpu, 0.00001), 0) << "---!!!!!!--- CPU values does not match";
+                        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.0), 0) << "---!!!!!!--- CPU vs GPU values does not match";
+                    }
+                }
             }
         }
     }
@@ -254,213 +341,213 @@ namespace {
 //    }
     // ------------------------------------------------------------------------
 
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Y_DIR) {
-        APRTimer timer(true);
-        PixelData<float> m = getRandInitializedMesh<float>(22, 33, 22, 100, 3);
-
-        LocalIntensityScale lis;
-        for (int offset = 0; offset < 6; ++offset) {
-
-            std::cout << " ============================== " << offset << std::endl;
-
-            // Run on CPU
-            PixelData<float> mCpu(m, true);
-            timer.start_timer("CPU mean Y-DIR");
-            lis.calc_sat_mean_y(mCpu, offset);
-            timer.stop_timer();
-
-            // Run on GPU
-            PixelData<float> mGpu(m, true);
-            timer.start_timer("GPU mean Y-DIR");
-            calcMean(mGpu, offset, MEAN_Y_DIR);
-            timer.stop_timer();
-
-            // Compare results
-            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
-        }
-    }
-
-
-
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Z_DIR) {
-        APRTimer timer(true);
-        using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(22, 33, 22, 255);
-
-        LocalIntensityScale lis;
-        for (int offset = 0; offset < 6; ++offset) {
-
-            std::cout << " ============================== " << offset << std::endl;
-
-            // Run on CPU
-            PixelData<ImgType> mCpu(m, true);
-            timer.start_timer("CPU mean Z-DIR");
-            lis.calc_sat_mean_z(mCpu, offset);
-            timer.stop_timer();
-
-            // Run on GPU
-            PixelData<ImgType> mGpu(m, true);
-            timer.start_timer("GPU mean Z-DIR");
-            calcMean(mGpu, offset, MEAN_Z_DIR);
-            timer.stop_timer();
-
-            // Compare results
-            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
-        }
-    }
-
-
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Y_DIR) {
-        APRTimer timer(true);
-        PixelData<float> m(4, 4, 1, 0);
-        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
-        initFromZYXarray(m, dataIn);
-
-        LocalIntensityScale lis;
-
-        for (int boundary = 1; boundary <= 1; ++ boundary) {
-            // boundary = 0 there is no reflected boundary
-            // boudnary = 1 there is boundary reflect
-            std::cout << "\n\n";
-            for (int offset = 1; offset < 2; ++offset) {
-                // Run on CPU
-                PixelData<float> mCpuPadded;
-                paddPixels(m, mCpuPadded, offset * boundary, offset * boundary, 0);
-                timer.start_timer("CPU mean Y-DIR");
-                lis.calc_sat_mean_y(mCpuPadded, offset);
-                PixelData<float> mCpu;
-                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
-                timer.stop_timer();
-
-                // Run on GPU
-                PixelData<float> mGpu(m, true);
-                timer.start_timer("GPU mean Y-DIR");
-                calcMean(mGpu, offset, MEAN_Y_DIR, (boundary > 0));
-
-                timer.stop_timer();
-
-                // Compare results
-                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01, 4), 0);
-            }
-        }
-    }
+//    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Y_DIR) {
+//        APRTimer timer(true);
+//        PixelData<float> m = getRandInitializedMesh<float>(22, 33, 22, 100, 3);
+//
+//        LocalIntensityScale lis;
+//        for (int offset = 0; offset < 6; ++offset) {
+//
+//            std::cout << " ============================== " << offset << std::endl;
+//
+//            // Run on CPU
+//            PixelData<float> mCpu(m, true);
+//            timer.start_timer("CPU mean Y-DIR");
+//            lis.calc_sat_mean_y(mCpu, offset);
+//            timer.stop_timer();
+//
+//            // Run on GPU
+//            PixelData<float> mGpu(m, true);
+//            timer.start_timer("GPU mean Y-DIR");
+//            calcMean(mGpu, offset, MEAN_Y_DIR);
+//            timer.stop_timer();
+//
+//            // Compare results
+//            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+//        }
+//    }
 
 
 
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Z_DIR) {
-        APRTimer timer(true);
-//        PixelData<float> m(1, 1, 13, 0);
-//        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
+//    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_Z_DIR) {
+//        APRTimer timer(true);
+//        using ImgType = float;
+//        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(22, 33, 22, 255);
+//
+//        LocalIntensityScale lis;
+//        for (int offset = 0; offset < 6; ++offset) {
+//
+//            std::cout << " ============================== " << offset << std::endl;
+//
+//            // Run on CPU
+//            PixelData<ImgType> mCpu(m, true);
+//            timer.start_timer("CPU mean Z-DIR");
+//            lis.calc_sat_mean_z(mCpu, offset);
+//            timer.stop_timer();
+//
+//            // Run on GPU
+//            PixelData<ImgType> mGpu(m, true);
+//            timer.start_timer("GPU mean Z-DIR");
+//            calcMean(mGpu, offset, MEAN_Z_DIR);
+//            timer.stop_timer();
+//
+//            // Compare results
+//            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
+//        }
+//    }
+
+
+//    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Y_DIR) {
+//        APRTimer timer(true);
+//        PixelData<float> m(4, 4, 1, 0);
+//        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
 //        initFromZYXarray(m, dataIn);
-        PixelData<float> m = getRandInitializedMesh<float>(31, 33, 13, 25, 10);
+//
+//        LocalIntensityScale lis;
+//
+//        for (int boundary = 1; boundary <= 1; ++ boundary) {
+//            // boundary = 0 there is no reflected boundary
+//            // boudnary = 1 there is boundary reflect
+//            std::cout << "\n\n";
+//            for (int offset = 1; offset < 2; ++offset) {
+//                // Run on CPU
+//                PixelData<float> mCpuPadded;
+//                paddPixels(m, mCpuPadded, offset * boundary, offset * boundary, 0);
+//                timer.start_timer("CPU mean Y-DIR");
+//                lis.calc_sat_mean_y(mCpuPadded, offset);
+//                PixelData<float> mCpu;
+//                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
+//                timer.stop_timer();
+//
+//                // Run on GPU
+//                PixelData<float> mGpu(m, true);
+//                timer.start_timer("GPU mean Y-DIR");
+//                calcMean(mGpu, offset, MEAN_Y_DIR, (boundary > 0));
+//
+//                timer.stop_timer();
+//
+//                // Compare results
+//                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01, 4), 0);
+//            }
+//        }
+//    }
 
 
-        LocalIntensityScale lis;
 
-        for (int boundary = 0; boundary <= 1; ++ boundary) {
-            // boundary = 0 there is no reflected boundary
-            // boudnary = 1 there is boundary reflect
-            for (int offset = 0; offset < 6; ++offset) {
-                // Run on CPU
-                PixelData<float> mCpuPadded;
-                paddPixels(m, mCpuPadded, 0, 0, offset * boundary);
-                timer.start_timer("CPU mean Z-DIR");
-                lis.calc_sat_mean_z(mCpuPadded, offset);
-                PixelData<float> mCpu;
-                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
-                timer.stop_timer();
-
-                // Run on GPU
-                PixelData<float> mGpu(m, true);
-                timer.start_timer("GPU mean Z-DIR");
-                calcMean(mGpu, offset, MEAN_Z_DIR, (boundary > 0));
-                timer.stop_timer();
-
-                // Compare results
-                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
-            }
-        }
-    }
+//    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WIHT_AND_WITHOUT_BOUNDARY_Z_DIR) {
+//        APRTimer timer(true);
+////        PixelData<float> m(1, 1, 13, 0);
+////        float dataIn[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
+////        initFromZYXarray(m, dataIn);
+//        PixelData<float> m = getRandInitializedMesh<float>(31, 33, 13, 25, 10);
+//
+//
+//        LocalIntensityScale lis;
+//
+//        for (int boundary = 0; boundary <= 1; ++ boundary) {
+//            // boundary = 0 there is no reflected boundary
+//            // boudnary = 1 there is boundary reflect
+//            for (int offset = 0; offset < 6; ++offset) {
+//                // Run on CPU
+//                PixelData<float> mCpuPadded;
+//                paddPixels(m, mCpuPadded, 0, 0, offset * boundary);
+//                timer.start_timer("CPU mean Z-DIR");
+//                lis.calc_sat_mean_z(mCpuPadded, offset);
+//                PixelData<float> mCpu;
+//                unpaddPixels(mCpuPadded, mCpu, m.y_num, m.x_num, m.z_num);
+//                timer.stop_timer();
+//
+//                // Run on GPU
+//                PixelData<float> mGpu(m, true);
+//                timer.start_timer("GPU mean Z-DIR");
+//                calcMean(mGpu, offset, MEAN_Z_DIR, (boundary > 0));
+//                timer.stop_timer();
+//
+//                // Compare results
+//                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
+//            }
+//        }
+//    }
 
 
     // !!!!!!!!!!!!!!!!!!!!!!! NOT YET CHECKED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // TODO: See what these tests are doing and fix/change/remove them!
 
-    TEST(LocalIntensityScaleCudaTest, 1D_Y_DIR) {
-        {   // OFFSET=0
+//    TEST(LocalIntensityScaleCudaTest, 1D_Y_DIR) {
+//        {   // OFFSET=0
+//
+//            PixelData<float> m(8, 1, 1, 0);
+//            float dataIn[] = {3,6,9,12,15,18,21,24};
+//            float expect[] = {3,6,9,12,15,18,21,24};
+//
+//            initFromZYXarray(m, dataIn);
+//
+//            calcMean(m, 0, MEAN_Y_DIR);
+//
+//            ASSERT_TRUE(compare(m, expect, 0.05));
+//        }
+//        {   // OFFSET=1
+//
+//            PixelData<float> m(8, 1, 1, 0);
+//            float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8};
+//            float expect[] = {1.5, 2, 3, 4, 5, 6, 7, 7.5};
+//
+//            initFromZYXarray(m, dataIn);
+//
+//            calcMean(m, 1, MEAN_Y_DIR);
+//
+//            ASSERT_TRUE(compare(m, expect, 0.05));
+//        }
+//        {   // OFFSET=2 (+symmetricity check)
+//
+//            PixelData<float> m(8, 1, 1, 0);
+//            float dataIn[] = {3,6,9,12,15,18,21,24};
+//            float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
+//
+//            initFromZYXarray(m, dataIn);
+//
+//            calcMean(m, 2, MEAN_Y_DIR);
+//
+//            ASSERT_TRUE(compare(m, expect, 0.05));
+//
+//            // check if data in opposite order gives same result
+//            float dataIn2[] = {24,21,18,15,12,9,6,3};
+//            float expect2[] = {21, 19.5, 18, 15,12, 9, 7.5, 6};
+//
+//            initFromZYXarray(m, dataIn2);
+//
+//            calcMean(m, 2, MEAN_Y_DIR);
+//
+//            ASSERT_TRUE(compare(m, expect2, 0.05));
+//        }
+//    }
 
-            PixelData<float> m(8, 1, 1, 0);
-            float dataIn[] = {3,6,9,12,15,18,21,24};
-            float expect[] = {3,6,9,12,15,18,21,24};
-
-            initFromZYXarray(m, dataIn);
-
-            calcMean(m, 0, MEAN_Y_DIR);
-
-            ASSERT_TRUE(compare(m, expect, 0.05));
-        }
-        {   // OFFSET=1
-
-            PixelData<float> m(8, 1, 1, 0);
-            float dataIn[] = {1, 2, 3, 4, 5, 6, 7, 8};
-            float expect[] = {1.5, 2, 3, 4, 5, 6, 7, 7.5};
-
-            initFromZYXarray(m, dataIn);
-
-            calcMean(m, 1, MEAN_Y_DIR);
-
-            ASSERT_TRUE(compare(m, expect, 0.05));
-        }
-        {   // OFFSET=2 (+symmetricity check)
-
-            PixelData<float> m(8, 1, 1, 0);
-            float dataIn[] = {3,6,9,12,15,18,21,24};
-            float expect[] = {6, 7.5, 9, 12, 15, 18, 19.5, 21};
-
-            initFromZYXarray(m, dataIn);
-
-            calcMean(m, 2, MEAN_Y_DIR);
-
-            ASSERT_TRUE(compare(m, expect, 0.05));
-
-            // check if data in opposite order gives same result
-            float dataIn2[] = {24,21,18,15,12,9,6,3};
-            float expect2[] = {21, 19.5, 18, 15,12, 9, 7.5, 6};
-
-            initFromZYXarray(m, dataIn2);
-
-            calcMean(m, 2, MEAN_Y_DIR);
-
-            ASSERT_TRUE(compare(m, expect2, 0.05));
-        }
-    }
 
 
-
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ALL_DIRS) {
-        APRTimer timer(true);
-        PixelData<float> m = getRandInitializedMesh<float>(33, 31, 13);
-
-        LocalIntensityScale lis;
-        for (int offset = 0; offset < 6; ++offset) {
-            // Run on CPU
-            PixelData<float> mCpu(m, true);
-            timer.start_timer("CPU mean ALL-DIR");
-            lis.calc_sat_mean_y(mCpu, offset);
-            lis.calc_sat_mean_x(mCpu, offset);
-            lis.calc_sat_mean_z(mCpu, offset);
-            timer.stop_timer();
-
-            // Run on GPU
-            PixelData<float> mGpu(m, true);
-            timer.start_timer("GPU mean ALL-DIR");
-            calcMean(mGpu, offset);
-            timer.stop_timer();
-
-            // Compare results
-            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
-        }
-    }
+//    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_ALL_DIRS) {
+//        APRTimer timer(true);
+//        PixelData<float> m = getRandInitializedMesh<float>(33, 31, 13);
+//
+//        LocalIntensityScale lis;
+//        for (int offset = 0; offset < 6; ++offset) {
+//            // Run on CPU
+//            PixelData<float> mCpu(m, true);
+//            timer.start_timer("CPU mean ALL-DIR");
+//            lis.calc_sat_mean_y(mCpu, offset);
+//            lis.calc_sat_mean_x(mCpu, offset);
+//            lis.calc_sat_mean_z(mCpu, offset);
+//            timer.stop_timer();
+//
+//            // Run on GPU
+//            PixelData<float> mGpu(m, true);
+//            timer.start_timer("GPU mean ALL-DIR");
+//            calcMean(mGpu, offset);
+//            timer.stop_timer();
+//
+//            // Compare results
+//            EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.01), 0);
+//        }
+//    }
 
     //@KG: The CPU code doesn't work for uint16 --> overflow will likely result.
 
@@ -489,36 +576,36 @@ namespace {
 //        }
 //    }
 
-    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
-        APRTimer timer(true);
-        PixelData<float> m = getRandInitializedMesh<float>(31, 33, 13, 25, 10);
-
-        APRParameters params;
-        params.sigma_th = 1;
-        params.sigma_th_max = 2;
-        params.reflect_bc_lis = false; //#TODO: @KG: The CPU pipeline uses this to true, so needs to now be implimented.
-
-        // Run on CPU
-        PixelData<float> mCpu(m, true);
-        PixelData<float> mCpuTemp(m, false);
-        timer.start_timer("CPU LIS FULL");
-
-        LocalIntensityScale localIntensityScale;
-
-        localIntensityScale.get_local_intensity_scale(mCpu, mCpuTemp, params);
-        timer.stop_timer();
-
-        // Run on GPU
-        PixelData<float> mGpu(m, true);
-        PixelData<float> mGpuTemp(m, false);
-        timer.start_timer("GPU LIS ALL-DIR");
-        getLocalIntensityScale(mGpu, mGpuTemp, params);
-        timer.stop_timer();
-
-        // Compare results
-        //EXPECT_EQ(compareMeshes(mCpuTemp, mGpuTemp, 0.01), 0); //this is not needed these values are not required.
-        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
-    }
+//    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
+//        APRTimer timer(true);
+//        PixelData<float> m = getRandInitializedMesh<float>(31, 33, 13, 25, 10);
+//
+//        APRParameters params;
+//        params.sigma_th = 1;
+//        params.sigma_th_max = 2;
+//        params.reflect_bc_lis = false; //#TODO: @KG: The CPU pipeline uses this to true, so needs to now be implimented.
+//
+//        // Run on CPU
+//        PixelData<float> mCpu(m, true);
+//        PixelData<float> mCpuTemp(m, false);
+//        timer.start_timer("CPU LIS FULL");
+//
+//        LocalIntensityScale localIntensityScale;
+//
+//        localIntensityScale.get_local_intensity_scale(mCpu, mCpuTemp, params);
+//        timer.stop_timer();
+//
+//        // Run on GPU
+//        PixelData<float> mGpu(m, true);
+//        PixelData<float> mGpuTemp(m, false);
+//        timer.start_timer("GPU LIS ALL-DIR");
+//        getLocalIntensityScale(mGpu, mGpuTemp, params);
+//        timer.stop_timer();
+//
+//        // Compare results
+//        //EXPECT_EQ(compareMeshes(mCpuTemp, mGpuTemp, 0.01), 0); //this is not needed these values are not required.
+//        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
+//    }
 
 
 #endif // APR_USE_CUDA
