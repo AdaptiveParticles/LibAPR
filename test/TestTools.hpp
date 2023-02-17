@@ -46,7 +46,7 @@ inline bool compare(PixelData<T> &mesh, const float *data, const float epsilon) 
 }
 
 template<typename T>
-inline bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
+inline bool initFromZYXarray(PixelData<T> &mesh, T *data) {
     size_t dataIdx = 0;
     for (int z = 0; z < mesh.z_num; ++z) {
         for (int y = 0; y < mesh.y_num; ++y) {
@@ -76,18 +76,33 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
 
     int cnt = 0;
     double maxErrorFound = 0;
+    T maxErrorExpectedValue = 0;
+    T maxErrorTestedValue = 0;
+    std::string maxErrorIdx = "";
 
     for (size_t i = 0; i < expected.mesh.size(); ++i) {
         auto diff = std::abs(expected.mesh[i] - tested.mesh[i]);
         if (diff > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
-                std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " error = " << (float)expected.mesh[i] - (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+                std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested mesh: "
+                          << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i]
+                          << " error = " << (float)expected.mesh[i] - (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
             }
             cnt++;
         }
-        if (diff > maxErrorFound) maxErrorFound = diff;
+        if (diff > maxErrorFound) {
+            maxErrorFound = diff;
+            maxErrorExpectedValue = expected.mesh[i];
+            maxErrorTestedValue = tested.mesh[i];
+            maxErrorIdx = tested.getStrIndex(i);
+        }
     }
-    if (cnt != 0) std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << " maxErrorFound = " << maxErrorFound << std::endl;
+    if (cnt != 0) {
+        std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size()
+                  << ", maxErrorFound = " << maxErrorFound << " at IDX: " << maxErrorIdx << " "
+                  << maxErrorExpectedValue << " vs " << maxErrorTestedValue
+                  << "(" << (100*(long double)maxErrorFound/(long double)maxErrorExpectedValue) << "%)"<<std::endl;
+    }
     return cnt;
 }
 
