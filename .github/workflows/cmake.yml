@@ -85,7 +85,7 @@ jobs:
       # Run tests
       - name: tests
         run: |
-          ctest --test-dir "${{ env.CMAKE_BUILD_DIR }}"
+          ctest --test-dir "${{ env.CMAKE_BUILD_DIR }}" --output-on-failure
           
       - name: Show content of workspace at its completion
         run: find $RUNNER_WORKSPACE
