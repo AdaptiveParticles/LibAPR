@@ -9,6 +9,10 @@ message(STATUS "CMAKE VERSION ${CMAKE_VERSION}")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif(POLICY CMP0135)
+
 # APR build options:
 option(APR_INSTALL "Install APR library" OFF)
 option(APR_BUILD_SHARED_LIB "Builds shared library" OFF)
