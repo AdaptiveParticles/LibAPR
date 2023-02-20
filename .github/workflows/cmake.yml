@@ -64,7 +64,7 @@ jobs:
 
       - name: Install OpenMP dependencies with brew for OSX
         if: contains(matrix.os,'macos')
-        run: brew install libomp #todo caching
+        run: brew install libomp pkg-config #todo caching
 
       - name: Show content of workspace after cache has been restored
         run: find $RUNNER_WORKSPACE
