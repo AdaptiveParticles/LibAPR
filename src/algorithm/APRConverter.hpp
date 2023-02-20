@@ -240,7 +240,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
     //storage of the particle cell tree for computing the pulling scheme
     allocation_timer.start_timer("init and copy image");
-    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    PixelData<ImageType> image_temp(input_image, false /* don't copy */, false /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
     allocation_timer.stop_timer();
 
