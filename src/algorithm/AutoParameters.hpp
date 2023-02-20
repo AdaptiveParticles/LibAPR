@@ -158,6 +158,27 @@ void autoParametersLiEntropy(APRParameters& par,
 }
 
 
+
+template <typename T>
+struct MinMax{T min; T max; };
+
+template <typename T>
+static MinMax<T> getMinMax(const PixelData<T>& input_image) {
+    T minVal = std::numeric_limits<T>::max();
+    T maxVal = std::numeric_limits<T>::min();
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) reduction(max:maxVal) reduction(min:minVal)
+#endif
+    for (size_t i = 0; i < input_image.mesh.size(); ++i) {
+        const T val = input_image.mesh[i];
+        if (val > maxVal) maxVal = val;
+        if (val < minVal) minVal = val;
+    }
+
+    return MinMax<T>{minVal, maxVal};
+}
+
 /**
  * Compute bspline offset for APRConverter of integer type ImageType
  */

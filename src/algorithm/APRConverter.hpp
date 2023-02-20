@@ -133,26 +133,6 @@ protected:
 };
 
 
-template <typename T>
-struct MinMax{T min; T max; };
-
-template <typename T>
-static MinMax<T> getMinMax(const PixelData<T>& input_image) {
-    T minVal = std::numeric_limits<T>::max();
-    T maxVal = std::numeric_limits<T>::min();
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) reduction(max:maxVal) reduction(min:minVal)
-#endif
-    for (size_t i = 0; i < input_image.mesh.size(); ++i) {
-        T val = input_image.mesh[i];
-        if (val > maxVal) maxVal = val;
-        if (val < minVal) minVal = val;
-    }
-
-    return MinMax<T>{minVal, maxVal};
-}
-
 template<typename ImageType>
 void APRConverter<ImageType>::initPipelineMemory(int y_num,int x_num,int z_num){
     //initializes the internal memory to be used in the pipeline.
