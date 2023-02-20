@@ -210,6 +210,22 @@ void APRConverter<ImageType>::get_apr_custom_grad_scale(APR& aAPR,PixelData<Imag
 }
 
 
+/**
+ * Compute bspline offset for APRConverter of integer type ImageType
+ */
+template<typename ImageType, typename T>
+float compute_bspline_offset(PixelData<T>& input_image, float lambda) {
+    // if bspline smoothing is disabled, there is no need for an offset
+    if(lambda <= 0) return 0;
+    
+    // compute offset to center the intensities in the ImageType range (can be negative)
+    auto img_range = getMinMax(input_image);
+    float offset = (std::numeric_limits<ImageType>::max() - (img_range.max - img_range.min)) / 2 - img_range.min;
+
+    // clamp the offset to [-100, 100]
+    return std::max(std::min(offset, 100.f), -100.f);
+}
+
 template<typename ImageType> template<typename T>
 void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //
@@ -233,17 +249,12 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     ////////////////////////
 
     fine_grained_timer.start_timer("offset image");
-    //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
 
-    if (std::is_same<uint16_t, ImageType>::value) {
-        bspline_offset = 100;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else if (std::is_same<uint8_t, ImageType>::value){
-        bspline_offset = 5;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else {
+    if (std::is_floating_point<ImageType>::value) {
         image_temp.copyFromMesh(input_image);
+    } else {
+        bspline_offset = compute_bspline_offset<ImageType>(input_image, par.lambda);
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     }
 
     fine_grained_timer.stop_timer();
