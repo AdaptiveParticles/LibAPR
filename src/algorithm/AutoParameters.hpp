@@ -157,4 +157,22 @@ void autoParametersLiEntropy(APRParameters& par,
     }
 }
 
+
+/**
+ * Compute bspline offset for APRConverter of integer type ImageType
+ */
+template<typename ImageType, typename T>
+float compute_bspline_offset(PixelData<T>& input_image, float lambda) {
+    // if bspline smoothing is disabled, there is no need for an offset
+    if(lambda <= 0) return 0;
+    
+    // compute offset to center the intensities in the ImageType range (can be negative)
+    auto img_range = getMinMax(input_image);
+    float offset = (std::numeric_limits<ImageType>::max() - (img_range.max - img_range.min)) / 2 - img_range.min;
+
+    // clamp the offset to [-100, 100]
+    return std::max(std::min(offset, 100.f), -100.f);
+}
+
+
 #endif //APR_AUTOPARAMETERS_HPP
