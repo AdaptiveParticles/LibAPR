@@ -30,6 +30,8 @@ struct cmdLineOptions{
     float rel_error = 0.1;
     float grad_th = 1;
 
+    bool auto_parameters = false;
+
     int z_block_size = 128;
     int z_ghost = 16; // number of "ghost slices" to use in the APR pipeline
     int z_ghost_sampling = 64; // number of "ghost slices" to use when sampling intensities

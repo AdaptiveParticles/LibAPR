@@ -44,7 +44,7 @@ must be used. The exact influence of this has not yet been studied.
 int runAPR(cmdLineOptions options) {
 
     APR apr;
-    APRConverterBatch<uint16_t> aprConverter;
+    APRConverterBatch<float> aprConverter;
 
     //read in the command line options into the parameters file
     aprConverter.par.Ip_th = options.Ip_th;
@@ -55,6 +55,7 @@ int runAPR(cmdLineOptions options) {
     aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
     aprConverter.par.output_steps = options.output_steps;
     aprConverter.par.grad_th = options.grad_th;
+    aprConverter.par.auto_parameters = options.auto_parameters;
 
     //where things are
     aprConverter.par.input_image_name = options.input;
@@ -234,7 +235,6 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-neighborhood_optimization_off"))
     {
         result.neighborhood_optimization = false;
-
     }
 
     if(command_option_exists(argv, argv + argc, "-output_steps"))
@@ -245,6 +245,11 @@ cmdLineOptions read_command_line_options(int argc, char **argv){
     if(command_option_exists(argv, argv + argc, "-store_tree"))
     {
         result.store_tree = true;
+    }
+
+    if(command_option_exists(argv, argv + argc, "-auto_parameters"))
+    {
+        result.auto_parameters = true;
     }
 
     return result;
