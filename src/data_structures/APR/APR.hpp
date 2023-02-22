@@ -192,6 +192,7 @@ public:
         tree_initialized = apr2copy.tree_initialized;
         apr_initialized = apr2copy.apr_initialized;
         name = apr2copy.name;
+        parameters = apr2copy.parameters;
 
         //old data structures
         apr_access = apr2copy.apr_access;
