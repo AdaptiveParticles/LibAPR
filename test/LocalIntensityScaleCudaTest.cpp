@@ -144,9 +144,9 @@ namespace {
         return std::make_tuple(input, expected);
     }
 
-    TEST(LocalIntensityScaleCudaTest, GPU_CPU_VS_RANDOM_VALUES_X_DIR) {
+    TEST(LocalIntensityScaleCudaTest, GPU_CPU_VS_PRECOMPUTED_VALUES_X_DIR) {
         // Input params
-        using T = uint16_t;
+        using T = float;
 
         for (int b = 0; b <= 1; b++) {
             for (int len = 5; len <= 45; len += 20) {
@@ -179,6 +179,8 @@ namespace {
                         calcMean(mGpu, offset, MEAN_X_DIR, (hasBoundary > 0));
                         timer.stop_timer();
 
+                        // expectedMesh because of different order of calculation will have small floating-point differences
+                        // comparing to CPU or GPU fast implementation, anyway GPU and CPU should have exactly same values!
                         EXPECT_EQ(compareMeshes(expectedMesh, mGpu, 0.00001), 0) << "---!!!!!!--- GPU values does not match";
                         EXPECT_EQ(compareMeshes(expectedMesh, mCpu, 0.00001), 0) << "---!!!!!!--- CPU values does not match";
                         EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.0), 0) << "---!!!!!!--- CPU vs GPU values does not match";
@@ -249,7 +251,7 @@ namespace {
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_WITH_AND_WITHOUT_BOUNDARY_Z_DIR_RANDOM_VALUES) {
         APRTimer timer(false);
 
-        constexpr PixelDataDim const dim{49,51,53};
+        constexpr PixelDataDim const dim{49, 51, 53};
         PixelData<float> m = getRandInitializedMesh<float>(dim, 50, 10);
 
         LocalIntensityScale lis;
@@ -275,6 +277,54 @@ namespace {
 
                 // Compare results
                 EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
+            }
+        }
+    }
+
+    TEST(LocalIntensityScaleCudaTest, GPU_CPU_VS_PRECOMPUTED_VALUES_Z_DIR) {
+        // Input params
+        using T = float;
+
+        for (int b = 0; b <= 1; b++) {
+            for (int len = 5; len <= 45; len += 20) {
+                for (int offset = 0; offset <= 6 && offset < len; offset++) {
+                    for (int r = 0; r <= 1; r++) {
+                        bool hasBoundary = b > 0;
+                        bool useRandomNumbers = r > 0;
+//                        std::cout << "========================> len=" << len << " offset=" << offset << " hasBoundary=" << hasBoundary << " useRandomNumbers=" << useRandomNumbers << std::endl;
+
+                        auto t = generateInputAndExpected<T>(len, offset, hasBoundary, useRandomNumbers);
+                        auto input = std::get<0>(t);
+                        auto expected = std::get<1>(t);
+                        PixelData<T> m(1, 1, len, 0);
+                        initFromZYXarray(m, input.data());
+                        PixelData<T> expectedMesh(1, 1, len, 0);
+                        initFromZYXarray(expectedMesh, expected.data());
+
+                        APRTimer timer(false);
+                        LocalIntensityScale lis;
+
+                        // Run on CPU old-impl
+                        timer.start_timer("CPU Z-DIR");
+                        PixelData<T> mCpu(m, true);
+                        lis.calc_sat_mean_z(mCpu, offset, hasBoundary);
+                        timer.stop_timer();
+
+                        // Run on GPU
+                        PixelData<T> mGpu(m, true);
+                        timer.start_timer("GPU Z-DIR");
+                        calcMean(mGpu, offset, MEAN_Z_DIR, (hasBoundary > 0));
+                        timer.stop_timer();
+
+                        // expectedMesh because of different order of calculation will have small floating-point differences
+                        // comparing to CPU or GPU fast implementation, anyway GPU and CPU should have exactly same values!
+                        EXPECT_EQ(compareMeshes(expectedMesh, mGpu, 0.00001), 0)
+                                            << "---!!!!!!--- GPU values does not match";
+                        EXPECT_EQ(compareMeshes(expectedMesh, mCpu, 0.00001), 0)
+                                            << "---!!!!!!--- CPU values does not match";
+                        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.0), 0) << "---!!!!!!--- CPU vs GPU values does not match";
+                    }
+                }
             }
         }
     }
