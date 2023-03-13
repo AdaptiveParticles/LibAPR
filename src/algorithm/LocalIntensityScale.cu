@@ -14,21 +14,14 @@
 
 
 /**
+ * Calculates mean in Y direction
  *
- * How it works along y-dir (let's suppose offset = 2 and number of workers = 8 for simplicity):
- *
- * image idx: 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2
- *
- * loop #1
- * workersIdx 0 1 2 3 4 5 6 7
- * loop #2
- * workersIdx             6 7 0 1 2 3 4 5
- * loop #3
- * workersIdx                         4 5 6 7 0 1 2 3
- * ..............
- *
- * so #offset workers must wait in each loop to have next elements to sum
- *
+ * NOTE: This is not optimal implementation but.. correct and more or less fast as previous one.
+ *       The reason for change was to have results exactly same as in CPU side.
+ *       Currently after reading whole y-dir line of data mean calculation is done only by one from all threads in block
+ *       so here is some room for improvements.
+ *       If needed may be optimized in future. The main limitation is size of shared memory needed which
+ *       limits number of CUDA blocks that can run in parallel.
  * @tparam T
  * @param image
  * @param offset
@@ -41,59 +34,113 @@ __global__ void meanYdir(T *image, int offset, size_t x_num, size_t y_num, size_
     // NOTE: Block size in x/z direction must be 1
     const size_t workersOffset = (blockIdx.z * x_num + blockIdx.x) * y_num;
     const int numOfWorkers = blockDim.y;
-    const unsigned int active = __activemask();
     const int workerIdx = threadIdx.y;
+
+    extern __shared__ char sharedMemChar[];
+    T *buffer = (T*) sharedMemChar;
+    T *data = (T*) &buffer[y_num];
+
+    // Read whole line of data from y-direction
     int workerOffset = workerIdx;
+    while (workerOffset < y_num) {
+        buffer[workerOffset] = image[workersOffset + workerOffset];
+        workerOffset += numOfWorkers;
+    }
 
-    int offsetInTheLoop = 0;
-    T sum = 0;
-    T v = 0;
-    bool waitForNextLoop = false;
-    int countNumOfSumElements = 1;
-    while(workerOffset < y_num) {
-        if (!waitForNextLoop) v = image[workersOffset + workerOffset];
-        bool waitForNextValues = (workerIdx + offsetInTheLoop) % numOfWorkers >= (numOfWorkers - offset);
+    const int divisor = 2 * offset  + 1;
+    size_t currElementOffset = 0;
+    size_t saveElementOffset = 0;
+    size_t nextElementOffset = 1;
 
-        // Check if current value is one of the mirrored elements (boundary condition)
-        int numberOfMirrorLeft = offset - workerOffset;
-        int numberOfMirrorRight = workerOffset + offset - (y_num - 1);
-        if (boundaryReflect) {
-            if (numberOfMirrorLeft > 0 && workerOffset >= 1 && workerOffset <= numberOfMirrorLeft) {sum += v; ++countNumOfSumElements;}
-            if (numberOfMirrorRight > 0 && workerOffset < (y_num - 1) && workerOffset >= (y_num - 1 - numberOfMirrorRight)) {sum += v; ++countNumOfSumElements;}
-        }
-        for (int off = 1; off <= offset; ++off) {
-            T prevElement = __shfl_sync(active, v, workerIdx + blockDim.y - off, blockDim.y);
-            T nextElement = __shfl_sync(active, v, workerIdx + off, blockDim.y);
-            // LHS boundary check + don't add previous values if they were added in a previous loop execution
-            if (workerOffset >= off && !waitForNextLoop) {sum += prevElement; ++countNumOfSumElements;}
+    if (workerIdx == 0) {
+        // clear shared mem
+        for (int i = offset; i < divisor; ++i) data[i] = 0;
 
-            // RHS boundary check + don't read next values since they are not read yet
-            if (!waitForNextValues && (workerOffset + off) < y_num) {sum += nextElement; ++countNumOfSumElements;}
-
-            // boundary condition (mirroring)
-            if (boundaryReflect) {
-                int element = workerOffset + off;
-                if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {sum += nextElement; ++countNumOfSumElements;}
-                if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {sum += nextElement; ++countNumOfSumElements;}
-                element = workerOffset - off;
-                if (numberOfMirrorLeft > 0 && element >= 1 && element <= numberOfMirrorLeft) {sum += prevElement; ++countNumOfSumElements;}
-                if (numberOfMirrorRight > 0 && element < (y_num - 1) && element >= (y_num - 1 - numberOfMirrorRight)) {sum += prevElement; ++countNumOfSumElements;}
-            }
-        }
-        waitForNextLoop = waitForNextValues;
-        if (!waitForNextLoop) {
+        // saturate cache with #offset elements since it will allow to calculate first element value on LHS
+        float sum = 0;
+        int count = 0;
+        while (count <= offset) {
+            T v = buffer[currElementOffset];
             sum += v;
-            image[workersOffset + workerOffset] = sum / countNumOfSumElements;
-
-            // worker is done with current element - move to next one
-            sum = 0;
-            countNumOfSumElements = 1;
-            workerOffset += numOfWorkers;
+            data[count] = v;
+            if (boundaryReflect && count > 0) {
+                data[2 * offset - count + 1] = v;
+                sum += v;
+            }
+            currElementOffset += nextElementOffset;
+            ++count;
         }
-        offsetInTheLoop += offset;
+
+        if (boundaryReflect) {
+            count += offset; // elements in above loop in range [1, offset] were summed twice
+        }
+
+        // Pointer in circular buffer
+        int beginPtr = (offset + 1) % divisor;
+
+        // main loop going through all elements in range [0, y_num - 1 - offset], so till last element that
+        // does not need handling RHS for offset '^'
+        // x x x x ... x x x x x x x
+        //                 o o ^ o o
+        //
+        const int lastElement = y_num - 1 - offset;
+        for (int y = 0; y <= lastElement; ++y) {
+            // Calculate and save currently processed element and move to the new one
+            buffer[saveElementOffset] = sum / count;
+            saveElementOffset += nextElementOffset;
+
+            // There is no more elements to process in that loop, all stuff left to be processed is already in 'data' buffer
+            if (y == lastElement) break;
+
+            // Read new element
+            T v = buffer[currElementOffset];
+
+            // Update sum to cover [-offset, offset] of currently processed element
+            sum -= data[beginPtr];
+            sum += v;
+
+            // Store new element in circularBuffer
+            data[beginPtr] = v;
+
+            // Move to next elements to read and in circular buffer
+            count = min(count + 1, divisor);
+            beginPtr = (beginPtr + 1) % divisor;
+            currElementOffset += nextElementOffset;
+        }
+
+        // Handle last #offset elements on RHS
+        int boundaryPtr = (beginPtr - 1 - 1 + (2 * offset + 1)) % divisor;
+
+        while (saveElementOffset < currElementOffset) {
+            // If filter length is too big in comparison to processed dimension
+            // do not decrease 'count' and do not remove first element from moving filter
+            // since 'sum' of filter elements contains all elements from processed dimension:
+            // dim elements:        xxxxxx
+            // filter elements:  oooooo^ooooo   (o - offset elements, ^ - middle of the filter)
+            // In such a case first 'o' element should not be removed when filter moves right.
+            if (y_num - (currElementOffset - saveElementOffset) / nextElementOffset > offset || boundaryReflect) {
+                if (!boundaryReflect) count = count - 1;
+                sum -= data[beginPtr];
+            }
+
+            if (boundaryReflect) {
+                sum += data[boundaryPtr];
+                boundaryPtr = (boundaryPtr - 1 + (2 * offset + 1)) % divisor;
+            }
+
+            buffer[saveElementOffset] = sum / count;
+            beginPtr = (beginPtr + 1) % divisor;
+            saveElementOffset += nextElementOffset;
+        }
+    }
+
+    // Save whole line of data
+    workerOffset = workerIdx;
+    while (workerOffset < y_num) {
+        image[workersOffset + workerOffset] = buffer[workerOffset];
+        workerOffset += numOfWorkers;
     }
 }
-
 constexpr int NumberOfWorkers = 32; // Cannot be greater than 32 since there is no inter-warp communication implemented.
 
 /**
@@ -320,7 +367,8 @@ void runMeanYdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_
     dim3 numBlocks((x_num + threadsPerBlock.x - 1)/threadsPerBlock.x,
                    1,
                    (z_num + threadsPerBlock.z - 1)/threadsPerBlock.z);
-    meanYdir<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, offset, x_num, y_num, z_num, boundaryReflect);
+    const int sharedMemorySize = sizeof(T) * y_num + (offset * 2 + 1) * sizeof(float);
+    meanYdir<<<numBlocks,threadsPerBlock, sharedMemorySize, aStream>>>(cudaImage, offset, x_num, y_num, z_num, boundaryReflect);
 }
 
 template <typename T>

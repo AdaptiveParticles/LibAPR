@@ -159,7 +159,7 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
     void calc_sat_mean_x(PixelData<T> &input, const size_t offset, bool boundaryReflect = false);
 
     template<typename T>
-    void calc_sat_mean_y(PixelData<T> &input, const size_t offset);
+    void calc_sat_mean_y(PixelData<T> &input, const size_t offset, bool boundaryReflect = false);
 
     void get_window(float &var_rescale, std::vector<int> &var_win, const APRParameters &par);
 
@@ -302,66 +302,91 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
     }
 }
 
-/**
- * Calculates a O(1) recursive mean using SAT.
- * @tparam T
- * @param input
- * @param offset
- */
 template<typename T>
-inline void LocalIntensityScale::calc_sat_mean_y(PixelData<T>& input, const size_t offset){
+inline void LocalIntensityScale::calc_sat_mean_y(PixelData<T>& input, const size_t offset, bool boundaryReflect) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
 
-    std::vector<T> temp_vec(y_num);
-    float divisor = 2 * offset + 1;
+    const size_t divisor = offset + 1 + offset;
+
+    auto &mesh = input.mesh;
+    const size_t dimLen = y_num;
 
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec)
+    #pragma omp parallel for default(shared)
     #endif
-    for(size_t j = 0; j < z_num; ++j) {
-        for(size_t i = 0; i < x_num; ++i){
-            size_t index = j * x_num*y_num + i * y_num;
+    for (size_t j = 0; j < z_num; ++j) {
+        for (size_t i = 0; i < x_num; ++i) {
+            size_t index = j * x_num * y_num + i * y_num;
 
-            //first pass over and calculate cumsum
-            float temp = 0;
-            for (size_t k = 0; k < y_num; ++k) {
-                temp += input.mesh[index + k];
-                temp_vec[k] = temp;
+            size_t count = 0;
+            size_t currElementOffset = 0;
+            size_t nextElementOffset = 1;
+            size_t saveElementOffset = 0;
+
+            std::vector<T> circularBuffer(divisor, 0);
+            T sum = 0;
+
+            while (count <= offset) {
+                auto v = mesh[index + currElementOffset];
+                sum += v;
+                circularBuffer[count] = v;
+                if (boundaryReflect && count > 0) { circularBuffer[2 * offset - count + 1] = v; sum += v;}
+
+                currElementOffset += nextElementOffset;
+                count++;
             }
 
-            //handling boundary conditions (LHS)
-            for (size_t k = 0; k <= offset; ++k) {
-                input.mesh[index + k] = 0;
+            if (boundaryReflect) count += offset;
+
+            int beginPtr = (offset + 1) % divisor;
+
+            const int lastElement = dimLen - 1 - offset;
+            for (int i = 0; i <= lastElement; ++i) {
+                mesh[index + saveElementOffset] = sum / count;
+                saveElementOffset += nextElementOffset;
+
+                if (i == lastElement) break;
+
+                auto v = mesh[index + currElementOffset];
+
+                sum -= circularBuffer[beginPtr];
+                sum += v;
+
+                circularBuffer[beginPtr] = v;
+
+                count = std::min(count + 1, divisor);
+                beginPtr = (beginPtr + 1) % divisor;
+                currElementOffset += nextElementOffset;
             }
 
-            //second pass calculate mean
-            for (size_t k = offset + 1; k < y_num; ++k) {
-                input.mesh[index + k] = -temp_vec[k - offset - 1]/divisor;
+            int boundaryPtr = (beginPtr - 1 - 1 + divisor) % divisor;
+            while(saveElementOffset < currElementOffset) {
+                // If filter length is too big in comparison to processed dimension
+                // do not decrease 'count' since 'sum' of filter elements contains all elements from
+                // processed dimension:
+                // dim elements:        xxxxxx
+                // filter elements:   oooooo^ooooo   (o - offset elements, ^ - middle of the filter
+                bool removeElementFromFilter = dimLen - (currElementOffset - saveElementOffset) / nextElementOffset > offset;
+
+                if (removeElementFromFilter) {
+                    if (!boundaryReflect) count = count - 1;
+                }
+                if (removeElementFromFilter || boundaryReflect) {
+                    sum -= circularBuffer[beginPtr];
+                }
+                if (boundaryReflect) {
+                    sum += circularBuffer[boundaryPtr];
+                }
+
+                mesh[index + saveElementOffset] = sum / count;
+
+                boundaryPtr = (boundaryPtr - 1 + divisor) % divisor;
+                beginPtr = (beginPtr + 1) % divisor;
+                saveElementOffset += nextElementOffset;
             }
 
-            //second pass calculate mean
-            for (size_t k = 0; k < (y_num-offset); ++k) {
-                input.mesh[index + k] += temp_vec[k + offset]/divisor;
-            }
-
-            float counter = 0;
-            //handling boundary conditions (RHS)
-            for (size_t k = (y_num - offset); k < (y_num); ++k) {
-                counter++;
-                input.mesh[index + k]*= divisor;
-                input.mesh[index + k]+= temp_vec[y_num-1];
-                input.mesh[index + k]*= 1.0/(divisor - counter);
-            }
-
-            //handling boundary conditions (LHS), need to rehandle the boundary
-            for (size_t k = 1; k <= offset; ++k) {
-                input.mesh[index + k] *= divisor/(k + offset + 1.0);
-            }
-
-            //end point boundary condition
-            input.mesh[index] *= divisor/(offset + 1.0);
         }
     }
 }
@@ -453,8 +478,8 @@ inline void LocalIntensityScale::calc_sat_mean_x(PixelData<T>& input, const size
             currElementOffset += nextElementOffset;
         }
 
-        // boundaryPtr is used only in boundaryReflect mode, adding (2*offset+1) makes it always non-negative value
-        int boundaryPtr = (beginPtr - 1 - 1 + (2*offset+1)) % divisor;
+        // boundaryPtr is used only in boundaryReflect mode, adding divisor makes it always non-negative value
+        int boundaryPtr = (beginPtr - 1 - 1 + divisor) % divisor;
 
         // Handle last #offset elements on RHS
         while(saveElementOffset < currElementOffset) {
@@ -575,8 +600,8 @@ inline void LocalIntensityScale::calc_sat_mean_z(PixelData<T>& input, const size
             currElementOffset += nextElementOffset;
         }
 
-        // boundaryPtr is used only in boundaryReflect mode, adding (2*offset+1) makes it always non-negative value
-        int boundaryPtr = (beginPtr - 1 - 1 + (2*offset+1)) % divisor;
+        // boundaryPtr is used only in boundaryReflect mode, adding divisor makes it always non-negative value
+        int boundaryPtr = (beginPtr - 1 - 1 + divisor) % divisor;
 
         // Handle last #offset elements on RHS
         while(saveElementOffset < currElementOffset) {
