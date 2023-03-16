@@ -159,7 +159,7 @@ inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier
 #pragma omp parallel for default(shared)
 #endif
     for (size_t i = 0; i < m.mesh.size(); ++i) {
-        m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier + offset;
+        m.mesh[i] = useIdxNumbers ? i + 1 : dist(mt) * multiplier + offset;
     }
     return m;
 }

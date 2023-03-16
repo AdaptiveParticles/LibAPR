@@ -11,7 +11,7 @@
 //#include <cuda_runtime.h>
 
 #include "misc/CudaTools.cuh"
-
+#include "data_structures/Mesh/paddPixelData.cuh"
 
 /**
  * Calculates mean in Y direction
@@ -393,18 +393,18 @@ void runMeanZdir(T* cudaImage, int offset, size_t x_num, size_t y_num, size_t z_
     meanZdir<<<numBlocks,threadsPerBlock, sharedMemorySize, aStream>>>(cudaImage, offset, x_num, y_num, z_num, boundaryReflect);
 }
 
-template <typename T, typename S>
-void runMean(T *cudaImage, const PixelData<S> &image, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags, cudaStream_t aStream, bool boundaryReflect = false) {
+template <typename T>
+void runMean(T *cudaImage, const PixelDataDim dim, int offsetX, int offsetY, int offsetZ, TypeOfMeanFlags flags, cudaStream_t aStream, bool boundaryReflect = false) {
     if (flags & MEAN_Y_DIR) {
-        runMeanYdir(cudaImage, offsetY, image.x_num, image.y_num, image.z_num, aStream, boundaryReflect);
+        runMeanYdir(cudaImage, offsetY, dim.x, dim.y, dim.z, aStream, boundaryReflect);
     }
 
     if (flags & MEAN_X_DIR) {
-        runMeanXdir(cudaImage, offsetX, image.x_num, image.y_num, image.z_num, aStream, boundaryReflect);
+        runMeanXdir(cudaImage, offsetX, dim.x, dim.y, dim.z, aStream, boundaryReflect);
     }
 
     if (flags & MEAN_Z_DIR) {
-        runMeanZdir(cudaImage, offsetZ, image.x_num, image.y_num, image.z_num, aStream, boundaryReflect);
+        runMeanZdir(cudaImage, offsetZ, dim.x, dim.y, dim.z, aStream, boundaryReflect);
     }
 }
 
@@ -444,9 +444,9 @@ __global__ void rescaleAndThreshold(T *data, size_t len, float varRescale, float
     size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < len) {
         float rescaled = varRescale * data[idx];
-        if (rescaled < sigmaThreshold) {
-            rescaled = (rescaled < sigmaThresholdMax) ? max_th : sigmaThreshold;
-        }
+//        if (rescaled < sigmaThreshold) {
+//            rescaled = (rescaled < sigmaThresholdMax) ? max_th : sigmaThreshold;
+//        }
         data[idx] = rescaled;
     }
 }
@@ -470,12 +470,53 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
     size_t win_x2 = var_win[4];
     size_t win_z2 = var_win[5];
 
+
+    // TODO: !!!!!!!!!! handle constant_intensity_scale parameter - it is another thing that changed since last GPU pipeline impl.
+    //       rescaleAndThreshold - currently there is no thresholding as in new CPU code (should it be permanent?)
+
     // --------- CUDA ----------------
-    runCopy1D(cudaImage, cudaTemp, image.mesh.size(), aStream);
-    runMean(cudaImage, image, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
-    runAbsDiff1D(cudaImage, cudaTemp, image.mesh.size(), aStream);
-    runMean(cudaImage, image, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, par.reflect_bc_lis);
-    runRescaleAndThreshold(cudaImage, image.mesh.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
+
+    // padd
+    CudaMemoryUniquePtr<S> paddedImage;
+    CudaMemoryUniquePtr<S> paddedTemp;
+    PixelDataDim paddSize(std::max(win_y, win_y2), std::max(win_x, win_x2), std::max(win_z, win_z2));
+    PixelDataDim imageSize = image.getDimension();
+    PixelDataDim paddedImageSize = imageSize + paddSize + paddSize; // padding on both ends of each dimension
+
+    S *ci = cudaImage;
+    S *ct = cudaTemp;
+    PixelDataDim dim = image.getDimension();
+
+    if (par.reflect_bc_lis) {
+        // padd
+        S *mem = nullptr;
+        checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
+        paddedImage.reset(mem);
+        mem = nullptr;
+        checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
+        paddedTemp.reset(mem);
+
+        runPaddPixels(cudaImage, paddedImage.get(), imageSize, paddedImageSize, paddSize, aStream);
+        runPaddPixels(cudaTemp, paddedTemp.get(), imageSize, paddedImageSize, paddSize, aStream);
+
+        ci = paddedImage.get();
+        ct = paddedTemp.get();
+        dim = paddedImageSize;
+    }
+
+
+    runCopy1D(ci, ct, dim.size(), aStream);
+    runMean(ci, dim, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, false);
+    runAbsDiff1D(ci, ct, dim.size(), aStream);
+    runMean(ci, dim, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, false);
+    runRescaleAndThreshold(ci, dim.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
+
+    if (par.reflect_bc_lis) {
+        // unpadd
+        runUnpaddPixels(ci, cudaImage, paddedImageSize,  imageSize, paddSize, aStream);
+        runUnpaddPixels(ct, cudaTemp, paddedImageSize, imageSize, paddSize, aStream);
+    }
+
 }
 
 template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>&, const APRParameters&, float*, float*, cudaStream_t);
@@ -489,7 +530,7 @@ void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags, bool bound
     ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
     APRTimer timer(true);
 //    timer.start_timer("GpuDeviceTimeFull");
-    runMean(cudaImage.get(), image, offset, offset, offset, flags, 0, boundaryReflect);
+    runMean(cudaImage.get(), image.getDimension(), offset, offset, offset, flags, 0, boundaryReflect);
 //    timer.stop_timer();
 }
 

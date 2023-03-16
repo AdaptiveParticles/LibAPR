@@ -94,11 +94,17 @@ public:
 
 
 // Useful type for keeping CUDA allocated memory (which is released with cudaFree)
-template <typename T, typename D=decltype(&cudaFree)>
+cudaError_t CUDARTAPI deleter(void *devPtr) {
+    //std::cout << "cudaFree() called...\n";
+    return cudaFree(devPtr);
+}
+
+template <typename T, typename D=decltype(&deleter)>
 struct CudaMemoryUniquePtr : public std::unique_ptr<T[], D> {
     using std::unique_ptr<T[],D>::unique_ptr; // inheriting other constructors
-    explicit CudaMemoryUniquePtr(T *aMemory = nullptr) : std::unique_ptr<T[], D>(aMemory, &cudaFree) {}
+    explicit CudaMemoryUniquePtr(T *aMemory = nullptr) : std::unique_ptr<T[], D>(aMemory, &deleter) {}
 };
+
 
 /**
  * Directions for sending data between Host and Device

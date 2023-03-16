@@ -4,7 +4,7 @@
 #include "algorithm/LocalIntensityScaleCuda.h"
 #include "algorithm/LocalIntensityScale.hpp"
 #include "TestTools.hpp"
-
+#include "data_structures/Mesh/PixelDataCuda.h"
 
 namespace {
 
@@ -522,52 +522,41 @@ namespace {
         }
     }
 
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
+        APRTimer timer(false);
 
-    // ------------------------------------------------------------------------
-    // Below tests are not yet fixed.
-    // ------------------------------------------------------------------------
+        for (int boundary = 0; boundary <= 1; ++boundary) {
+            for (int r = 0; r <= 1; r++) {
+                bool hasBoundary = (boundary > 0);
+                bool useRandomNumbers = (r > 0);
 
+                PixelData<float> m = getRandInitializedMesh<float>(31, 33, 32, 25, 10, !useRandomNumbers);
 
-//    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE) {
-//        APRTimer timer(true);
-//        PixelData<float> m = getRandInitializedMesh<float>(5, 5, 1, 25, 10, true);
-//
-//        APRParameters params;
-//        params.sigma_th = 1;
-//        params.sigma_th_max = 2;
-//        params.reflect_bc_lis = true; //#TODO: @KG: The CPU pipeline uses this to true, so needs to now be implimented.
-//
-//        // Run on CPU
-//        PixelData<float> mCpu(m, true);
-//        PixelData<float> mCpuTemp(m, false);
-//        timer.start_timer("CPU LIS FULL");
-//
-//        LocalIntensityScale localIntensityScale;
-//
-//        localIntensityScale.get_local_intensity_scale(mCpu, mCpuTemp, params);
-//        timer.stop_timer();
-//
-//        // Run on GPU
-//        PixelData<float> mGpu(m, true);
-//        PixelData<float> mGpuTemp(m, false);
-//        timer.start_timer("GPU LIS ALL-DIR");
-//        getLocalIntensityScale(mGpu, mGpuTemp, params);
-//        timer.stop_timer();
-//
-//        m.printMeshT(1);
-//        mCpu.printMeshT(1);
-//        mGpu.printMeshT(1);
-//
-//        // Compare results
-//        //EXPECT_EQ(compareMeshes(mCpuTemp, mGpuTemp, 0.01), 0); //this is not needed these values are not required.
-//        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.0000), 0);
-//
-//
-//        PixelData<float> padd;
-//        paddPixels(m, padd, 2, 2, 0);
-//        m.printMeshT(1);
-//        padd.printMeshT(1);
-//    }
+                APRParameters params;
+                params.sigma_th = 1;
+                params.sigma_th_max = 2;
+                params.reflect_bc_lis = hasBoundary;
+
+                // Run on CPU
+                PixelData<float> mCpu(m, true);
+                PixelData<float> mCpuTemp(m, false);
+                timer.start_timer("CPU LIS FULL");
+                LocalIntensityScale().get_local_intensity_scale(mCpu, mCpuTemp, params);
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                PixelData<float> mGpuTemp(m, false);
+                timer.start_timer("GPU LIS FULL");
+                getLocalIntensityScale(mGpu, mGpuTemp, params);
+                timer.stop_timer();
+
+                // Compare results
+                EXPECT_EQ(compareMeshes(mCpuTemp, mGpuTemp, 0), 0);
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
+            }
+        }
+    }
 
 
 #endif // APR_USE_CUDA
