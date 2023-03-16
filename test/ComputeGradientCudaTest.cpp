@@ -56,7 +56,7 @@ namespace {
                 timer.stop_timer();
 
                 // Compare GPU vs CPU
-                EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
             }
         }
     }
@@ -98,7 +98,7 @@ namespace {
                 timer.stop_timer();
 
                 // Compare GPU vs CPU
-                EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
             }
         }
     }
@@ -140,7 +140,7 @@ namespace {
                 timer.stop_timer();
 
                 //Compare GPU vs CPU
-                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.0001, 2), 0);
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
             }
         }
     }
@@ -173,7 +173,7 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
     }
 
 
@@ -201,7 +201,7 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
     }
 
     TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Z_RND_CUDA) {
@@ -224,7 +224,7 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
     }
 
     TEST(ComputeInverseBspline, CALC_INV_BSPLINE_Y_RND_CUDA) {
@@ -247,7 +247,7 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.00001), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
     }
 
     TEST(ComputeInverseBspline, CALC_INV_BSPLINE_FULL_XYZ_DIR_RND_CUDA) {
@@ -272,7 +272,7 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0.000001), 0);
+        EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
     }
 
     // ========================================================================
@@ -301,7 +301,7 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(grad, gradCuda, 0.0000001), 0);
+        EXPECT_EQ(compareMeshes(grad, gradCuda, 0), 0);
     }
 
 
@@ -354,9 +354,9 @@ namespace {
         timer.stop_timer();
 
         // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage, 0.0000001), 0);
-        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU, 0.0000001), 0);
-        EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.0000001), 0);
+        EXPECT_EQ(compareMeshes(mCpuImage, mGpuImage, 0), 0);
+        EXPECT_EQ(compareMeshes(grad_temp, grad_temp_GPU, 0), 0);
+        EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0), 0);
     }
 
 #endif // APR_USE_CUDA
