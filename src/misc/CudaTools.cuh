@@ -94,7 +94,7 @@ public:
 
 
 // Useful type for keeping CUDA allocated memory (which is released with cudaFree)
-cudaError_t CUDARTAPI deleter(void *devPtr) {
+static cudaError_t CUDARTAPI deleter(void *devPtr) {
     //std::cout << "cudaFree() called...\n";
     return cudaFree(devPtr);
 }
