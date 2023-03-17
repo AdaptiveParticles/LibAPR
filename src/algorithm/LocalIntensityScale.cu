@@ -439,23 +439,19 @@ void runAbsDiff1D(T *data, const T *reference, size_t len, cudaStream_t aStream)
 }
 
 template<typename T>
-__global__ void rescaleAndThreshold(T *data, size_t len, float varRescale, float sigmaThreshold, float sigmaThresholdMax) {
-    const float max_th = 60000.0;
+__global__ void rescale(T *data, size_t len, float varRescale) {
     size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < len) {
         float rescaled = varRescale * data[idx];
-//        if (rescaled < sigmaThreshold) {
-//            rescaled = (rescaled < sigmaThresholdMax) ? max_th : sigmaThreshold;
-//        }
         data[idx] = rescaled;
     }
 }
 
 template <typename T>
-void runRescaleAndThreshold(T *data, size_t len, float varRescale, float sigma, float sigmaMax, cudaStream_t aStream) {
+void runRescale(T *data, size_t len, float varRescale, cudaStream_t aStream) {
     dim3 threadsPerBlock(64);
     dim3 numBlocks((len + threadsPerBlock.x - 1) / threadsPerBlock.x);
-    rescaleAndThreshold <<< numBlocks, threadsPerBlock, 0, aStream >>> (data, len, varRescale, sigma, sigmaMax);
+    rescale <<< numBlocks, threadsPerBlock, 0, aStream >>>(data, len, varRescale);
 }
 
 template <typename T, typename S>
@@ -472,7 +468,7 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
 
 
     // TODO: !!!!!!!!!! handle constant_intensity_scale parameter - it is another thing that changed since last GPU pipeline impl.
-    //       rescaleAndThreshold - currently there is no thresholding as in new CPU code (should it be permanent?)
+    //       rescale - currently there is no thresholding as in new CPU code (should it be permanent?)
 
     // --------- CUDA ----------------
 
@@ -509,7 +505,7 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
     runMean(ci, dim, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, false);
     runAbsDiff1D(ci, ct, dim.size(), aStream);
     runMean(ci, dim, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, false);
-    runRescaleAndThreshold(ci, dim.size(), var_rescale, par.sigma_th, par.sigma_th_max, aStream);
+    runRescale(ci, dim.size(), var_rescale, aStream);
 
     if (par.reflect_bc_lis) {
         // unpadd
