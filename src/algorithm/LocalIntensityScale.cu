@@ -454,11 +454,43 @@ void runRescale(T *data, size_t len, float varRescale, cudaStream_t aStream) {
     rescale <<< numBlocks, threadsPerBlock, 0, aStream >>>(data, len, varRescale);
 }
 
+template <typename S>
+__global__ void constantScale(S *image, size_t len) {
+    // This is totally naive and slow implementation (only 1 thread is used) just to have CPU
+    // code implemented in CUDA. This code will not be run in any normal usage of APR
+    // and it is just here for sanity check and or super small images cases (like few pixels)
+    // so DO NOT TRY TO OPTIMIZE IT - use your time for something more productive or have
+    // some beers... still better than writing fast version of this code.
+
+    float min_val = 660000;
+    double sum = 0;
+
+    for (size_t i = 0; i < len; ++i) {
+        float tmp = image[i];
+
+        sum += tmp;
+        if (tmp < min_val) min_val = tmp;
+    }
+
+    float scale_val = (float) (sum / (float)len - min_val);
+
+    for (size_t i = 0; i < len; ++i) {
+        image[i] = scale_val;
+    }
+}
+
+template <typename S>
+void runConstantScale(S *image, PixelDataDim &dim) {
+    // Check kernel description for further info!
+    constantScale<<<1, 1>>>(image, dim.size());
+}
+
 template <typename T, typename S>
 void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream) {
     float var_rescale;
     std::vector<int> var_win;
-    LocalIntensityScale().get_window_alt(var_rescale, var_win, par,image);
+    auto lis = LocalIntensityScale();
+    lis.get_window_alt(var_rescale, var_win, par, image);
     size_t win_y = var_win[0];
     size_t win_x = var_win[1];
     size_t win_z = var_win[2];
@@ -467,51 +499,60 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
     size_t win_z2 = var_win[5];
 
 
-    // TODO: !!!!!!!!!! handle constant_intensity_scale parameter - it is another thing that changed since last GPU pipeline impl.
 
-    // --------- CUDA ----------------
+    bool constant_scale = false;
 
-    // padd
-    CudaMemoryUniquePtr<S> paddedImage;
-    CudaMemoryUniquePtr<S> paddedTemp;
-    PixelDataDim paddSize(std::max(win_y, win_y2), std::max(win_x, win_x2), std::max(win_z, win_z2));
+    if (par.constant_intensity_scale || (lis.number_active_dimensions == 0)) {
+        // include the case where the local intensity scale doesn't make sense due to the image being to small.
+        // (This is for just edge cases and sanity checking)
+        constant_scale = true;
+    }
+
     PixelDataDim imageSize = image.getDimension();
-    PixelDataDim paddedImageSize = imageSize + paddSize + paddSize; // padding on both ends of each dimension
 
-    S *ci = cudaImage;
-    S *ct = cudaTemp;
-    PixelDataDim dim = image.getDimension();
+    if (!constant_scale) {
+        CudaMemoryUniquePtr<S> paddedImage;
+        CudaMemoryUniquePtr<S> paddedTemp;
+        PixelDataDim paddSize(std::max(win_y, win_y2), std::max(win_x, win_x2), std::max(win_z, win_z2));
+        PixelDataDim paddedImageSize = imageSize + paddSize + paddSize; // padding on both ends of each dimension
 
-    if (par.reflect_bc_lis) {
-        // padd
-        S *mem = nullptr;
-        checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
-        paddedImage.reset(mem);
-        mem = nullptr;
-        checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
-        paddedTemp.reset(mem);
+        S *ci = cudaImage;
+        S *ct = cudaTemp;
+        PixelDataDim dim = image.getDimension();
 
-        runPaddPixels(cudaImage, paddedImage.get(), imageSize, paddedImageSize, paddSize, aStream);
-        runPaddPixels(cudaTemp, paddedTemp.get(), imageSize, paddedImageSize, paddSize, aStream);
+        if (par.reflect_bc_lis) {
+            // padd
+            S *mem = nullptr;
+            checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
+            paddedImage.reset(mem);
+            mem = nullptr;
+            checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
+            paddedTemp.reset(mem);
 
-        ci = paddedImage.get();
-        ct = paddedTemp.get();
-        dim = paddedImageSize;
+            runPaddPixels(cudaImage, paddedImage.get(), imageSize, paddedImageSize, paddSize, aStream);
+            runPaddPixels(cudaTemp, paddedTemp.get(), imageSize, paddedImageSize, paddSize, aStream);
+
+            ci = paddedImage.get();
+            ct = paddedTemp.get();
+            dim = paddedImageSize;
+        }
+
+        // Run LIS pipeline
+        runCopy1D(ci, ct, dim.size(), aStream);
+        runMean(ci, dim, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, false);
+        runAbsDiff1D(ci, ct, dim.size(), aStream);
+        runMean(ci, dim, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, false);
+        runRescale(ci, dim.size(), var_rescale, aStream);
+
+        if (par.reflect_bc_lis) {
+            // unpadd
+            runUnpaddPixels(ci, cudaImage, paddedImageSize, imageSize, paddSize, aStream);
+            runUnpaddPixels(ct, cudaTemp, paddedImageSize, imageSize, paddSize, aStream);
+        }
     }
-
-
-    runCopy1D(ci, ct, dim.size(), aStream);
-    runMean(ci, dim, win_x, win_y, win_z, MEAN_ALL_DIR, aStream, false);
-    runAbsDiff1D(ci, ct, dim.size(), aStream);
-    runMean(ci, dim, win_x2, win_y2, win_z2, MEAN_ALL_DIR, aStream, false);
-    runRescale(ci, dim.size(), var_rescale, aStream);
-
-    if (par.reflect_bc_lis) {
-        // unpadd
-        runUnpaddPixels(ci, cudaImage, paddedImageSize,  imageSize, paddSize, aStream);
-        runUnpaddPixels(ct, cudaTemp, paddedImageSize, imageSize, paddSize, aStream);
+    else {
+        runConstantScale(cudaImage, imageSize);
     }
-
 }
 
 template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>&, const APRParameters&, float*, float*, cudaStream_t);

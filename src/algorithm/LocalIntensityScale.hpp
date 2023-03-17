@@ -16,6 +16,8 @@ protected:
     bool active_x = true;
     bool active_z = true;
 
+public:
+
     int number_active_dimensions = 3;
 
 

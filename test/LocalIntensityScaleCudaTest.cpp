@@ -558,6 +558,43 @@ namespace {
         }
     }
 
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE_CONSTANT_SCALE) {
+        APRTimer timer(false);
+
+        for (int boundary = 0; boundary <= 1; ++boundary) {
+            for (int r = 0; r <= 1; r++) {
+                bool hasBoundary = (boundary > 0);
+                bool useRandomNumbers = (r > 0);
+
+                PixelData<float> m = getRandInitializedMesh<float>(31, 33, 32, 25, 10, !useRandomNumbers);
+
+                APRParameters params;
+                params.sigma_th = 1;
+                params.sigma_th_max = 2;
+                params.reflect_bc_lis = hasBoundary;
+                params.constant_intensity_scale = true;
+
+                // Run on CPU
+                PixelData<float> mCpu(m, true);
+                PixelData<float> mCpuTemp(m, false);
+                timer.start_timer("CPU LIS FULL");
+                LocalIntensityScale().get_local_intensity_scale(mCpu, mCpuTemp, params);
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                PixelData<float> mGpuTemp(m, false);
+                timer.start_timer("GPU LIS FULL");
+                getLocalIntensityScale(mGpu, mGpuTemp, params);
+                timer.stop_timer();
+
+                // Compare results
+                // NOTE: mCpuTemp and mGpuTemp are not checked since in case of
+                //       constant_intensity_scale they are not set to any value
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
+            }
+        }
+    }
 
 #endif // APR_USE_CUDA
 }
