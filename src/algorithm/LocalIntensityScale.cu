@@ -468,7 +468,6 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
 
 
     // TODO: !!!!!!!!!! handle constant_intensity_scale parameter - it is another thing that changed since last GPU pipeline impl.
-    //       rescale - currently there is no thresholding as in new CPU code (should it be permanent?)
 
     // --------- CUDA ----------------
 
