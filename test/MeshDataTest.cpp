@@ -35,6 +35,7 @@ namespace {
             ASSERT_EQ(d.x, 20);
             ASSERT_EQ(d.z, 30);
             ASSERT_EQ(d.size(), 10*20*30);
+            ASSERT_EQ(d.maxDimSize(), 30);
         }
         { // adding int to all dims
 
@@ -80,6 +81,16 @@ namespace {
 
             ASSERT_FALSE(x == z);
             ASSERT_TRUE(x != z);
+        }
+        {  // number of dimensions
+            const PixelDataDim x = {2, 3, 5};
+            const PixelDataDim y = {2, 1, 5};
+            const PixelDataDim z = {1, 4, 1};
+            const PixelDataDim w = {1, 1, 1};
+            ASSERT_EQ(x.numOfDimensions(), 3);
+            ASSERT_EQ(y.numOfDimensions(), 2);
+            ASSERT_EQ(z.numOfDimensions(), 1);
+            ASSERT_EQ(w.numOfDimensions(), 0);
         }
     }
 

@@ -37,6 +37,8 @@ struct PixelDataDim {
     constexpr PixelDataDim(size_t y, size_t x, size_t z) : y(y), x(x), z(z) {}
 
     size_t size() const { return y * x * z; }
+    size_t maxDimSize() const { return std::max(x, std::max(y, z)); }
+    int numOfDimensions() const { return (int)(x > 1) + (int)(y > 1) + (int)(z > 1); }
 
     PixelDataDim operator+(const PixelDataDim &rhs) const { return {y + rhs.y, x + rhs.x, z + rhs.z}; }
     PixelDataDim operator-(const PixelDataDim &rhs) const { return {y - rhs.y, x - rhs.x, z - rhs.z}; }
