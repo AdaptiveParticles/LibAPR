@@ -9,16 +9,17 @@
 #include "data_structures/Mesh/PixelDataCuda.h"
 #include "algorithm/APRConverter.hpp"
 
+
 namespace {
 #ifdef APR_USE_CUDA
 
-    TEST(ComputeThreshold, FULL_PIPELINE_TEST) {
+    TEST(ComputeThreshold, PIPELINE_TEST_GRADIENT_LIS_LEVELS) {
         APRTimer timer(true);
 
-        // Generate random mesh
+        // Generate random mesh - keep it large enough to catch all possible computation errors
         using ImageType = float;
-        PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 32, 25);
-        int maxLevel = ceil(std::log2(330));
+        PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(1000, 1000, 1000, 13);
+        int maxLevel = ceil(std::log2(input_image.getDimension().maxDimSize()));
 
         PixelData<ImageType> grad_temp; // should be a down-sampled image
         grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
@@ -54,11 +55,7 @@ namespace {
 
         // Calculate bspline on GPU
         PixelData<ImageType> mGpuImage(input_image, true);
-
-//        timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-//        GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
-//        gpt.doAll();
-
+        timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
         getGradient(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par);
         getLocalIntensityScale(local_scale_temp_GPU, local_scale_temp2_GPU, par);
         computeLevelsCuda(grad_temp_GPU, local_scale_temp_GPU, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
