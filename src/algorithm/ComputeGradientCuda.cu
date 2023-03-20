@@ -158,49 +158,6 @@ namespace {
     }
 }
 
-/**
- * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.
- * @param input
- * @param output
- * @param length - len of input/output arrays
- * @param thresholdLevel
- */
-template <typename T, typename S>
-__global__ void threshold(const T *input, S *output, size_t length, float thresholdLevel) {
-    size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx < length) {
-        if (input[idx] <= thresholdLevel) { output[idx] = 0; }
-    }
-}
-
-template <typename ImgType, typename T>
-void runThreshold(ImgType *cudaImage, T *cudaGrad, size_t x_num, size_t y_num, size_t z_num, float Ip_th, cudaStream_t aStream) {
-    dim3 threadsPerBlock(64);
-    dim3 numBlocks((x_num * y_num * z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
-    threshold<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, cudaGrad, x_num * y_num * z_num, Ip_th);
-};
-
-/**
- * Thresholds input array to have minimum thresholdLevel.
- * @param input
- * @param length - len of input/output arrays
- * @param thresholdLevel
- */
-template <typename T>
-__global__ void thresholdImg(T *input, size_t length, float thresholdLevel) {
-    size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx < length) {
-        if (input[idx] < thresholdLevel) { input[idx] = thresholdLevel; }
-    }
-}
-
-template <typename T>
-void runThresholdImg(T *cudaImage, size_t x_num, size_t y_num, size_t z_num, float Ip_th_offset, cudaStream_t aStream) {
-    dim3 threadsPerBlock(64);
-    dim3 numBlocks((x_num * y_num * z_num + threadsPerBlock.x - 1) / threadsPerBlock.x);
-    thresholdImg<<< numBlocks, threadsPerBlock, 0, aStream >>> (cudaImage, x_num * y_num * z_num, Ip_th_offset);
-};
-
 template <typename ImgType>
 void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_scale_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
@@ -495,25 +452,6 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
 
     getGradientCuda(image, local_scale_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(),
                     splineCudaX, splineCudaY, splineCudaZ, boundary.get(), bspline_offset, par, 0);
-}
-
-// explicit instantiation of handled types
-template void thresholdImg(PixelData<float> &, const float);
-template <typename T>
-void thresholdImg(PixelData<T> &image, const float threshold) {
-    ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
-
-    runThresholdImg(cudaImage.get(), image.x_num, image.y_num, image.z_num, threshold, 0);
-}
-
-// explicit instantiation of handled types
-template void thresholdGradient(PixelData<float> &, const PixelData<float> &, const float);
-template <typename T>
-void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th) {
-    ScopedCudaMemHandler<const PixelData<T>, H2D> cudaInput(input);
-    ScopedCudaMemHandler<PixelData<float>, H2D | D2H> cudaOutput(output);
-
-    runThreshold(cudaInput.get(), cudaOutput.get(), input.x_num, input.y_num, input.z_num, Ip_th, 0);
 }
 
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz) {

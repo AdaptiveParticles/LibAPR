@@ -648,60 +648,6 @@ namespace {
 
 #ifdef APR_USE_CUDA
 
-    TEST(ComputeThreshold, CALC_THRESHOLD_RND_CUDA) {
-        APRTimer timer(true);
-
-        // Generate random mesh
-        using ImgType = float;
-        PixelData<ImgType> m = getRandInitializedMesh<ImgType>(31, 33, 13);
-        PixelData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13);
-        float thresholdLevel = 1;
-
-        // Calculate bspline on CPU
-        PixelData<ImgType> mCpu(g, true);
-        timer.start_timer("CPU threshold");
-        ComputeGradient().threshold_gradient(mCpu, m, thresholdLevel);
-
-        timer.stop_timer();
-
-        // Calculate bspline on GPU
-        PixelData<ImgType> mGpu(g, true);
-        timer.start_timer("GPU threshold");
-        thresholdGradient(mGpu, m, thresholdLevel);
-        timer.stop_timer();
-
-        // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
-    }
-
-    TEST(ComputeThreshold, CALC_THRESHOLD_IMG_RND_CUDA) {
-        APRTimer timer(true);
-
-        // Generate random mesh
-        using ImgType = float;
-        PixelData<ImgType> g = getRandInitializedMesh<ImgType>(31, 33, 13, 1, true);
-
-        float thresholdLevel = 10;
-
-        // Calculate bspline on CPU
-        PixelData<ImgType> mCpu(g, true);
-        timer.start_timer("CPU threshold");
-        for (size_t i = 0; i < mCpu.mesh.size(); ++i) {
-            if (mCpu.mesh[i] <= (thresholdLevel)) { mCpu.mesh[i] = thresholdLevel; }
-        }
-        timer.stop_timer();
-
-        // Calculate bspline on GPU
-        PixelData<ImgType> mGpu(g, true);
-        timer.start_timer("GPU threshold");
-        thresholdImg(mGpu, thresholdLevel);
-        timer.stop_timer();
-
-        // Compare GPU vs CPU
-        EXPECT_EQ(compareMeshes(mCpu, mGpu), 0);
-    }
-
-
     // TODO: This test will be fixed as soon as CUDA pipeline is updated.
     //       Currently turning it off to have testable rest of CUDA impl.
 //    TEST(ComputeThreshold, FULL_PIPELINE_TEST) {

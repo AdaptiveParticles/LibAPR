@@ -32,10 +32,6 @@ template <typename ImageType>
 void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx = 1, float dy = 1, float dz = 1);
 template <typename ImgType>
 void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
-template <typename T>
-void thresholdImg(PixelData<T> &image, const float threshold);
-template <typename T>
-void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th);
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz);
 
 template <typename ImgType>
