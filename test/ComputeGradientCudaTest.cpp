@@ -314,7 +314,7 @@ namespace {
 
         // Generate random mesh
         using ImageType = uint16_t;
-        PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(11, 13, 15, 15, 20);
+        PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(33, 35, 37, 15, 20);
         PixelData<ImageType> &image_temp = input_image;
 
         PixelData<ImageType> grad_temp; // should be a down-sampled image

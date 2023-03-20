@@ -266,6 +266,7 @@ public:
         CurrentTime ct;
         uint64_t start = ct.microseconds();
         image.copyH2D();
+        checkCuda(cudaStreamSynchronize(iStream));
         std::cout << "SEND time: " << ct.microseconds() - start << std::endl;
     }
 
@@ -273,7 +274,7 @@ public:
         CurrentTime ct;
         uint64_t start = ct.microseconds();
         local_scale_temp.copyD2H();
-        cudaStreamSynchronize(iStream);
+        checkCuda(cudaStreamSynchronize(iStream));
         std::cout << "RCV time: " << ct.microseconds() - start << std::endl;
     }
 

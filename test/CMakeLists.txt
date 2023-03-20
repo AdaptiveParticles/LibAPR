@@ -16,6 +16,7 @@ if(APR_USE_CUDA)
    buildTarget(testAPRCuda APRTestCuda.cpp)
    buildTarget(testComputeGradientCuda ComputeGradientCudaTest.cpp)
    buildTarget(testLocalIntensityScaleCuda LocalIntensityScaleCudaTest.cpp)
+   buildTarget(testFullPipelineCuda FullPipelineCudaTest.cpp)
 endif()
 
 if(APR_BUILD_EXAMPLES)

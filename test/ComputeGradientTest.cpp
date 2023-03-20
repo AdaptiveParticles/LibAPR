@@ -2,13 +2,10 @@
  * Created by Krzysztof Gonciarz 2018
  */
 #include <array>
-#include <cmath>
 #include <gtest/gtest.h>
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/ComputeGradient.hpp"
-#include "algorithm/ComputeGradientCuda.hpp"
 #include <random>
-#include "algorithm/APRConverter.hpp"
 #include "TestTools.hpp"
 
 namespace {
@@ -641,77 +638,6 @@ namespace {
 
         ASSERT_TRUE(compare(m, expect, 0.01));
     }
-
-    // ======================= CUDA =======================================
-    // ======================= CUDA =======================================
-    // ======================= CUDA =======================================
-
-#ifdef APR_USE_CUDA
-
-    // TODO: This test will be fixed as soon as CUDA pipeline is updated.
-    //       Currently turning it off to have testable rest of CUDA impl.
-//    TEST(ComputeThreshold, FULL_PIPELINE_TEST) {
-//        APRTimer timer(true);
-//
-//        // Generate random mesh
-//        using ImageType = float;
-//        PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(310, 330, 32, 25);
-//        int maxLevel = ceil(std::log2(330));
-//
-//        PixelData<ImageType> &image_temp = input_image;
-//
-//        PixelData<ImageType> grad_temp; // should be a down-sampled image
-//        grad_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
-//        PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-//        local_scale_temp.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
-//        PixelData<float> local_scale_temp2;
-//        local_scale_temp2.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
-//
-//        PixelData<ImageType> grad_temp_GPU; // should be a down-sampled image
-//        grad_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, 0, false);
-//        PixelData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-//        local_scale_temp_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
-//        PixelData<float> local_scale_temp2_GPU;
-//        local_scale_temp2_GPU.initDownsampled(input_image.y_num, input_image.x_num, input_image.z_num, false);
-//
-//
-//        APRParameters par;
-//        par.lambda = 3;
-//        par.Ip_th = 10;
-//        par.sigma_th = 0;
-//        par.sigma_th_max = 0;
-//        par.dx = 1;
-//        par.dy = 1;
-//        par.dz = 1;
-//
-//        ComputeGradient computeGradient;
-//        LocalIntensityScale localIntensityScale;
-//        LocalParticleCellSet localParticleSet;
-//
-//        // Calculate bspline on CPU
-//        PixelData<ImageType> mCpuImage(image_temp, true);
-//        timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
-//        computeGradient.get_gradient(mCpuImage, grad_temp, local_scale_temp, par);
-//        localIntensityScale.get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
-//        localParticleSet.computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
-//        timer.stop_timer();
-//
-//        // Calculate bspline on GPU
-//        PixelData<ImageType> mGpuImage(image_temp, true);
-//        timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-//        GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
-//        gpt.doAll();
-//        timer.stop_timer();
-//
-//        // Compare GPU vs CPU
-//        // allow some differences since float point diffs
-//        // TODO: It would be much better to count number of diffs with delta==1 and allow some of these
-//        EXPECT_TRUE(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0.01) < 29);
-//    }
-
-
-#endif // APR_USE_CUDA
-
 }
 
 int main(int argc, char **argv) {
