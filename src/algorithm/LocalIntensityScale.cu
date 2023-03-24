@@ -563,11 +563,11 @@ template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>
 // TODO: should be moved somewhere
 template <typename T>
 void calcMean(PixelData<T> &image, int offset, TypeOfMeanFlags flags, bool boundaryReflect) {
-    ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
-    APRTimer timer(true);
-//    timer.start_timer("GpuDeviceTimeFull");
+    cudaStream_t aStream = 0;
+
+    ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image, aStream);
+
     runMean(cudaImage.get(), image.getDimension(), offset, offset, offset, flags, 0, boundaryReflect);
-//    timer.stop_timer();
 }
 
 // explicit instantiation of handled types
@@ -577,9 +577,11 @@ template void calcMean(PixelData<uint16_t>&, int, TypeOfMeanFlags, bool);
 
 template <typename T>
 void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRParameters &par) {
-    ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image);
-    ScopedCudaMemHandler<PixelData<T>, D2H> cudaTemp(temp);
+    cudaStream_t aStream = 0;
 
-    runLocalIntensityScalePipeline(image, par, cudaImage.get(), cudaTemp.get(), 0);
+    ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image, aStream);
+    ScopedCudaMemHandler<PixelData<T>, D2H> cudaTemp(temp, aStream);
+
+    runLocalIntensityScalePipeline(image, par, cudaImage.get(), cudaTemp.get(), aStream);
 }
 template void getLocalIntensityScale(PixelData<float>&, PixelData<float>&, const APRParameters&);

@@ -137,7 +137,7 @@ void runBsplineXdir(T *cudaImage, PixelDataDim dim, BsplineParamsCuda &p, cudaSt
     // access it but this is enough for us to know that somewhere in one on more kernels overflow was detected.
     bool isErrorDetected = false;
     {
-        ScopedCudaMemHandler<bool*, H2D | D2H> error(&isErrorDetected, 1);
+        ScopedCudaMemHandler<bool*, H2D | D2H> error(&isErrorDetected, 1, aStream);
         bsplineXdir<T> <<<numBlocksX, threadsPerBlockX, 0, aStream>>>(cudaImage, dim, p, error.get());
     }
 

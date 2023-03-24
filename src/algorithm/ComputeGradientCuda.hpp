@@ -42,7 +42,7 @@ class GpuProcessingTask {
 
 public:
 
-    GpuProcessingTask(PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel);
+    GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel);
     ~GpuProcessingTask();
     GpuProcessingTask(GpuProcessingTask&&);
 

@@ -249,7 +249,7 @@ void runBsplineYdir(T *cudaImage, PixelDataDim dim, BsplineParamsCuda &p, float 
     size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(float);
     bool isErrorDetected = false;
     {
-        ScopedCudaMemHandler<bool *, H2D | D2H> error(&isErrorDetected, 1);
+        ScopedCudaMemHandler<bool *, H2D | D2H> error(&isErrorDetected, 1, aStream);
         bsplineYdirBoundary<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, p, boundary, error.get());
         sharedMemSize = numOfThreads * blockWidth * sizeof(float);
         bsplineYdirProcess<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, p, boundary, error.get());

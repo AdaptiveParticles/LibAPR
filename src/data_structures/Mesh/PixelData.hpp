@@ -725,6 +725,10 @@ public :
         init(y_num_ds, x_num_ds, z_num_ds, aUsePinnedMemory);
     }
 
+    void initDownsampled(const PixelDataDim &dim, bool aUsePinnedMemory) {
+        initDownsampled(dim.y, dim.x, dim.z, aUsePinnedMemory);
+    }
+
     /**
      * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2) and initialize values
      * @param aSizeOfY
@@ -738,6 +742,10 @@ public :
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
         initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal, aUsePinnedMemory);
+    }
+
+    void initDownsampled(const PixelDataDim &dim, T aInitVal, bool aUsePinnedMemory) {
+        initDownsampled(dim.y, dim.x, dim.z, aInitVal, aUsePinnedMemory);
     }
 
     /**
