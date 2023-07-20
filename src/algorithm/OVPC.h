@@ -9,7 +9,7 @@
 
 #include <vector>
 #include "data_structures/Mesh/PixelData.hpp"
-#include "data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/GenInfo.hpp"
 #include "algorithm/PullingScheme.hpp"
 
 
@@ -33,7 +33,7 @@ class OVPC {
 
 public:
     template <typename T>
-    OVPC(const APRAccess &aAprAccess, const PixelData<T> &aInputLevels) {
+    OVPC(const GenInfo &aAprAccess, const PixelData<T> &aInputLevels) {
         // Level Max is one less since we are working on downsampled version
         iLevelMax = aAprAccess.l_max - 1;
         iLevelMin = aAprAccess.l_min;
