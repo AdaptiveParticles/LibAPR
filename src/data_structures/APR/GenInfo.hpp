@@ -5,6 +5,11 @@
 #ifndef LIBAPR_GENINFO_HPP
 #define LIBAPR_GENINFO_HPP
 
+
+#include <sstream>
+#include <vector>
+#include <cmath>
+
 //Note this function sets up the domain for the APR for a given input size.
 class GenInfo {
 
@@ -96,6 +101,25 @@ public:
             x_num[l] = ceil(x_org / cellSize);
             z_num[l] = ceil(z_org / cellSize);
         }
+    }
+
+    friend std::ostream & operator<<(std::ostream &os, const GenInfo &gi) {
+        os << "GenInfo {\n";
+        os << "    Original dimensions(y/x/z): [" << gi.org_dims[0] << ", " << gi.org_dims[1] << ", " << gi.org_dims[2] << "]\n";
+        os << "    Number of dimensions: " << static_cast<int>(gi.number_dimensions) << "\n";
+        os << "    l_min, l_max: {" << gi.l_min << " - " << gi.l_max << "}\n";
+        os << "    total number of particles: " << gi.total_number_particles << "\n";
+        os << "    y_num, x_num, z_num:\n";
+        for (int l = gi.l_min; l <= gi.l_max; ++l) {
+            os << "        level [" << l << "] =  " << gi.y_num[l] << ", " << gi.x_num[l] << ", " << gi.z_num[l] << "\n";
+        }
+        os << "    level_size:\n";
+        for (int l = gi.l_min; l <= gi.l_max; ++l) {
+            os << "        level " << l << ": " << gi.level_size[l] << "\n";
+        }
+        os << "}";
+
+        return os;
     }
 };
 
