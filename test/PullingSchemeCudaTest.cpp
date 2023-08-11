@@ -8,7 +8,7 @@
 
 #include "TestTools.hpp"
 
-//    TEST(PullingSchemeTest, computeLevels) {
+//    TEST(PullingSchemeCudaTest, computeLevels) {
 //        using ImgType = float;
 //        const int maxLevel = 3;
 //        const float relError = 0.1;
@@ -33,7 +33,7 @@
 
 
 
-TEST(PullingSchemeTest, DS) {
+TEST(PullingSchemeCudaTest, DS) {
     GenInfo access;
     access.l_max = 11;
     access.l_min = 1;
