@@ -99,6 +99,8 @@ public:
         return true;
     }
 
+    float bspline_offset = 0;
+
 protected:
 
     template<typename T>
@@ -107,8 +109,6 @@ protected:
     bool get_ds(APR &aAPR);
 
     //get apr without setting parameters, and with an already loaded image.
-
-    float bspline_offset = 0;
 
     //DATA (so it can be re-used)
 
