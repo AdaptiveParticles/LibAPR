@@ -2784,12 +2784,9 @@ bool test_pipeline_u16(TestData& test_data){
     aprConverter.par.Ip_th = 0;
     aprConverter.par.rel_error = readPars.rel_error;
     aprConverter.par.lambda = readPars.lambda;
-
     aprConverter.par.sigma_th_max = readPars.sigma_th_max;
     aprConverter.par.sigma_th = readPars.sigma_th;
-
     aprConverter.par.grad_th = readPars.grad_th;
-
     aprConverter.par.auto_parameters = false;
 
     //where things are
@@ -2817,8 +2814,8 @@ bool test_pipeline_u16(TestData& test_data){
     bool success = (scale_errors == 0) && (grad_errors == 0);
 
     APR apr_c;
+    aprConverter.bspline_offset = 0;
     aprConverter.initPipelineAPR(apr_c, test_data.img_original);
-
     aprConverter.get_apr_custom_grad_scale(apr_c, gradient_saved, scale_saved);
 
     auto it_org = test_data.apr.iterator();
