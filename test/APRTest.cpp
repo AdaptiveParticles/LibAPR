@@ -127,7 +127,7 @@ bool compare_two_iterators(Iterator1& it1, Iterator2& it2, int maxNumOfErrPrinte
 
 
     if(it1.total_number_particles() != it2.total_number_particles()) {
-        std::cout << "Number of particles mismatch: " << it1.total_number_particles() " vs " << it2.total_number_particles() << std::endl;
+        std::cout << "Number of particles mismatch: " << it1.total_number_particles() << " vs " << it2.total_number_particles() << std::endl;
         return false;
     }
 
