@@ -14,7 +14,7 @@
     },
     {
       "name": "tiff",
-      "version>=": "4.0"
+      "version>=": "4.6.0"
     }
   ],
   "builtin-baseline": "486a4640db740f5994e492eb60748111dfc48de7"
