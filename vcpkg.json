@@ -2,20 +2,10 @@
   "name": "libapr",
   "version-string": "2.1.0",
   "dependencies": [
-    {
-      "name": "blosc"
-    },
-    {
-      "name": "hdf5",
-      "version>=": "1.12.2"
-    },
-    {
-      "name": "szip"
-    },
-    {
-      "name": "tiff",
-      "version>=": "4.6.0"
-    }
+    "blosc",
+    "hdf5",
+    "szip",
+    "tiff"
   ],
   "builtin-baseline": "486a4640db740f5994e492eb60748111dfc48de7"
 }
