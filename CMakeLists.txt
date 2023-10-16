@@ -1,13 +1,17 @@
 ###############################################################################
 # APR - Adaptive Particle Representation
 ###############################################################################
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(APR DESCRIPTION "Adaptive Particle Representation library")
 
 message(STATUS "CMAKE VERSION ${CMAKE_VERSION}")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif(POLICY CMP0135)
 
 # APR build options:
 option(APR_INSTALL "Install APR library" OFF)
@@ -360,12 +364,22 @@ if(APR_TESTS)
     if(GTEST_FOUND)
         include_directories(${GTEST_INCLUDE_DIRS})
     else(GTEST_FOUND)
+        message(STATUS "APR: GTest not found, it will be downloaded and built")
+
+        include(FetchContent)
+        FetchContent_Declare(
+            googletest
+            # Specify the commit you depend on and update it regularly.
+            URL https://github.com/google/googletest/archive/refs/tags/v1.13.0.zip
+        )
+
+        # For Windows: Prevent overriding the parent project's compiler/linker settings
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
         set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-        set(BUILD_GTEST ON CACHE BOOL "" FORCE)
         set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-        message(STATUS "APR: GTest not found, using internal gtest")
-        add_subdirectory("external/gtest")
-        set(GTEST_LIBRARIES gtest)
+        FetchContent_MakeAvailable(googletest)
+
+        set(GTEST_LIBRARIES GTest::gtest_main)
     endif(GTEST_FOUND)
 
     enable_testing()

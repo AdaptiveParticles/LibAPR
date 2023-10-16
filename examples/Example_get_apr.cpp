@@ -48,7 +48,7 @@ int runAPR(cmdLineOptions options) {
     //the apr datastructure
     APR apr;
 
-    APRConverter<uint16_t> aprConverter;
+    APRConverter<float> aprConverter;
 
     //read in the command line options into the parameters file
     aprConverter.par.Ip_th = options.Ip_th;

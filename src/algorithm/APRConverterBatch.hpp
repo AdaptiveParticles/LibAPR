@@ -214,17 +214,14 @@ bool APRConverterBatch<ImageType>::get_apr_method_patch(APR &aAPR, PixelData<T>&
     computation_timer.start_timer("Calculations");
 
     fine_grained_timer.start_timer("offset image");
-    //offset image by factor (this is required if there are zero areas in the background with uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow (if your image is non zero, with a 'buffer' and has intensities up to uint16_t maximum value then set image_type = "", i.e. uncomment the following line)
-    if (std::is_same<uint16_t, ImageType>::value) {
-        bspline_offset = 100;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else if (std::is_same<uint8_t, ImageType>::value){
-        bspline_offset = 5;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else {
+    
+    if (std::is_floating_point<ImageType>::value) {
         image_temp.copyFromMesh(input_image);
+    } else {
+        bspline_offset = compute_bspline_offset<ImageType>(input_image, par.lambda);
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     }
+
     fine_grained_timer.stop_timer();
 
     method_timer.start_timer("compute_gradient_magnitude_using_bsplines");
