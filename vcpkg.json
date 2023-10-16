@@ -1,6 +1,6 @@
 {
   "name": "libapr",
-  "version-string": "0.0.1",
+  "version-string": "2.1.0",
   "dependencies": [
     {
       "name": "blosc"
