@@ -702,7 +702,8 @@ public:
                     break;
                 case Operation::WRITE:
 
-                    fileId = hdf5_create_file_blosc(aFileName);
+//                    fileId = hdf5_create_file_blosc(aFileName);
+                    fileId = H5Fcreate(aFileName.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
                     if (fileId == -1) {
                         std::cerr << "Could not create file [" << aFileName << "]" << std::endl;

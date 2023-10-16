@@ -237,6 +237,7 @@ __global__ void fill_ne_rows_cuda(const uint64_t* level_xz_vec,
 }
 
 
+
 template<int blockSize_z, int blockSize_x>
 void compute_ne_rows_cuda(GPUAccessHelper& access, VectorData<int>& ne_count, ScopedCudaMemHandler<int*, JUST_ALLOC>& ne_rows_gpu, int blockSize) {
 
@@ -264,12 +265,12 @@ void compute_ne_rows_cuda(GPUAccessHelper& access, VectorData<int>& ne_count, Sc
         count_ne_rows_cuda<blockSize_z, blockSize_x>
                 << < grid_dim, block_dim >> >
                                (access.get_level_xz_vec_ptr(),
-                                       access.get_xz_end_vec_ptr(),
-                                       access.z_num(level),
-                                       access.x_num(level),
-                                       level,
-                                       blockSize,
-                                       block_sums_device + offset);
+                                access.get_xz_end_vec_ptr(),
+                                access.z_num(level),
+                                access.x_num(level),
+                                level,
+                                blockSize,
+                                block_sums_device + offset);
         offset += z_blocks_max;
     }
 
@@ -305,14 +306,14 @@ void compute_ne_rows_cuda(GPUAccessHelper& access, VectorData<int>& ne_count, Sc
 
         fill_ne_rows_cuda<<< grid_dim, block_dim >>>
                                        (access.get_level_xz_vec_ptr(),
-                                               access.get_xz_end_vec_ptr(),
-                                               access.z_num(level),
-                                               access.x_num(level),
-                                               level,
-                                               blockSize,
-                                               ne_sz,
-                                               ne_count[level],
-                                               ne_rows_gpu.get());
+                                        access.get_xz_end_vec_ptr(),
+                                        access.z_num(level),
+                                        access.x_num(level),
+                                        level,
+                                        blockSize,
+                                        ne_sz,
+                                        ne_count[level],
+                                        ne_rows_gpu.get());
     }
 
     error_check( cudaFree(block_sums_device) )
