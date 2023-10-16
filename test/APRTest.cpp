@@ -2808,13 +2808,11 @@ bool test_pipeline_u16(TestData& test_data){
     PixelData<float> scale_saved = TiffUtils::getMesh<float>(test_data.output_dir + "scale_saved.tif");
     PixelData<uint16_t> gradient_saved = TiffUtils::getMesh<uint16_t>(test_data.output_dir + "gradient_saved.tif");
 
-    std::cout << "comparing local intensity scales" << std::endl;
+    std::cout << "Comparing local intensity scales" << std::endl;
     int scale_errors = compareMeshes(scale_saved, scale_computed, 1);
-    std::cout << "errors: " << scale_errors << " out of " << scale_saved.size() << std::endl;
 
-    std::cout << "comparing gradients" << std::endl;
+    std::cout << "Comparing gradients" << std::endl;
     int grad_errors = compareMeshes(gradient_saved, gradient_computed, 1);
-    std::cout << "errors: " << grad_errors << " out of " << gradient_saved.size() << std::endl;
 
     bool success = (scale_errors == 0) && (grad_errors == 0);
 
