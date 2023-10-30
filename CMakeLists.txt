@@ -237,6 +237,7 @@ if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
     add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SOURCE_FILES})
+    set_property(TARGET ${STATIC_TARGET_NAME} PROPERTY CUDA_ARCHITECTURES OFF)
     target_compile_features(${STATIC_TARGET_NAME} PUBLIC cxx_std_14)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
@@ -258,7 +259,7 @@ if(APR_BUILD_SHARED_LIB)
 # generate fat shared library
     set(SHARED_TARGET_NAME sharedLib)
     add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SOURCE_FILES})
-
+    set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY CUDA_ARCHITECTURES OFF)
     target_include_directories(${SHARED_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES LIBRARY_OUTPUT_NAME ${LIBRARY_NAME})
