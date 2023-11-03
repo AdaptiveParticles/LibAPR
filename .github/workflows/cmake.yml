@@ -82,6 +82,9 @@ jobs:
         run: |
           cmake --build "${{ env.CMAKE_BUILD_DIR }}" --parallel 4 --config Release
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+      
       # Run tests
       - name: tests
         run: |
