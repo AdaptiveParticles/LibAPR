@@ -2784,8 +2784,8 @@ bool test_pipeline_u16(TestData& test_data){
     aprConverter.par.Ip_th = 0;
     aprConverter.par.rel_error = readPars.rel_error;
     aprConverter.par.lambda = readPars.lambda;
-    aprConverter.par.sigma_th_max = readPars.sigma_th_max;
-    aprConverter.par.sigma_th = readPars.sigma_th;
+    aprConverter.par.sigma_th_max = std::fmax(readPars.sigma_th_max,0.1);
+    aprConverter.par.sigma_th = std::fmax(readPars.sigma_th,0.1);
     aprConverter.par.grad_th = readPars.grad_th;
     aprConverter.par.auto_parameters = false;
 
