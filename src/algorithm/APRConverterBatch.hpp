@@ -373,6 +373,8 @@ template<typename ImageType>
 void APRConverterBatch<ImageType>::applyParameters(PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp,
                                                    PixelData<float> &local_scale_temp2, APRParameters& aprParameters) {
 
+    aprParameters.validate_parameters();
+    
     fine_grained_timer.start_timer("load_and_apply_mask");
     // Apply mask if given
     if(par.mask_file != ""){

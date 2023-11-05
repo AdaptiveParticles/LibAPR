@@ -61,6 +61,12 @@ public:
 
 	    return os;
     }
+
+    void validate_parameters(){
+        if (sigma_th ==  0){
+            std::cerr << "Warning: sigma_th is set to 0, this may results in unexpected results due to divide by zero erros. Consider setting this to a non-zero small value, if it is not needed."  << std::endl;
+        }
+    }
 };
 
 

@@ -101,6 +101,7 @@ public:
 
     float bspline_offset = 0;
 
+
 protected:
 
     template<typename T>
@@ -250,6 +251,8 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
     //
     //  Apply the main parameters
     //
+
+    aprParameters.validate_parameters();
 
     fine_grained_timer.start_timer("load_and_apply_mask");
     // Apply mask if given
