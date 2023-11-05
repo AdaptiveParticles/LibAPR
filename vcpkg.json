@@ -1,11 +1,11 @@
 {
   "name": "libapr",
-  "version-string": "0.0.1",
+  "version-string": "2.1.0",
   "dependencies": [
     "blosc",
     "hdf5",
     "szip",
-    "gtest",
     "tiff"
-  ]
+  ],
+  "builtin-baseline": "486a4640db740f5994e492eb60748111dfc48de7"
 }

@@ -47,7 +47,7 @@ struct cmdLineOptions{
     bool output_spatial_properties = false;
     bool output_pc_recon = false;
     bool output_smooth_recon = false;
-
+    float gaussian_noise_sigma = 0.0f;
 };
 
 static bool command_option_exists(char **begin, char **end, const std::string &option) {
@@ -99,6 +99,10 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
         result.output_spatial_properties = true;
     }
 
+    if(command_option_exists(argv, argv + argc, "-noise")) {
+        result.gaussian_noise_sigma = std::stof(std::string(get_command_option(argv, argv + argc, "-noise")));
+    }
+
     if(!(result.output_pc_recon || result.output_smooth_recon || result.output_spatial_properties)){
         //default is pc recon
         result.output_pc_recon = true;
@@ -107,7 +111,7 @@ static cmdLineOptions read_command_line_options(int argc, char **argv) {
     return result;
 }
 template<typename T>
-void add_random_to_img(PixelData<T>& img,float sd){
+void add_random_to_img(PixelData<T>& img, float sd){
 
     std::default_random_engine generator;
     std::normal_distribution<float> distribution(0.0,sd);
@@ -149,32 +153,26 @@ int main(int argc, char **argv) {
     apr.name = options.output;
     timer.stop_timer();
 
-    // Intentionaly block-scoped since local recon_pc will be destructed when block ends and release memory.
-    {
+    if(options.output_pc_recon) {
+        //create mesh data structure for reconstruction
+        PixelData<uint16_t> recon_pc;
 
-        if(options.output_pc_recon) {
-            //create mesh data structure for reconstruction
-            bool add_random_gitter = true;
+        timer.start_timer("pc interp");
+        //perform piece-wise constant interpolation
+        APRReconstruction::reconstruct_constant(apr, recon_pc, parts);
+        timer.stop_timer();
 
-            PixelData<uint16_t> recon_pc;
-
-            timer.start_timer("pc interp");
-            //perform piece-wise constant interpolation
-            APRReconstruction::reconstruct_constant(apr,recon_pc, parts);
-            timer.stop_timer();
-
-            if(add_random_gitter){
-                add_random_to_img(recon_pc,1.0f);
-            }
-
-            float elapsed_seconds = timer.t2 - timer.t1;
-            std::cout << "PC recon "
-                      << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num * 2) / (elapsed_seconds * 1000000.0f)
-                      << " MB per second" << std::endl;
-
-            // write output as tiff
-            TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_pc.tif", recon_pc);
+        if(options.gaussian_noise_sigma > 0.0f) {
+            add_random_to_img(recon_pc, options.gaussian_noise_sigma);
         }
+
+        float elapsed_seconds = timer.t2 - timer.t1;
+        std::cout << "PC recon "
+                    << (recon_pc.x_num * recon_pc.y_num * recon_pc.z_num * 2) / (elapsed_seconds * 1000000.0f)
+                    << " MB per second" << std::endl;
+
+        // write output as tiff
+        TiffUtils::saveMeshAsTiff(options.directory + apr.name + "_pc.tif", recon_pc);
     }
 
     //////////////////////////
