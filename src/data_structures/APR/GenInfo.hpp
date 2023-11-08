@@ -35,6 +35,11 @@ public:
     std::vector<int> level_size; // precomputation of the size of each level, used by the iterators.
 
     //initialize the information given the original dimensions
+    void init(const PixelDataDim &dim) {
+        init(dim.y, dim.x, dim.z);
+    }
+
+    //initialize the information given the original dimensions
     void init(uint64_t y_org,uint64_t x_org,uint64_t z_org){
 
         org_dims[0] = y_org;
@@ -67,6 +72,11 @@ public:
             x_num[l] = ceil(x_org / cellSize);
             z_num[l] = ceil(z_org / cellSize);
         }
+    }
+
+    //initialize the information given the original dimensions
+    void init_tree(const PixelDataDim &dim){
+        init_tree(dim.y, dim.x, dim.z);
     }
 
     //initialize the information given the original dimensions

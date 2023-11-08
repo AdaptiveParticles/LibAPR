@@ -46,7 +46,7 @@ inline bool compare(PixelData<T> &mesh, const float *data, const float epsilon) 
 }
 
 template<typename T>
-inline bool initFromZYXarray(PixelData<T> &mesh, T *data) {
+inline bool initFromZYXarray(PixelData<T> &mesh, const T *data) {
     size_t dataIdx = 0;
     for (int z = 0; z < mesh.z_num; ++z) {
         for (int y = 0; y < mesh.y_num; ++y) {
