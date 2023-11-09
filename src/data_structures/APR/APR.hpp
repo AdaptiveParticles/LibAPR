@@ -84,10 +84,6 @@ public:
      * @param with_tree     include the tree access
      */
     void init_cuda(bool with_tree=true) {
-        gpuAccess.genInfo = &aprInfo;
-        gpuTreeAccess.genInfo = &treeInfo;
-        linearAccess.genInfo = &aprInfo;
-        linearAccessTree.genInfo = &treeInfo;
         auto apr_helper = gpuAPRHelper();
         if(with_tree) {
             auto tree_helper = gpuTreeHelper();

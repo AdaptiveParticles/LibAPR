@@ -67,6 +67,7 @@ public:
             gpuAccess->init_y_vec(linearAccess->y_vec);
             gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
             gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
+            gpuAccess->genInfo = linearAccess->genInfo;
             gpuAccess->copy2Device();
             gpuAccess->initialized = true;
         }
@@ -77,6 +78,7 @@ public:
             gpuAccess->init_y_vec(linearAccess->y_vec);
             gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
             gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
+            gpuAccess->genInfo = linearAccess->genInfo;
             gpuAccess->copy2Device(total_number_particles(tree_access.level_max()), tree_access.gpuAccess);
             gpuAccess->initialized = true;
         }
