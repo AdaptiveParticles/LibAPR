@@ -899,8 +899,7 @@ __global__ void _fill_ne_rows_tree_cuda(const uint64_t* __restrict__ level_xz_ve
 template<int blockSize_z, int blockSize_x>
 void compute_ne_rows_tree_cuda(GPUAccessHelper& tree_access, VectorData<int>& ne_count, ScopedCudaMemHandler<int*, JUST_ALLOC>& ne_rows_gpu) {
 
-    ne_count.resize(tree_access.level_max() + 3);
-    ne_count[0] = 0;
+    ne_count.resize(tree_access.level_max() + 3, 0);
 
     int z_blocks_max = (tree_access.z_num(tree_access.level_max()) + blockSize_z - 1) / blockSize_z;
     int num_levels = tree_access.level_max() - tree_access.level_min() + 1;
@@ -979,8 +978,7 @@ void compute_ne_rows_tree_cuda(GPUAccessHelper& tree_access, VectorData<int>& ne
 
 
 void compute_ne_rows_tree(GPUAccessHelper& tree_access, VectorData<int>& ne_counter, VectorData<int>& ne_rows) {
-    ne_counter.resize(tree_access.level_max() + 3);
-    ne_counter[0] = 0;
+    ne_counter.resize(tree_access.level_max() + 3, 0);
 
     int z = 0;
     int x = 0;
