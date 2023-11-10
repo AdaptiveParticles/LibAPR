@@ -31,7 +31,7 @@ public:
     void init_level_xz_vec(VectorData<uint64_t>& level_xz_vec);
 
     GenInfo* genInfo;
-    uint64_t total_number_particles() { return genInfo->total_number_particles; }
+    uint64_t total_number_particles() const { return genInfo->total_number_particles; }
 
     int level_max() const { return genInfo->l_max; }
     int level_min() const { return genInfo->l_min; }
@@ -67,6 +67,7 @@ public:
             gpuAccess->init_y_vec(linearAccess->y_vec);
             gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
             gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
+            gpuAccess->genInfo = linearAccess->genInfo;
             gpuAccess->copy2Device();
             gpuAccess->initialized = true;
         }
@@ -77,6 +78,7 @@ public:
             gpuAccess->init_y_vec(linearAccess->y_vec);
             gpuAccess->init_level_xz_vec(linearAccess->level_xz_vec);
             gpuAccess->init_xz_end_vec(linearAccess->xz_end_vec);
+            gpuAccess->genInfo = linearAccess->genInfo;
             gpuAccess->copy2Device(total_number_particles(tree_access.level_max()), tree_access.gpuAccess);
             gpuAccess->initialized = true;
         }
@@ -86,9 +88,9 @@ public:
         gpuAccess->copy2Host();
     }
 
-    uint64_t total_number_particles() { return gpuAccess->genInfo->total_number_particles; }
+    uint64_t total_number_particles() const { return gpuAccess->total_number_particles(); }
 
-    uint64_t total_number_particles(const int level) {
+    uint64_t total_number_particles(const int level) const {
         uint64_t index = linearAccess->level_xz_vec[level] + linearAccess->x_num(level) - 1 + (linearAccess->z_num(level)-1)*linearAccess->x_num(level);
         return linearAccess->xz_end_vec[index];
     }
