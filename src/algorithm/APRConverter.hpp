@@ -99,6 +99,9 @@ public:
         return true;
     }
 
+    float bspline_offset = 0;
+
+
 protected:
 
     template<typename T>
@@ -107,8 +110,6 @@ protected:
     bool get_ds(APR &aAPR);
 
     //get apr without setting parameters, and with an already loaded image.
-
-    float bspline_offset = 0;
 
     //DATA (so it can be re-used)
 
@@ -132,26 +133,6 @@ protected:
 
 };
 
-
-template <typename T>
-struct MinMax{T min; T max; };
-
-template <typename T>
-static MinMax<T> getMinMax(const PixelData<T>& input_image) {
-    T minVal = std::numeric_limits<T>::max();
-    T maxVal = std::numeric_limits<T>::min();
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared) reduction(max:maxVal) reduction(min:minVal)
-#endif
-    for (size_t i = 0; i < input_image.mesh.size(); ++i) {
-        T val = input_image.mesh[i];
-        if (val > maxVal) maxVal = val;
-        if (val < minVal) minVal = val;
-    }
-
-    return MinMax<T>{minVal, maxVal};
-}
 
 template<typename ImageType>
 void APRConverter<ImageType>::initPipelineMemory(int y_num,int x_num,int z_num){
@@ -224,7 +205,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
     //storage of the particle cell tree for computing the pulling scheme
     allocation_timer.start_timer("init and copy image");
-    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    PixelData<ImageType> image_temp(input_image, false /* don't copy */, false /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
     allocation_timer.stop_timer();
 
@@ -233,18 +214,16 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     ////////////////////////
 
     fine_grained_timer.start_timer("offset image");
+
     // offset image by factor (this is required if there are zero areas in the background with
     // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow!
 
-    if (std::is_same<uint16_t, ImageType>::value) {
-        bspline_offset = 100;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else if (std::is_same<uint8_t, ImageType>::value){
-        bspline_offset = 5;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else {
+    if (std::is_floating_point<ImageType>::value) {
         image_temp.copyFromMesh(input_image);
+    } else {
+        bspline_offset = compute_bspline_offset<ImageType>(input_image, par.lambda);
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     }
 
     fine_grained_timer.stop_timer();
@@ -276,6 +255,8 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
     //
     //  Apply the main parameters
     //
+
+    aprParameters.validate_parameters();
 
     fine_grained_timer.start_timer("load_and_apply_mask");
     // Apply mask if given

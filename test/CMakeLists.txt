@@ -10,6 +10,7 @@ buildTarget(testAPR APRTest.cpp)
 buildTarget(testComputeGradient ComputeGradientTest.cpp)
 buildTarget(testLocalIntensityScale LocalIntensityScaleTest.cpp)
 buildTarget(testPullingScheme PullingSchemeTest.cpp)
+buildTarget(testAPRParameters APRParametersTest.cpp)
 
 #APR GPU Tests
 if(APR_USE_CUDA)

@@ -23,7 +23,7 @@ class APR {
     friend class APRConverterBatch;
     friend class APRBenchHelper;
 
-protected:
+public:
 
     // initialize tree RandomAccess
     void initialize_tree_random_sparse();
@@ -60,8 +60,6 @@ protected:
 
     APRParameters parameters; // this is here to keep a record of what parameters were used, to then be written if needed.
 
-public:
-
 #ifdef APR_USE_CUDA
 
 
@@ -86,6 +84,10 @@ public:
      * @param with_tree     include the tree access
      */
     void init_cuda(bool with_tree=true) {
+        gpuAccess.genInfo = &aprInfo;
+        gpuTreeAccess.genInfo = &treeInfo;
+        linearAccess.genInfo = &aprInfo;
+        linearAccessTree.genInfo = &treeInfo;
         auto apr_helper = gpuAPRHelper();
         if(with_tree) {
             auto tree_helper = gpuTreeHelper();
@@ -190,6 +192,7 @@ public:
         tree_initialized = apr2copy.tree_initialized;
         apr_initialized = apr2copy.apr_initialized;
         name = apr2copy.name;
+        parameters = apr2copy.parameters;
 
         //old data structures
         apr_access = apr2copy.apr_access;

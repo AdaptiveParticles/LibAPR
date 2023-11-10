@@ -123,106 +123,62 @@ public:
 };
 
 template<typename Iterator1,typename Iterator2>
-bool compare_two_iterators(Iterator1& it1, Iterator2& it2,bool success = true){
+bool compare_two_iterators(Iterator1& it1, Iterator2& it2, int maxNumOfErrPrinted = 10){
 
 
-    if(it1.total_number_particles() != it2.total_number_particles()){
-        success = false;
-        std::cout << "Number of particles mismatch" << std::endl;
+    if(it1.total_number_particles() != it2.total_number_particles()) {
+        std::cout << "Number of particles mismatch: " << it1.total_number_particles() << " vs " << it2.total_number_particles() << std::endl;
+        return false;
     }
 
     uint64_t counter_1 = 0;
     uint64_t counter_2 = 0;
 
-    for (int level = it1.level_min(); level <= it1.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
+    uint64_t errors = 0;
 
-        for (z = 0; z < it1.z_num(level); z++) {
-            for (x = 0; x < it1.x_num(level); ++x) {
+    for (int level = it1.level_min(); level <= it1.level_max(); ++level) {
+        for (int z = 0; z < it1.z_num(level); z++) {
+            for (int x = 0; x < it1.x_num(level); ++x) {
 
                 it2.begin(level, z, x);
 
-                for (it1.begin(level, z, x); it1 < it1.end();
-                     it1++) {
+                for (it1.begin(level, z, x); it1 < it1.end(); it1++) {
 
                     counter_1++;
 
-                    if(it1 != it1){
-
-                        uint64_t new_index = it1;
-                        uint64_t org_index = it2;
-
-                        (void) new_index;
-                        (void) org_index;
-
-
-                        success = false;
-//                        std::cout << "1" << std::endl;
-                    }
-
-                    if(it1.y() != it2.y()){
-
-                        auto y_new = it1.y();
-                        auto y_org = it2.y();
-
-                        (void) y_new;
-                        (void) y_org;
-
-                        success = false;
-//                        std::cout << "y_new" << y_new << std::endl;
-//                        std::cout << "y_org" << y_org << std::endl;
+                    if( (it1 != it2) || (it1.y() != it2.y()) ){
+                        if(errors < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                            std::cout << "iterator mismatch, idx " << (uint64_t) it1 << " vs " << (uint64_t) it2 << ", y value " << it2.y() << " vs " << it1.y() << std::endl;
+                        }
+                        errors++;
                     }
 
                     if(it2 < it2.end()){
                         it2++;
                     }
-
                 }
             }
         }
     }
 
-
-
     for (int level = it2.level_min(); level <= it2.level_max(); ++level) {
-        int z = 0;
-        int x = 0;
-
-        for (z = 0; z < it2.z_num(level); z++) {
-            for (x = 0; x < it2.x_num(level); ++x) {
+        for (int z = 0; z < it2.z_num(level); z++) {
+            for (int x = 0; x < it2.x_num(level); ++x) {
 
                 it1.begin(level, z, x);
 
-                for (it2.begin(level, z, x); it2 < it2.end();
-                     it2++) {
+                for (it2.begin(level, z, x); it2 < it2.end(); it2++) {
 
                     counter_2++;
 
-                    if(it1 != it1){
-
-                        uint64_t new_index = it1;
-                        uint64_t org_index = it2;
-
-                        (void) new_index;
-                        (void) org_index;
-
-
-                        success = false;
+                    if( (it1 != it2) || (it1.y() != it2.y()) ){
+                        if(errors < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                            std::cout << "iterator mismatch, idx " << (uint64_t) it1 << " vs " << (uint64_t) it2 << " y value " << it1.y() << " vs " << it2.y() << std::endl;
+                        }
+                        errors++;
                     }
 
-                    if(it1.y() != it2.y()){
-
-                        auto y_new = it1.y();
-                        auto y_org = it2.y();
-
-                        (void) y_new;
-                        (void) y_org;
-
-                        success = false;
-                    }
-
-                    if(it1 < it1.end()){
+                    if(it1 < it1.end()) {
                         it1++;
                     }
 
@@ -231,13 +187,12 @@ bool compare_two_iterators(Iterator1& it1, Iterator2& it2,bool success = true){
         }
     }
 
-    if(counter_1 != counter_2){
-        success = false;
+    if((counter_1 != counter_2) || (errors > 0)){
         std::cout << "Iteration mismatch" << std::endl;
+        return false;
     }
 
-
-    return success;
+    return true;
 }
 
 bool check_neighbours(APR& apr,APRIterator &current, APRIterator &neigh){
@@ -870,9 +825,9 @@ bool test_pulling_scheme_sparse(TestData& test_data){
     auto sparse_lin_it = apr_lin_sparse.iterator();
 
 
-    success = compare_two_iterators(org_it,sparse_it,success);
-    success = compare_two_iterators(sparse_lin_it,sparse_it,success);
-    success = compare_two_iterators(org_it,sparse_lin_it,success);
+    success = success && compare_two_iterators(org_it, sparse_it);
+    success = success && compare_two_iterators(sparse_lin_it, sparse_it);
+    success = success && compare_two_iterators(org_it, sparse_lin_it);
 
     return success;
 }
@@ -973,12 +928,12 @@ bool test_linear_access_create(TestData& test_data) {
     //apr_lin.init_linear();
     auto it_new = apr_lin.iterator();
 
-    success = compare_two_iterators(it_lin_old,it_new,success);
+    success = success && compare_two_iterators(it_lin_old, it_new);
 
     //Test Linear -> Random generation
     auto it_new_random = apr_lin.random_iterator();
 
-    success = compare_two_iterators(it_new_random,it_new,success);
+    success = success && compare_two_iterators(it_new_random, it_new);
 
 
     //Test the APR Tree construction.
@@ -992,7 +947,7 @@ bool test_linear_access_create(TestData& test_data) {
     std::cout << "PARTS: " << total_number_parts << " " << total_number_parts_lin << std::endl;
 
 
-    success = compare_two_iterators(tree_it_org,tree_it_lin,success);
+    success = success && compare_two_iterators(tree_it_org, tree_it_lin);
 
 
     return success;
@@ -1298,16 +1253,16 @@ bool test_linear_access_io(TestData& test_data) {
     auto it_new = apr_lin.iterator();
     auto it_read = test_data.apr.iterator();
 
-    success = compare_two_iterators(it_org,it_new,success);
-    success = compare_two_iterators(it_org,it_read,success);
-    success = compare_two_iterators(it_new,it_read,success);
+    success = success && compare_two_iterators(it_org, it_new);
+    success = success && compare_two_iterators(it_org, it_read);
+    success = success && compare_two_iterators(it_new, it_read);
 
     // Test the tree IO
 
     auto tree_it_org = apr_random.random_tree_iterator();
     auto tree_it_lin = apr_lin.tree_iterator();
 
-    success = compare_two_iterators(tree_it_org,tree_it_lin,success);
+    success = success && compare_two_iterators(tree_it_org, tree_it_lin);
 
     return success;
 }
@@ -1325,11 +1280,11 @@ bool test_apr_tree(TestData& test_data) {
     auto it_lin  = test_data.apr.iterator();
     auto it_random = test_data.apr.random_iterator();
 
-    success = compare_two_iterators(it_lin,it_random,success);
+    success = success && compare_two_iterators(it_lin, it_random);
 
     auto it_tree_t = test_data.apr.random_tree_iterator();
 
-    success = compare_two_iterators(it_lin,it_random,success);
+    success = success && compare_two_iterators(it_lin, it_random);
 
     ParticleData<float> tree_data;
 
@@ -1338,7 +1293,7 @@ bool test_apr_tree(TestData& test_data) {
     auto apr_tree_iterator = test_data.apr.random_tree_iterator();
     auto apr_tree_iterator_lin = test_data.apr.tree_iterator();
 
-    success = compare_two_iterators(apr_tree_iterator,apr_tree_iterator_lin,success);
+    success = success && compare_two_iterators(apr_tree_iterator, apr_tree_iterator_lin);
 
 
     for (int level = (apr_tree_iterator.level_max()); level >= apr_tree_iterator.level_min(); --level) {
@@ -1620,7 +1575,7 @@ bool test_apr_file(TestData& test_data){
     auto apr_iterator = test_data.apr.iterator();
     auto apr_iterator_read = aprRead.iterator();
 
-    success = compare_two_iterators(apr_iterator,apr_iterator_read,success);
+    success = success && compare_two_iterators(apr_iterator, apr_iterator_read);
 
     //test apr iterator with channel
     writeFile.open(file_name,"WRITE");
@@ -1662,11 +1617,11 @@ bool test_apr_file(TestData& test_data){
 
     auto it1 = apr_channel_0.iterator();
     auto it2 = test_data.apr.iterator();
-    success = compare_two_iterators(it1,it2,success);
+    success = success && compare_two_iterators(it1, it2);
 
     it1 = apr_channel_0_55.iterator();
     it2 = test_data.apr.iterator();
-    success = compare_two_iterators(it1,it2,success);
+    success = success && compare_two_iterators(it1, it2);
 
 
 
@@ -1710,7 +1665,7 @@ bool test_apr_file(TestData& test_data){
     auto tree_it = aprRead2.random_tree_iterator();
     auto tree_it_org = test_data.apr.random_tree_iterator();
 
-    success = compare_two_iterators(tree_it,tree_it_org,success);
+    success = success && compare_two_iterators(tree_it, tree_it_org);
 
     //Test file list
     std::vector<std::string> correct_names = {"tree_parts","tree_parts1","tree_parts2"};
@@ -2819,8 +2774,6 @@ bool test_pipeline_u16(TestData& test_data){
     //
     //
 
-    bool success = true;
-
     //the apr datastructure
     APR apr;
     APRConverter<uint16_t> aprConverter;
@@ -2831,12 +2784,9 @@ bool test_pipeline_u16(TestData& test_data){
     aprConverter.par.Ip_th = 0;
     aprConverter.par.rel_error = readPars.rel_error;
     aprConverter.par.lambda = readPars.lambda;
-
-    aprConverter.par.sigma_th_max = readPars.sigma_th_max;
-    aprConverter.par.sigma_th = readPars.sigma_th;
-
+    aprConverter.par.sigma_th_max = std::fmax(readPars.sigma_th_max,0.1);
+    aprConverter.par.sigma_th = std::fmax(readPars.sigma_th,0.1);
     aprConverter.par.grad_th = readPars.grad_th;
-
     aprConverter.par.auto_parameters = false;
 
     //where things are
@@ -2855,34 +2805,24 @@ bool test_pipeline_u16(TestData& test_data){
     PixelData<float> scale_saved = TiffUtils::getMesh<float>(test_data.output_dir + "scale_saved.tif");
     PixelData<uint16_t> gradient_saved = TiffUtils::getMesh<uint16_t>(test_data.output_dir + "gradient_saved.tif");
 
-    for (size_t i = 0; i < scale_computed.mesh.size(); ++i) {
-        float computed_val = scale_computed.mesh[i];
-        float saved_val = scale_saved.mesh[i];
+    std::cout << "Comparing local intensity scales" << std::endl;
+    int scale_errors = compareMeshes(scale_saved, scale_computed, 1);
 
-        if(std::abs(computed_val - saved_val) > 1){
-            success = false;
-        }
-    }
+    std::cout << "Comparing gradients" << std::endl;
+    int grad_errors = compareMeshes(gradient_saved, gradient_computed, 1);
 
-    for (size_t i = 0; i < gradient_computed.mesh.size(); ++i) {
-        float computed_val = gradient_computed.mesh[i];
-        float saved_val = gradient_saved.mesh[i];
-
-        if(std::abs(computed_val - saved_val) > 1){
-            success = false;
-        }
-    }
+    bool success = (scale_errors == 0) && (grad_errors == 0);
 
     APR apr_c;
+    aprConverter.bspline_offset = 0;
     aprConverter.initPipelineAPR(apr_c, test_data.img_original);
-
-    aprConverter.get_apr_custom_grad_scale(apr_c,gradient_saved,scale_saved);
+    aprConverter.get_apr_custom_grad_scale(apr_c, gradient_saved, scale_saved);
 
     auto it_org = test_data.apr.iterator();
     auto it_gen = apr_c.iterator();
 
     //test the access
-    success = compare_two_iterators(it_org,it_gen,success);
+    success = success && compare_two_iterators(it_org, it_gen);
 
     ParticleData<uint16_t> particles_intensities;
 
@@ -3423,16 +3363,12 @@ bool test_iterator_methods(TestData &test_data){
 
 bool test_apr_copy(TestData &test_data){
 
-    bool success = true;
-
     APR aprCopy(test_data.apr);
 
     auto it_org = test_data.apr.iterator();
     auto it_copy = aprCopy.iterator();
 
-    success = compare_two_iterators(it_org,it_copy,success);
-
-    return success;
+    return compare_two_iterators(it_org, it_copy);
 }
 
 
