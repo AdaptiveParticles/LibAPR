@@ -58,8 +58,8 @@ cmake -DAPR_USE_OPENMP=OFF ..
 | APR_TESTS | Build unit tests | OFF |
 | APR_BENCHMARK | Build executable performance benchmarks | OFF |
 | APR_USE_LIBTIFF | Enable LibTIFF (Required for tests and examples) | ON |
-| APR_PREFER_EXTERNAL_GTEST | Use installed gtest instead of included sources | ON |
-| APR_PREFER_EXTERNAL_BLOSC | Use installed blosc instead of included sources | ON |
+| APR_PREFER_EXTERNAL_GTEST | Use installed gtest instead of included sources | OFF |
+| APR_PREFER_EXTERNAL_BLOSC | Use installed blosc instead of included sources | OFF |
 | APR_USE_OPENMP | Enable multithreading via OpenMP | ON |
 | APR_USE_CUDA | Enable CUDA functionality (under development) | OFF |
 | APR_DENOISE | Enable denoising code (requires Eigen3) | OFF |

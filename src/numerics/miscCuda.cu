@@ -241,7 +241,7 @@ __global__ void fill_ne_rows_cuda(const uint64_t* level_xz_vec,
 template<int blockSize_z, int blockSize_x>
 void compute_ne_rows_cuda(GPUAccessHelper& access, VectorData<int>& ne_count, ScopedCudaMemHandler<int*, JUST_ALLOC>& ne_rows_gpu, int blockSize) {
 
-    ne_count.resize(access.level_max()+2);
+    ne_count.resize(access.level_max()+2, 0);
 
     int stride = blockSize_z * blockSize;
 
@@ -360,7 +360,7 @@ inline void add_nonempty(GPUAccessHelper& access, uint64_t& counter, VectorData<
 
 
 void compute_ne_rows(GPUAccessHelper& access, VectorData<int>& ne_counter, VectorData<int>& ne_rows, int block_size) {
-    ne_counter.resize(access.level_max()+2);
+    ne_counter.resize(access.level_max()+2, 0);
 
     int z = 0;
     int x = 0;
