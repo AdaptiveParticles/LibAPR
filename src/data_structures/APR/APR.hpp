@@ -196,6 +196,16 @@ public:
         apr_initialized_random = apr2copy.apr_initialized_random;
         tree_initialized_random = apr2copy.tree_initialized_random;
 
+        linearAccess.genInfo = &aprInfo;
+        linearAccessTree.genInfo = &treeInfo;
+        apr_access.genInfo = &aprInfo;
+        tree_access.genInfo = &treeInfo;
+
+#ifdef APR_USE_CUDA
+        gpuAccess.genInfo = &aprInfo;
+        gpuTreeAccess.genInfo = &treeInfo;
+#endif
+
     }
 
     void initialize_linear(){
