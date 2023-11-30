@@ -226,6 +226,10 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     initialize_xz_linear();
 
     //edge case
+    // TODO: Don't know why we need that edge case but it would be good if it run properly
+    //       For example 'genInfo->total_number_particles' is not set, maybe other values are not set either but
+    //       it need to be investigated or this edge case removed (?) - if level_max() <= 2 then there are no many particles
+    //       anyway so any code should be fast enough...
     if(level_max()<=2){
         // For performance reasons and clarity of the code, it doesn't make sense here to handle these cases. Below assumes there is atleast levels <=2;
 
