@@ -513,6 +513,16 @@ public :
      * @return element @(y, x, z)
      */
     T& operator()(int y, int x, int z) {
+        // TODO: In number of places during running tests below check shows problems.
+        //       Investigate and try to fix. Such check in future probably should be permanent
+        //       to discover all problems rather than hiding them.
+#ifndef NDEBUG  // with Cmake we need to use double neg. condition since there is not ifdef DEBUG defined :(
+        if ((y < 0 || y >= y_num) || (x < 0 || x >= x_num) || (z < 0 || z >= z_num)) {
+//            std::cerr << "Provided coordinates=(" << y << ", " << x << ", " << z;
+//            std::cerr << ") while PixelData size=(" << y_num << ", " << x_num << ", " << z_num << ")" << std::endl;
+//            throw std::runtime_error("Provided (y,x,z) coordinates are out of range!");
+        }
+#endif
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);
