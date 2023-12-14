@@ -9,7 +9,69 @@
 
 #include "TestTools.hpp"
 
+/**
+ * Prints PCT
+ * @param particleCellTree
+ */
+template <typename T>
+void printParticleCellTree(const std::vector<PixelData<T>> &particleCellTree) {
+    for (uint64_t  l = 0; l < particleCellTree.size(); ++l) {
+        auto &tree = particleCellTree[l];
+//            std::cout << "-- level = " << l << ",  " << tree << std::endl;
+        tree.printMeshT(3,0);
+    }
+}
+/**
+ * Compare
+ * @param expected - expected levels
+ * @param tested - levels to verify
+ * @param maxError
+ * @param maxNumOfErrPrinted - how many error outputs should be printed
+ * @return
+ */
+template <typename T, typename W>
+int compareParticleCellTrees(const std::vector<PixelData<T>> &expected, const std::vector<PixelData<W>> &tested, int maxNumOfErrPrinted = 3) {
+    int cntGlobal = 0;
+    for (size_t level = 0; level < expected.size(); level++) {
+        int cnt = 0;
+        int numOfParticles = 0;
+        for (size_t i = 0; i < expected[level].mesh.size(); ++i) {
+            if (expected[level].mesh[i] < 8 && tested[level].mesh[i] <= FILLER_TYPE) {
+                if (std::abs(expected[level].mesh[i] - tested[level].mesh[i]) > 0 || std::isnan(expected[level].mesh[i]) ||
+                    std::isnan(tested[level].mesh[i])) {
+                    if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                        std::cout << "Level: " << level <<" ERROR expected vs tested mesh: " << (float) expected[level].mesh[i] << " vs "
+                                  << (float) tested[level].mesh[i] << " IDX:" << tested[level].getStrIndex(i) << std::endl;
+                    }
+                    cnt++;
+                }
+                if (expected[level].mesh[i] > 0) numOfParticles++;
+            }
+        }
+        cntGlobal += cnt;
+        if (cnt > 0) std::cout << "Level: " << level << ", Number of errors / all points: " << cnt << " / " << expected[level].mesh.size() << " Particles:" << numOfParticles << std::endl;
+    }
+    return cntGlobal;
+}
 
+template<typename DataType>
+void fillPS(PullingScheme &aPS, PixelData<DataType> &levels) {
+    auto l_max = aPS.pct_level_max();
+    auto l_min = aPS.pct_level_min();
+
+//        std::cout << "LEVEL: " << l_max << std::endl; levels.printMeshT(3, 1);
+
+    aPS.fill(l_max, levels);
+    PixelData<int> levelsDS;
+    for (int l = l_max - 1; l >= l_min; l--) {
+        downsample(levels, levelsDS,
+                   [](const float &x, const float &y) -> float { return std::max(x, y); },
+                   [](const float &x) -> float { return x; }, true);
+        aPS.fill(l, levelsDS);
+//            std::cout << "LEVEL: " << l << std::endl; levelsDS.printMeshT(3, 1);
+        levels.swap(levelsDS);
+    }
+}
 
 TEST(PullingSchemeTest, DeleteMeAfterDevelopment) {
     // TODO: delete me after development

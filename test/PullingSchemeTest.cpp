@@ -64,12 +64,12 @@ namespace {
                 v = AlreadyCheckedMark;
             }
             else {
-                std::cout << "Error! Data at (" << r.y << "," << r.x << "," << r.z << ") expected = " << (int)r.expectedType << " got = " << (int)v << std::endl;
+                std::cout << "Error! Data on level=" << r.level << " at (" << r.y << "," << r.x << "," << r.z << ") expected=" << (int)r.expectedType << " got=" << (int)v << std::endl;
                 return false;
             }
         }
 
-        for (int level = 0; level < aPCT.size(); level++) {
+        for (size_t level = 0; level < aPCT.size(); level++) {
             auto &d = aPCT[level];
             auto y_num = d.y_num;
             auto x_num = d.x_num;
@@ -100,9 +100,9 @@ namespace {
      * @return
      */
     template <typename T, typename W>
-    inline int compareParticleCellTrees(const std::vector<PixelData<T>> &expected, const std::vector<PixelData<W>> &tested, int maxNumOfErrPrinted = 3) {
+    int compareParticleCellTrees(const std::vector<PixelData<T>> &expected, const std::vector<PixelData<W>> &tested, int maxNumOfErrPrinted = 3) {
         int cntGlobal = 0;
-        for (int level = 0; level < expected.size(); level++) {
+        for (size_t level = 0; level < expected.size(); level++) {
             int cnt = 0;
             int numOfParticles = 0;
             for (size_t i = 0; i < expected[level].mesh.size(); ++i) {
@@ -271,7 +271,7 @@ namespace {
 
     TEST(PullingSchemeTest, PullingScheme3D_smallCube) {
         // Prepare input data for PS
-        PixelData<int> levels(3, 3, 3);
+        PixelData<int> levels(3, 3, 3, 0);
         levels(2, 2, 2) = 3;
 
         // Prepare GenInfo structure -
@@ -450,7 +450,7 @@ namespace {
 
     TEST(PullingSchemeTest, OVPC_smallCube) {
         // Prepare input data for PS
-        PixelData<int> levels(3, 3, 3);
+        PixelData<int> levels(3, 3, 3, 0);
         levels(2, 2, 2) = 3;
 
         // Prepare GenInfo structure -
