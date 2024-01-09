@@ -1210,7 +1210,7 @@ inline void RandomAccess::initialize_tree_access(RandomAccess& APROwn_access, st
 }
 
 
-void RandomAccess::init_data_structure_tree(RandomAccess& APROwn_access, SparseGaps<std::pair<uint16_t,YGap_map>>& y_begin){
+inline void RandomAccess::init_data_structure_tree(RandomAccess& APROwn_access, SparseGaps<std::pair<uint16_t,YGap_map>>& y_begin){
     uint64_t cumsum = 0;
 
     APRTimer apr_timer(false);
@@ -1423,7 +1423,7 @@ inline void RandomAccess::initialize_tree_access_sparse(RandomAccess& APROwn_acc
 }
 
 
-void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, SparseGaps<SparseParticleCellMap> &p_map) {
+inline void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(APRParameters& apr_parameters, SparseGaps<SparseParticleCellMap> &p_map) {
     //
     //  Initialize the new structure;
     //

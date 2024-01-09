@@ -14,6 +14,8 @@
 
 
 class OVPC {
+
+public:
     // Element big enouth to keep all the levels + 2 highest bits for type
     // for uint8_t we have [ 2 bit - type(empty, seed, boundary, filler) |  6 bit - level(0-63) ]
     using ElementType = uint8_t;
@@ -31,7 +33,6 @@ class OVPC {
     int iLevelMin;
     std::vector<PixelData<ElementType>> iParticleCellTree;
 
-public:
     template <typename T>
     OVPC(const GenInfo &aAprAccess, const PixelData<T> &aInputLevels) {
         // Level Max is one less since we are working on downsampled version

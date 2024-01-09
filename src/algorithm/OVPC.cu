@@ -1,39 +1,28 @@
 #include "PullingSchemeCuda.hpp"
 
 #include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-//#include <device_functions.h>
-#include <cuda_runtime_api.h>
 
 #include "misc/CudaTools.cuh"
 #include "data_structures/Mesh/downsample.cuh"
+#include "algorithm/OVPC.h"
 
-namespace {
-    using ElementType = uint8_t;
-    static constexpr int BIT_SHIFT = 6;
-    static constexpr ElementType OVPC_SEED = 1;
-    static constexpr ElementType OVPC_BOUNDARY = 2;
-    static constexpr ElementType OVPC_FILLER = 3;
-
-    static constexpr ElementType  SEED_MASK = OVPC_SEED << BIT_SHIFT;
-    static constexpr ElementType  BOUNDARY_MASK = OVPC_BOUNDARY << BIT_SHIFT;
-    static constexpr ElementType  FILLER_MASK = OVPC_FILLER << BIT_SHIFT;
-    static constexpr ElementType  MASK = 0x03 << BIT_SHIFT;
-}
 
 template <typename T, typename S>
-__global__ void copy1D(const T *input, S *output, size_t length) {
+__global__ void copyAndClampLevels(const T *input, S *output, size_t length, int levelMin, int levelMax) {
     size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
     if (idx < length) {
-        output[idx] = input[idx];
+        T v = input[idx];
+        if (v > levelMax) v = levelMax;
+        if (v < levelMin) v = levelMin;
+        output[idx] = v;
     }
 }
 
 template <typename T, typename S>
-void runCopy1D(T *inputData, S *outputData, size_t lenght, cudaStream_t aStream) {
+void runCopyAndClampLevels(T *inputData, S *outputData, size_t lenght, int levelMin, int levelMax, cudaStream_t aStream) {
     dim3 threadsPerBlock(128);
     dim3 numBlocks((lenght + threadsPerBlock.x - 1)/threadsPerBlock.x);
-    copy1D<<<numBlocks,threadsPerBlock, 0, aStream>>>(inputData, outputData, lenght);
+    copyAndClampLevels<<<numBlocks,threadsPerBlock, 0, aStream>>>(inputData, outputData, lenght, levelMin, levelMax);
 };
 
 
@@ -57,7 +46,7 @@ __global__ void oneLevel(T *data, size_t xLen, size_t yLen, size_t zLen, int lev
         for (int x = xmin; x <= xmax; ++x) {
             for (int y = ymin; y <= ymax; ++y) {
                 const size_t idx = z * xLen * yLen + x * yLen + y;
-                T currentLevel = ~MASK & data[idx];
+                T currentLevel = ~OVPC::MASK & data[idx];
                 if (currentLevel > level) { ok = false; break; }
                 else if (currentLevel == level) neig = true;
             }
@@ -66,9 +55,9 @@ __global__ void oneLevel(T *data, size_t xLen, size_t yLen, size_t zLen, int lev
     if (ok) {
         const size_t idx = zi * xLen * yLen + xi * yLen + yi;
         T status = data[idx];
-        if (status == level) data[idx] |= SEED_MASK;
-        else if (neig) data[idx] |= BOUNDARY_MASK;
-        else data[idx] |= FILLER_MASK;
+        if (status == level) data[idx] |= OVPC::SEED;
+        else if (neig) data[idx] |= OVPC::BOUNDARY;
+        else data[idx] |= OVPC::FILLER;
     }
 }
 
@@ -103,11 +92,11 @@ __global__ void secondPhase(T *data, T *child, size_t xLen, size_t yLen, size_t 
         for (int x = xmin; x <= xmax; ++x) {
             for (int y = ymin; y <= ymax; ++y) {
                 size_t children_index = z * xLenc * yLenc + x * yLenc + y;
-                child[children_index] = status >= (OVPC_SEED << BIT_SHIFT) ? 0 : child[children_index] >> BIT_SHIFT;
+                child[children_index] = status >= (OVPC::OVPC_SEED << OVPC::BIT_SHIFT) ? 0 : child[children_index] >> OVPC::BIT_SHIFT;
             }
         }
     }
-    if (isLevelMax) data[zi * xLen * yLen + xi * yLen + yi] = status >> BIT_SHIFT;
+    if (isLevelMax) data[zi * xLen * yLen + xi * yLen + yi] = status >> OVPC::BIT_SHIFT;
 }
 
 template <typename T>
@@ -124,9 +113,19 @@ template void computeOVPC(const PixelData<float>&, PixelData<TreeElementType>&, 
 
 template <typename T, typename S>
 void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, int levelMax) {
+
+
     ScopedCudaMemHandler<const PixelData<T>, H2D> in(input);
     ScopedCudaMemHandler<PixelData<S>, D2H> mem(output);
 
+
+    CudaTimer t(true, "OVPCCUDA");
+
+    t.start_timer("wait");
+    waitForCuda();
+    t.stop_timer();
+
+    t.start_timer("ALL");
     // TODO: This is not needed later - just for having clear debug
     //cudaMemset(mem.get(), 0, mem.getNumOfBytes());
 
@@ -157,7 +156,7 @@ void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, 
         zDS = ceil(zDS/2.0);
     }
 
-    runCopy1D(in.get(), levels[levelMax], in.getSize(), 0);
+    runCopyAndClampLevels(in.get(), levels[levelMax], in.getSize(), levelMin, levelMax, 0);
 
     for (int l = levelMax - 1; l >= levelMin; --l) {
         runDownsampleMax(levels[l + 1], levels[l], xSize[l + 1], ySize[l + 1], zSize[l + 1], 0);
@@ -172,4 +171,6 @@ void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, 
     for (int l = levelMax - 1; l >= levelMin; --l) {
         runSecondPhase(levels[l], levels[l+1], xSize[l], ySize[l], zSize[l], xSize[l+1], ySize[l+1], zSize[l+1], l == levelMin, 0);
     }
+    waitForCuda();
+    t.stop_timer();
 };

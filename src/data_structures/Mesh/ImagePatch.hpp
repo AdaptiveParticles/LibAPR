@@ -38,7 +38,7 @@ struct ImagePatch {
 };
 
 
-void initPatchGlobal(ImagePatch& patch, int z_begin_global, int z_end_global, int x_begin_global, int x_end_global, int y_begin_global, int y_end_global) {
+inline void initPatchGlobal(ImagePatch& patch, int z_begin_global, int z_end_global, int x_begin_global, int x_end_global, int y_begin_global, int y_end_global) {
     patch.z_begin_global = z_begin_global;
     patch.x_begin_global = x_begin_global;
     patch.y_begin_global = y_begin_global;
