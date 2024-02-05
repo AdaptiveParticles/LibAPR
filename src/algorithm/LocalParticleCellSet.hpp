@@ -49,6 +49,9 @@ inline int __builtin_clz(unsigned int x)
 
 #endif
 
+#include "algorithm/PullingScheme.hpp"
+#include "algorithm/PullingSchemeSparse.hpp"
+
 class LocalParticleCellSet {
 
 public:

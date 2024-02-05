@@ -44,8 +44,8 @@ public:
         iParticleCellTree[iLevelMax].init(aInputLevels.y_num, aInputLevels.x_num, aInputLevels.z_num);
         fillLevel(iLevelMax, aInputLevels);
 
-        // Downsample with max reduction to levelMin to fill the rest of the tree
-        for(int level = iLevelMax - 1; level >= iLevelMin; --level) {
+        // Downsample with max reduction to levelMin to fill rest of the tree
+        for (int level = iLevelMax - 1; level >= iLevelMin; --level) {
             downsample(iParticleCellTree[level + 1], iParticleCellTree[level],
                        [](const float &x, const float &y) -> float { return std::max(x, y); },
                        [](const float &x) -> float { return x; }, true);

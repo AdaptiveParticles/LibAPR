@@ -12,6 +12,7 @@ using TreeElementType = uint8_t;
 
 template <typename T, typename S>
 void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, int levelMax);
-
+template <typename T, typename S>
+void computeOvpcCuda(const PixelData<T> &input, std::vector<PixelData<S>> &pct, int levelMin, int levelMax);
 
 #endif //LIBAPR_PULLINGSCHEMECUDA_HPP

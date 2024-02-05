@@ -51,13 +51,13 @@ for(jn = j * 2; jn < j * 2 + children_boundaries[0]; jn++) \
 
 class PullingScheme {
 
-    double powr(uint64_t num,uint64_t pow2){
+public:
+
+    static double powr(uint64_t num,uint64_t pow2){
         //return (uint64_t) std::round(std::pow(num,pow2));
         return std::round(pow(num,pow2));
     }
 
-
-public:
     template<typename T>
     void fill(float k, const PixelData<T> &input);
 
@@ -65,6 +65,7 @@ public:
     void fill_patch(float level, const PixelData<T> &input, ImagePatch& patch);
 
     void pulling_scheme_main();
+    static std::vector<PixelData<uint8_t>> generateParticleCellTree(const GenInfo &aprInfo);
     void initialize_particle_cell_tree(const GenInfo &aprInfo);
     std::vector<PixelData<uint8_t>>& getParticleCellTree() { return particle_cell_tree; }
 
@@ -86,6 +87,25 @@ private:
     int l_max;
 };
 
+
+inline std::vector<PixelData<uint8_t>> PullingScheme::generateParticleCellTree(const GenInfo &aprInfo) {
+    int l_max = aprInfo.l_max - 1;
+    int l_min = aprInfo.l_min;
+
+    std::vector<PixelData<uint8_t>> pct;
+    pct.resize(l_max + 1);
+
+    for (int l = l_min; l <= l_max; ++l) {
+        pct[l].initWithValue(ceil(aprInfo.org_dims[0] / PullingScheme::powr(2.0, l_max - l + 1)),
+                             ceil(aprInfo.org_dims[1] / PullingScheme::powr(2.0, l_max - l + 1)),
+                             ceil(aprInfo.org_dims[2] / PullingScheme::powr(2.0, l_max - l + 1)),
+                             EMPTY);
+
+    }
+
+    return pct;
+}
+
 /**
  * Initializes particle_cell_tree up to level (max - 1)
  */
@@ -93,14 +113,7 @@ inline void PullingScheme::initialize_particle_cell_tree(const GenInfo &aprInfo)
     l_max = aprInfo.l_max - 1;
     l_min = aprInfo.l_min;
 
-    particle_cell_tree.resize(l_max + 1);
-
-    for (int l = l_min; l <= l_max; ++l) {
-        particle_cell_tree[l].initWithValue(ceil(aprInfo.org_dims[0] / powr(2.0, l_max - l + 1)),
-                                            ceil(aprInfo.org_dims[1] / powr(2.0, l_max - l + 1)),
-                                            ceil(aprInfo.org_dims[2] / powr(2.0, l_max - l + 1)),
-                                            EMPTY);
-    }
+    particle_cell_tree = generateParticleCellTree(aprInfo);
 }
 
 /**

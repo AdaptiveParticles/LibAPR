@@ -8,7 +8,7 @@
 #include "algorithm/PullingScheme.hpp"
 #include "algorithm/OVPC.h"
 #include "TestTools.hpp"
-
+#include "algorithm/LocalParticleCellSet.hpp"
 
 
 namespace {
@@ -126,21 +126,8 @@ namespace {
 
     template<typename DataType>
     void fillPS(PullingScheme &aPS, PixelData<DataType> &levels) {
-        auto l_max = aPS.pct_level_max();
-        auto l_min = aPS.pct_level_min();
-
-//        std::cout << "LEVEL: " << l_max << std::endl; levels.printMeshT(3, 1);
-
-        aPS.fill(l_max, levels);
-        PixelData<int> levelsDS;
-        for (int l = l_max - 1; l >= l_min; l--) {
-            downsample(levels, levelsDS,
-                       [](const float &x, const float &y) -> float { return std::max(x, y); },
-                       [](const float &x) -> float { return x; }, true);
-            aPS.fill(l, levelsDS);
-//            std::cout << "LEVEL: " << l << std::endl; levelsDS.printMeshT(3, 1);
-            levels.swap(levelsDS);
-        }
+        PixelData<DataType> levelsDS(ceil(levels.y_num/2.0), ceil(levels.x_num/2.0), ceil(levels.z_num/2.0));
+        LocalParticleCellSet().get_local_particle_cell_set(aPS, levels, levelsDS, APRParameters());
     }
 
     // =================================================================================================================
@@ -157,7 +144,7 @@ namespace {
         // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
         GenInfo gi;
         const PixelDataDim dim = levels.getDimension();
-        gi.init(2 * dim.y, dim.x, dim.z);
+        gi.init(2 * dim.y, dim.x, dim.z); // <-- Y-dir
 
         // Initialize all needed objects
         APRTimer t(false);
@@ -345,7 +332,7 @@ namespace {
         // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
         GenInfo gi;
         const PixelDataDim dim = levels.getDimension();
-        gi.init(2 * dim.y, dim.x, dim.z);
+        gi.init(2 * dim.y, dim.x, dim.z); // <-- Y-dir
 
         // Initialize all needed objects
         APRTimer t(false);
