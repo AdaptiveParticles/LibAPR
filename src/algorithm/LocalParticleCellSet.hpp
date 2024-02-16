@@ -51,6 +51,7 @@ inline int __builtin_clz(unsigned int x)
 
 #include "algorithm/PullingScheme.hpp"
 #include "algorithm/PullingSchemeSparse.hpp"
+#include "io/TiffUtils.hpp"
 
 class LocalParticleCellSet {
 
