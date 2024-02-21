@@ -126,14 +126,16 @@ inline int64_t compareParticles(const ParticleTypeA &expected, const ParticleTyp
     }
 
     for (size_t i = 0; i < expected.size(); ++i) {
-        if (std::abs(expected[i] - tested[i]) > maxError) {
+        if (std::abs((double)(expected[i] - tested[i])) > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
                 std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested particle: " << (float)expected[i] << " vs " << (float)tested[i] << " IDX:" << i << std::endl;
             }
             cnt++;
         }
     }
-    std::cout << "Number of errors / all points: " << cnt << " / " << expected.size() << std::endl;
+    if (cnt != 0) {
+        std::cout << "Number of errors / all points: " << cnt << " / " << expected.size() << std::endl;
+    }
     return cnt;
 }
 
