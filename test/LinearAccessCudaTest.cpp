@@ -26,7 +26,7 @@ void printParticleCellTree(const std::vector<PixelData<T>> &particleCellTree) {
     }
 }
 
-TEST(LinearAccessTest, DeleteMeAfterDevelopment_fullAprPipeline) {
+TEST(LinearAccessCudaTest, DeleteMeAfterDevelopment_fullAprPipeline) {
     // TODO: delete me after development
     // Full 'get apr' pipeline to test imp. on different stages
     // Useful during debugging and can be removed once finished
@@ -106,15 +106,14 @@ TEST(LinearAccessTest, DeleteMeAfterDevelopment_fullAprPipeline) {
 }
 
 
-
-TEST(LinearAccessTest, DeleteMeAfterDevelopment_PS) {
+TEST(LinearAccessCudaTest, DeleteMeAfterDevelopment_PS) {
     // TODO: delete me after development
     // Runs PS to test imp. on different stages
     // Useful during debugging and can be removed once finished
 //    int values[] = {0,0,0,5, 0,0,0,0};
 //    int len = sizeof(values)/sizeof(int);
 
-    PixelData<int> levels(3, 4,4, 0);
+    PixelData<int> levels(3, 1, 1, 0);
     levels(0,0,0) = 4;
 
 //    initFromZYXarray(levels, values);
@@ -153,7 +152,7 @@ TEST(LinearAccessTest, DeleteMeAfterDevelopment_PS) {
     LinearAccess linearAccess;
     linearAccess.genInfo = &gi;
     APRParameters par;
-    par.neighborhood_optimization = false;
+    par.neighborhood_optimization = true;
     linearAccess.initialize_linear_structure(par, ps.getParticleCellTree());
 
     std::cout << gi << std::endl;
@@ -179,4 +178,9 @@ TEST(LinearAccessTest, DeleteMeAfterDevelopment_PS) {
         }
     }
     std::cout << std::endl;
+}
+
+int main(int argc, char **argv) {
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

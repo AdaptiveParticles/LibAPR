@@ -58,6 +58,8 @@ TEST(LinearAccessTest, optimizationForSmallLevels) {
     EXPECT_EQ(compareParticles(expected_y_vec, linearAccess.y_vec), 0);
     EXPECT_EQ(compareParticles(expected_xz_end_vec, linearAccess.xz_end_vec), 0);
     EXPECT_EQ(compareParticles(expected_level_xz_vec, linearAccess.level_xz_vec), 0);
+
+    EXPECT_EQ(gi.total_number_particles, expected_y_vec.size());
 }
 
 TEST(LinearAccessTest, yDirNeighbourhoodOptTrue) {
@@ -86,6 +88,8 @@ TEST(LinearAccessTest, yDirNeighbourhoodOptTrue) {
     EXPECT_EQ(compareParticles(expected_y_vec, linearAccess.y_vec), 0);
     EXPECT_EQ(compareParticles(expected_xz_end_vec, linearAccess.xz_end_vec), 0);
     EXPECT_EQ(compareParticles(expected_level_xz_vec, linearAccess.level_xz_vec), 0);
+
+    EXPECT_EQ(gi.total_number_particles, expected_y_vec.size());
 }
 
 TEST(LinearAccessTest, yDirNeighbourhoodOptFalse) {
@@ -114,6 +118,8 @@ TEST(LinearAccessTest, yDirNeighbourhoodOptFalse) {
     EXPECT_EQ(compareParticles(expected_y_vec, linearAccess.y_vec), 0);
     EXPECT_EQ(compareParticles(expected_xz_end_vec, linearAccess.xz_end_vec), 0);
     EXPECT_EQ(compareParticles(expected_level_xz_vec, linearAccess.level_xz_vec), 0);
+
+    EXPECT_EQ(gi.total_number_particles, expected_y_vec.size());
 }
 
 TEST(LinearAccessTest, xDirNeighbourhoodOptTrue) {
@@ -142,6 +148,8 @@ TEST(LinearAccessTest, xDirNeighbourhoodOptTrue) {
     EXPECT_EQ(compareParticles(expected_y_vec, linearAccess.y_vec), 0);
     EXPECT_EQ(compareParticles(expected_xz_end_vec, linearAccess.xz_end_vec), 0);
     EXPECT_EQ(compareParticles(expected_level_xz_vec, linearAccess.level_xz_vec), 0);
+
+    EXPECT_EQ(gi.total_number_particles, expected_y_vec.size());
 }
 
 TEST(LinearAccessTest, xDirNeighbourhoodOptFalse) {
@@ -170,6 +178,8 @@ TEST(LinearAccessTest, xDirNeighbourhoodOptFalse) {
     EXPECT_EQ(compareParticles(expected_y_vec, linearAccess.y_vec), 0);
     EXPECT_EQ(compareParticles(expected_xz_end_vec, linearAccess.xz_end_vec), 0);
     EXPECT_EQ(compareParticles(expected_level_xz_vec, linearAccess.level_xz_vec), 0);
+
+    EXPECT_EQ(gi.total_number_particles, expected_y_vec.size());
 }
 
 TEST(LinearAccessTest, zDirNeighbourhoodOptTrue) {
@@ -198,6 +208,8 @@ TEST(LinearAccessTest, zDirNeighbourhoodOptTrue) {
     EXPECT_EQ(compareParticles(expected_y_vec, linearAccess.y_vec), 0);
     EXPECT_EQ(compareParticles(expected_xz_end_vec, linearAccess.xz_end_vec), 0);
     EXPECT_EQ(compareParticles(expected_level_xz_vec, linearAccess.level_xz_vec), 0);
+
+    EXPECT_EQ(gi.total_number_particles, expected_y_vec.size());
 }
 
 TEST(LinearAccessTest, zDirNeighbourhoodOptFalse) {
@@ -226,6 +238,8 @@ TEST(LinearAccessTest, zDirNeighbourhoodOptFalse) {
     EXPECT_EQ(compareParticles(expected_y_vec, linearAccess.y_vec), 0);
     EXPECT_EQ(compareParticles(expected_xz_end_vec, linearAccess.xz_end_vec), 0);
     EXPECT_EQ(compareParticles(expected_level_xz_vec, linearAccess.level_xz_vec), 0);
+
+    EXPECT_EQ(gi.total_number_particles, expected_y_vec.size());
 }
 
 int main(int argc, char **argv) {
