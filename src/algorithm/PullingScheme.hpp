@@ -13,13 +13,20 @@
 #include "data_structures/Mesh/ImagePatch.hpp"
 #include <vector>
 
+// Main types
 #define EMPTY 0
 #define SEED_TYPE 1
 #define BOUNDARY_TYPE 2
 #define FILLER_TYPE 3
+
+// Type used in linear/random access
+#define UPSAMPLING_SEED_TYPE 4
+
+// Types specific for this implementation of Pulling Scheme (OVPC is not using them)
 #define ASCENDANT 8
 #define PROPOGATE 15
 #define ASCENDANTNEIGHBOUR 16
+
 
 #define NEIGHBOURLOOP(jn,in,kn, boundaries) \
 for(jn = boundaries[0][0]; jn < boundaries[0][1]; jn++) \

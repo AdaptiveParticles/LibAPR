@@ -11,6 +11,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 
 #include "algorithm/APRParameters.hpp"
+#include "algorithm/PullingScheme.hpp"
 
 #include "APRAccessStructures.hpp"
 
@@ -225,6 +226,9 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     initialize_xz_linear();
 
+    // *********************************************************************************************************************
+    //                       FULL RESOLUTION
+    // *********************************************************************************************************************
     //edge case
     if(level_max()<=2){
         // For performance reasons and clarity of the code, it doesn't make sense here to handle these cases. Below assumes there is atleast levels <=2;
@@ -254,10 +258,11 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
         return;
     }
 
-    // ========================================================================
+    // *********************************************************************************************************************
+    //                       FIRST STEP
+    // *********************************************************************************************************************
     apr_timer.start_timer("first_step");
 
-    const uint8_t UPSAMPLING_SEED_TYPE = 4;
     const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
     for (int level = level_min()+1; level < level_max(); ++level) {
         const size_t xLen = genInfo->x_num[level];
@@ -288,7 +293,9 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
     }
     apr_timer.stop_timer();
 
-    // ========================================================================
+    // *********************************************************************************************************************
+    //                       SECOND STEP
+    // *********************************************************************************************************************
     apr_timer.start_timer("second_step");
 
 
@@ -323,13 +330,14 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
         }
     }
 
+
+// *********************************************************************************************************************
+//                       SECOND STEP LAST LEVEL
+//
+//    l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
+// *********************************************************************************************************************
     std::vector<uint64_t> temp_max_xz;
     temp_max_xz.resize(genInfo->z_num[genInfo->l_max - 1]*genInfo->x_num[genInfo->l_max - 1],0);
-
-    /*
-     * l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
-     *
-     */
 
     size_t l_minus_1 = genInfo->l_max - 1;
     const size_t xLen = genInfo->x_num[l_minus_1];
@@ -404,6 +412,11 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
 
     apr_timer.stop_timer();
 
+
+    // *********************************************************************************************************************
+    //                       THIRD STEP - Get Y values
+    // *********************************************************************************************************************
+
     apr_timer.start_timer("init y");
 
     genInfo->total_number_particles = xz_end_vec.back();
@@ -447,10 +460,11 @@ inline void LinearAccess::initialize_linear_structure(APRParameters& apr_paramet
         }
     }
 
-    /*
-     * l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
-     *
-     */
+    // *********************************************************************************************************************
+    //                       4th STEP LAST LEVEL
+    //
+    //    l_max - 1 is special as it also has the l_max information that then needs to be upsampled.
+    // *********************************************************************************************************************
 
 
 #ifdef HAVE_OPENMP
@@ -540,7 +554,6 @@ inline void LinearAccess::initialize_linear_structure_sparse(APRParameters& apr_
     // ========================================================================
     apr_timer.start_timer("first_step");
 
-    const uint8_t UPSAMPLING_SEED_TYPE = 4;
     const uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
     for (int level = level_min()+1; level < level_max(); ++level) {
         const size_t xLen = genInfo->x_num[level];

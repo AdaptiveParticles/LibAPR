@@ -149,10 +149,6 @@ public :
         usePinnedMemory = usePinned;
     }
 
-    void setUsePinnedMemory(bool usePinned){
-        usePinnedMemory = usePinned;
-    }
-
     inline uint64_t size() const{
         return vec.size();
     }
@@ -283,8 +279,19 @@ public :
         std::swap(usePinnedMemory, aObj.usePinnedMemory);
         std::swap(vecMemory, aObj.vecMemory);
         vec.swap(aObj.vec);
+#ifdef APR_USE_CUDA
+        std::swap(vecMemoryPinned, aObj.vecMemoryPinned);
+#endif
     }
 
+    VectorData(VectorData &&aObj) {
+        usePinnedMemory = aObj.usePinnedMemory;
+        vecMemory.swap(aObj.vecMemory);
+        vec = std::move(aObj.vec);
+#ifdef APR_USE_CUDA
+        vecMemoryPinned =std::move(aObj.vecMemoryPinned);
+#endif
+    }
 
     /**
      * Apply unary operator to each element in parallel, writing the result to VectorData 'output'.

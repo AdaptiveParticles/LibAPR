@@ -120,9 +120,9 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
 template <typename ParticleTypeA, typename ParticleTypeB>
 inline int64_t compareParticles(const ParticleTypeA &expected, const ParticleTypeB &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 10) {
     int64_t cnt = 0;
-    if(expected.size() != tested.size()) {
-        std::cerr << "ERROR compareParticles: sizes differ!" << std::endl;
-        cnt++;
+    if (expected.size() != tested.size()) {
+        std::cerr << "ERROR compareParticles: sizes differs! " << expected.size() << " vs. " << tested.size() << std::endl;
+        return 1; // Return any number > 0 to indicate an error
     }
 
     for (size_t i = 0; i < expected.size(); ++i) {
@@ -137,6 +137,40 @@ inline int64_t compareParticles(const ParticleTypeA &expected, const ParticleTyp
         std::cout << "Number of errors / all points: " << cnt << " / " << expected.size() << std::endl;
     }
     return cnt;
+}
+
+/**
+ * Compares two Particle Cell Trees
+ * @param expected - expected levels
+ * @param tested - levels to verify
+ * @param maxError
+ * @param maxNumOfErrPrinted - how many error outputs should be printed
+ * @param maxTypeCompared - maximum type to be compared
+ * @return
+ */
+template <typename T, typename W>
+int compareParticleCellTrees(const std::vector<PixelData<T>> &expected, const std::vector<PixelData<W>> &tested, bool printErrors = true, int maxNumOfErrPrinted = 3, uint8_t maxTypeCompared = FILLER_TYPE) {
+    int cntGlobal = 0;
+    for (size_t level = 0; level < expected.size(); level++) {
+        int cnt = 0;
+        int numOfParticles = 0;
+        for (size_t i = 0; i < expected[level].mesh.size(); ++i) {
+            if (expected[level].mesh[i] < 8 && tested[level].mesh[i] <= maxTypeCompared) {
+                if (std::abs(expected[level].mesh[i] - tested[level].mesh[i]) > 0 || std::isnan(expected[level].mesh[i]) ||
+                    std::isnan(tested[level].mesh[i])) {
+                    if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                        std::cout << "Level: " << level <<" ERROR expected vs tested mesh: " << (float) expected[level].mesh[i] << " vs "
+                                  << (float) tested[level].mesh[i] << " IDX:" << tested[level].getStrIndex(i) << std::endl;
+                    }
+                    cnt++;
+                }
+                if (expected[level].mesh[i] > 0) numOfParticles++;
+            }
+        }
+        cntGlobal += cnt;
+        if (cnt > 0 && printErrors) std::cout << "Level: " << level << ", Number of errors / all points: " << cnt << " / " << expected[level].mesh.size() << " Particles:" << numOfParticles << std::endl;
+    }
+    return cntGlobal;
 }
 
 /**

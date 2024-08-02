@@ -226,6 +226,7 @@ if(APR_USE_CUDA)
             src/algorithm/LocalIntensityScale.cu
             src/algorithm/OVPC.cu
             src/data_structures/APR/access/GPUAccess.cu
+            src/data_structures/APR/access/LinearAccessCuda.cu
             src/numerics/miscCuda.cu
             src/numerics/APRDownsampleGPU.cu
             src/numerics/PixelNumericsGPU.cu
