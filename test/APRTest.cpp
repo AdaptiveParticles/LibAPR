@@ -134,7 +134,7 @@ bool compare_two_iterators(Iterator1& it1, Iterator2& it2, int maxNumOfErrPrinte
     uint64_t counter_1 = 0;
     uint64_t counter_2 = 0;
 
-    uint64_t errors = 0;
+    int64_t errors = 0;
 
     for (int level = it1.level_min(); level <= it1.level_max(); ++level) {
         for (int z = 0; z < it1.z_num(level); z++) {

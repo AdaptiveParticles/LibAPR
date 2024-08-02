@@ -1513,7 +1513,7 @@ inline void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(AP
                 gap.global_index_begin_offset = 0;
                 uint64_t counter = 0;
 
-                uint16_t prev_y = -2; //init
+                uint16_t prev_y = 65534; // Originally = -2 which is 65534 when assigned to uint16 - removing compiler error //init
 
                 auto& mesh = p_map.data[i][offset_pc_data][0].mesh;
 
@@ -1577,7 +1577,7 @@ inline void RandomAccess::initialize_structure_from_particle_cell_tree_sparse(AP
 
             auto& mesh = p_map.data[i][offset_pc_data1][0].mesh;
 
-            uint16_t prev_y = -2; //init
+            uint16_t prev_y = 65534; // Originally = -2 which is 65534 when assigned to uint16 - removing compiler error //init
 
             //SPARSE iteration
             for (auto it=mesh.begin(); it!=mesh.end(); ++it) {

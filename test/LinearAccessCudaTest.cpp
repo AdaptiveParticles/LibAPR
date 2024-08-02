@@ -63,7 +63,7 @@ namespace {
         std::vector<PixelData<uint8_t>> copy;
         copy.resize(pct.size());
 
-        for (int l = 0; l < pct.size(); ++l) {
+        for (size_t l = 0; l < pct.size(); ++l) {
             copy[l].initWithResize(pct[l].y_num, pct[l].x_num, pct[l].z_num);
             // Copy only existing levels
             if (pct[l].z_num > 0) copy[l].copyFromMesh(pct[l]);
