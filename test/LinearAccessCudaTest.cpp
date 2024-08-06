@@ -292,11 +292,11 @@ TEST(LinearAccessCudaTest, optimizationForSmallLevelsVScpu) {
     for (int x = 1; x <= 4; ++x) {
         for (int y = 1; y <= 4; ++y) {
             for (int z = 1; z <= 4; ++z) {
-                std::cout << "< ============================================= " << x << " " << y << " "<< z << std::endl;
+//                std::cout << "< ============================================= " << x << " " << y << " "<< z << std::endl;
                 // --- Create input data structures and objects
                 GenInfo gi;
                 gi.init(y, x, z);
-                std::cout << gi << std::endl;
+
                 auto pct = makePCT(gi, {}); // In that case values of PCT are not important  (all dense particle data will be generated anyway)
                 GenInfo giGpu;
                 giGpu.init(y, x, z);
