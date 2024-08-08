@@ -9,8 +9,13 @@ template <typename T>
 __global__ void computeLevels(const T *grad, float *lis, size_t len, float mult_const) {
     size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < len) {
-        //divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
-        uint32_t d = (grad[idx] / lis[idx]) * mult_const;
+        // divide gradient magnitude by Local Intensity Scale (first step in calculating the Local Resolution Estimate L(y), minus constants)
+        // TODO: This part is using a "trick" to convert first to int and then to uint32_t
+        //       Without that some numbers on CPU and GPU are converted to different values...
+        //       For example -6507.28 without conversion to int is converted to 0 but in CPU we got huge value.
+        //       Anyway - both CPU & GPU sides should be checked and maybe some better way of it should be
+        //       used - currently we've got undefined result of such operation.
+        uint32_t d = (int)((grad[idx] / lis[idx]) * mult_const);
         //incorporate other factors and compute the level of the Particle Cell, effectively construct LPC L_n
         lis[idx] = (d == 0) ? 0 : 31 - __clz(d); // fast log2
     }

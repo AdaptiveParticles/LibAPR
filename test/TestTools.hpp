@@ -67,7 +67,7 @@ inline bool initFromZYXarray(PixelData<T> &mesh, const T *data) {
  * @return number of errors detected
  */
 template <typename T>
-inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0, int maxNumOfErrPrinted = 3) {
     if (expected.getDimension() != tested.getDimension()) {
         std::stringstream errMsg;
         errMsg << "Dimensions of expected and tested meshes differ! " << expected.getDimension() << " vs " << tested.getDimension();
@@ -86,7 +86,7 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
                 std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested mesh: "
                           << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i]
-                          << " error = " << (float)expected.mesh[i] - (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+                          << " error = " << (float)expected.mesh[i] - (float)tested.mesh[i] << " IDX:" << i << "=" << tested.getStrIndex(i) << std::endl;
             }
             cnt++;
         }
@@ -211,6 +211,28 @@ inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier
 template <typename T>
 inline PixelData<T> getRandInitializedMesh(PixelDataDim dim, float multiplier = 2.0f, float offset=0.0, bool useIdxNumbers = false) {
     return getRandInitializedMesh<T>(dim.y, dim.x, dim.z, multiplier, offset, useIdxNumbers);
+}
+
+template <typename T>
+inline PixelData<T> getMeshWithBlobInMiddle(int y, int x, int z) {
+    PixelData<T> m(y, x, z, 0);
+
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+    int count  = 0;
+    for (int yi = (1.0/3 * y); yi < (2.0/3 * y); yi++) {
+        for (int xi = (1.0/3 * x); xi < (2.0/3 * x); xi++) {
+            for (int zi = (1.0/3 * z); zi < (2.0/3 * z); zi++) {
+                m(yi, xi, zi) = 30 ;//+ dist(mt) * 10;
+                count++;
+            }
+        }
+    }
+    std::cout << "COUNT: " << count << std::endl;
+
+    return m;
 }
 
 struct TestBenchStats{
