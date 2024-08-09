@@ -213,6 +213,14 @@ inline PixelData<T> getRandInitializedMesh(PixelDataDim dim, float multiplier = 
     return getRandInitializedMesh<T>(dim.y, dim.x, dim.z, multiplier, offset, useIdxNumbers);
 }
 
+/**
+ * Generate mesh with square blob in the center of it with values randomly chosen from [20,40] range. Zero values outside.
+ * @tparam T
+ * @param y
+ * @param x
+ * @param z
+ * @return
+ */
 template <typename T>
 inline PixelData<T> getMeshWithBlobInMiddle(int y, int x, int z) {
     PixelData<T> m(y, x, z, 0);
@@ -221,18 +229,26 @@ inline PixelData<T> getMeshWithBlobInMiddle(int y, int x, int z) {
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-    int count  = 0;
     for (int yi = (1.0/3 * y); yi < (2.0/3 * y); yi++) {
         for (int xi = (1.0/3 * x); xi < (2.0/3 * x); xi++) {
             for (int zi = (1.0/3 * z); zi < (2.0/3 * z); zi++) {
-                m(yi, xi, zi) = 30 ;//+ dist(mt) * 10;
-                count++;
+                m(yi, xi, zi) = 30 + dist(mt) * 10;
             }
         }
     }
-    std::cout << "COUNT: " << count << std::endl;
 
     return m;
+}
+
+/**
+ * Generate mesh with square blob in the center of it with values randomly chosen from [20,40] range. Zero values outside.
+ * @tparam T
+ * @param dim
+ * @return
+ */
+template <typename T>
+inline PixelData<T> getMeshWithBlobInMiddle(const PixelDataDim &dim) {
+    return getMeshWithBlobInMiddle<T>(dim.y, dim.x, dim.z);
 }
 
 struct TestBenchStats{

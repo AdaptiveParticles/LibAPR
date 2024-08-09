@@ -18,10 +18,11 @@
 #define checkCuda(ans) { cudaAssert((ans), __FILE__, __LINE__); }
 inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
-#if defined(DEBUG) || defined(_DEBUG)
+#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
     if (code != cudaSuccess)
     {
         fprintf(stderr,"GPUassert: (%d) %s %s %d\n", code, cudaGetErrorString(code), file, line);
+        assert(code == cudaSuccess); // If debugging it helps to see call tree somehow
         if (abort) exit(code);
     }
 #endif
@@ -36,12 +37,6 @@ inline void waitForCuda() {
 inline void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
     std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
     std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
-}
-
-template<typename ImgType>
-inline void getDataFromKernel(PixelData<ImgType> &input, size_t inputSize, ImgType *cudaInput) {
-    cudaMemcpy(input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaInput);
 }
 
 class CudaTimer {

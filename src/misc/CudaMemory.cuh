@@ -11,14 +11,20 @@
 
 #include <cassert>
 
-inline cudaError_t checkCuda(cudaError_t result) {
-#if defined(DEBUG) || defined(_DEBUG)
-    if (result != cudaSuccess) {
-        fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
-        assert(result == cudaSuccess);
+
+// TODO: this method is duplicated in CudaTools.cuh
+//       Somehow including it here break compilation - fix it please.
+#define checkCuda(ans) { cudaAssert2((ans), __FILE__, __LINE__); }
+inline void cudaAssert2(cudaError_t code, const char *file, int line, bool abort=true)
+{
+#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"GPUassert: (%d) %s %s %d\n", code, cudaGetErrorString(code), file, line);
+        assert(code == cudaSuccess); // If debugging it helps to see call tree somehow
+        if (abort) exit(code);
     }
 #endif
-    return result;
 }
 
 inline void* getPinnedMemory(size_t aNumOfBytes) {

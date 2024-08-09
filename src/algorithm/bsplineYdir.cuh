@@ -86,7 +86,7 @@ __global__ void bsplineYdirBoundary(T *image, PixelDataDim dim, BsplineParamsCud
         }
         int offs = i % p.k0;
         int work = i / p.k0;
-        if (work + xzIndexOfBlock < maxXZoffset) {
+        if (work + xzIndexOfBlock < maxXZoffset && offs < dirLen) {
             cache[work * p.k0 + offs] = image[workersOffset + dim.y * work + offs];
         }
     }
@@ -114,7 +114,7 @@ __global__ void bsplineYdirBoundary(T *image, PixelDataDim dim, BsplineParamsCud
         }
         int offs = i % p.k0;
         int work = i / p.k0;
-        if (work + xzIndexOfBlock < maxXZoffset) {
+        if (work + xzIndexOfBlock < maxXZoffset  && offs < dirLen) {
             cache[work * p.k0 + offs] = image[workersOffset + dim.y * work + dim.y - 1 - offs];
         }
     }
