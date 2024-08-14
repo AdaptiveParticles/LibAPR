@@ -558,6 +558,43 @@ namespace {
         }
     }
 
+    TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE_SUPER_SMALL) {
+        // In case of very small input image like 2x2x2 constant scale is being used
+        APRTimer timer(false);
+
+        for (int boundary = 0; boundary <= 1; ++boundary) {
+            for (int r = 0; r <= 1; r++) {
+                bool hasBoundary = (boundary > 0);
+                bool useRandomNumbers = (r > 0);
+
+                PixelData<float> m = getRandInitializedMesh<float>(2,2,2, 25, 10, !useRandomNumbers);
+
+                APRParameters params;
+                params.sigma_th = 1;
+                params.sigma_th_max = 2;
+                params.reflect_bc_lis = hasBoundary;
+
+                // Run on CPU
+                PixelData<float> mCpu(m, true);
+                PixelData<float> mCpuTemp(m, false);
+                timer.start_timer("CPU LIS FULL");
+                LocalIntensityScale().get_local_intensity_scale(mCpu, mCpuTemp, params);
+                mCpu.printMesh(3,2);
+                timer.stop_timer();
+
+                // Run on GPU
+                PixelData<float> mGpu(m, true);
+                PixelData<float> mGpuTemp(m, false);
+                timer.start_timer("GPU LIS FULL");
+                getLocalIntensityScale(mGpu, mGpuTemp, params);
+                timer.stop_timer();
+
+                // Compare results - only mGPU mattters since mGpuTemp in case of constant scale is not modified
+                EXPECT_EQ(compareMeshes(mCpu, mGpu, 0), 0);
+            }
+        }
+    }
+
     TEST(LocalIntensityScaleCudaTest, GPU_VS_CPU_FULL_PIPELINE_CONSTANT_SCALE) {
         APRTimer timer(false);
 

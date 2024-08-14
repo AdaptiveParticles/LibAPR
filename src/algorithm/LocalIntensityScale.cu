@@ -480,9 +480,9 @@ __global__ void constantScale(S *image, size_t len) {
 }
 
 template <typename S>
-void runConstantScale(S *image, PixelDataDim &dim) {
+void runConstantScale(S *image, PixelDataDim &dim, cudaStream_t aStream) {
     // Check kernel description for further info!
-    constantScale<<<1, 1>>>(image, dim.size());
+    constantScale<<<1, 1, 0, aStream>>>(image, dim.size());
 }
 
 template <typename T, typename S>
@@ -551,7 +551,7 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
         }
     }
     else {
-        runConstantScale(cudaImage, imageSize);
+        runConstantScale(cudaImage, imageSize, aStream);
     }
 }
 

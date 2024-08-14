@@ -26,7 +26,6 @@ namespace {
             auto &dim = (d % 2 == 0) ? dim1 : dim2;
             PixelData<ImageType> input_image = (d/2 == 0) ? getRandInitializedMesh<ImageType>(dim, 13) :
                                                             getMeshWithBlobInMiddle<ImageType>(dim);
-            int maxLevel = ceil(std::log2(input_image.getDimension().maxDimSize()));
 
             // Initialize CPU data structures
             PixelData<ImageType> mCpuImage(input_image, true);
@@ -292,22 +291,28 @@ namespace {
 
         // Generate random mesh of two sizes very small and reasonable large to catch all possible computation errors
         using ImageType = float;
-        constexpr PixelDataDim dim1{3, 8, 8};
-        constexpr PixelDataDim dim2{4, 4 ,3};
+        constexpr PixelDataDim dim1{4, 4, 3};
+        constexpr PixelDataDim dim2{163, 123, 555};
         for (int d = 0; d <= 3; d++) {
             auto &dim = (d % 2 == 0) ? dim1 : dim2;
             PixelData<ImageType> input_image = (d / 2 == 0) ? getRandInitializedMesh<ImageType>(dim, 13) :
                                                               getMeshWithBlobInMiddle<ImageType>(dim);
             int maxLevel = ceil(std::log2(dim.maxDimSize()));
 
-            std::cout << "--------------------------> " << dim << " " << (bool)(d/2 == 0) << std::endl;
-
-            PixelData<ImageType> grad_temp; // should be a down-sampled image
+            // Initialize CPU data structures
+            PixelData<ImageType> mCpuImage(input_image, true);
+            PixelData<ImageType> grad_temp;
             grad_temp.initDownsampled(dim, 0, false);
-            PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
+            PixelData<float> local_scale_temp;
             local_scale_temp.initDownsampled(dim, false);
             PixelData<float> local_scale_temp2;
             local_scale_temp2.initDownsampled(dim, false);
+
+            // Initialize GPU data structures to same values as CPU
+            PixelData<ImageType> mGpuImage(input_image, true);
+            PixelData<ImageType> grad_temp_GPU(grad_temp, true);
+            PixelData<float> local_scale_temp_GPU(local_scale_temp, true);
+            PixelData<float> local_scale_temp2_GPU(local_scale_temp2, true);
 
             // Prepare parameters
             APRParameters par;
@@ -318,31 +323,25 @@ namespace {
             par.dx = 1;
             par.dy = 1;
             par.dz = 1;
+            par.neighborhood_optimization = true;
 
             // Calculate pipeline on CPU
-            PixelData<ImageType> mCpuImage(input_image, true);
             timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
             ComputeGradient().get_gradient(mCpuImage, grad_temp, local_scale_temp, par);
             LocalIntensityScale().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
-//            LocalParticleCellSet().computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
+            LocalParticleCellSet lpcs = LocalParticleCellSet();
+            lpcs.computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
             timer.stop_timer();
 
 
             // Calculate pipeline on GPU
-            PixelData<ImageType> mGpuImage(input_image, true);
-            PixelData<float> local_scale_temp_GPU; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
-            local_scale_temp_GPU.initDownsampled(dim, false);
             timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-
             {
                 GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
                 gpt.doAll();
             }
             timer.stop_timer();
-            if (dim.y < 5 ) {
-                local_scale_temp.printMesh(3, 2);
-                local_scale_temp_GPU.printMesh(3, 2);
-            }
+
             // Compare GPU vs CPU - expect exactly same result
             EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0), 0);
 
