@@ -95,7 +95,7 @@ void fillPS(PullingScheme &aPS, PixelData<DataType> &levels) {
 TEST(PullingSchemeTest, PSvsOVPCCUDA) {
     // Generates random levels in a 3D cube and then compares generated output levels in PS and OVPC
     GenInfo gi;
-    gi.init(255, 257, 199);
+    gi.init(255, 157, 257);
 
     // Generate random levels for PS and OVPC
     PixelData<float> levels(std::ceil(gi.org_dims[0]/2.0),
@@ -113,7 +113,7 @@ TEST(PullingSchemeTest, PSvsOVPCCUDA) {
     PixelData<float> levelsPS(levels, true);
 
     // Initialize all needed objects
-    APRTimer t(false);
+    APRTimer t(true);
 
     t.start_timer("PS - init");
     PullingScheme ps;
@@ -125,18 +125,14 @@ TEST(PullingSchemeTest, PSvsOVPCCUDA) {
     t.stop_timer();
 
     // Run test methods and compare results
-    t.start_timer("OVPCCUDA - init");
-    int levelMax = gi.l_max - 1;
-    int levelMin = gi.l_min;
-    std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(gi);
-    t.stop_timer();
     t.start_timer("OVPCCUDA - compute");
-    computeOvpcCuda(levelsOVPC, pct, levelMin, levelMax);
+    auto pct = computeOvpcCuda(levelsOVPC, gi);
     t.stop_timer();
 
     // -------------- Verify result
     ASSERT_EQ(compareParticleCellTrees(ps.getParticleCellTree(), pct), 0);
 }
+
 
 TEST(PullingSchemeTest, OVPCCUDA_Ydir) {
     // Prepare input data for PS
@@ -157,12 +153,8 @@ TEST(PullingSchemeTest, OVPCCUDA_Ydir) {
     // Initialize all needed objects
     APRTimer t(false);
 
-    t.start_timer("OVPCCUDA - initialize");
-    std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(gi);
-    t.stop_timer();
-
     t.start_timer("OVPCCUDA - compute");
-    computeOvpcCuda(levels, pct, levelMin, levelMax);
+    auto pct = computeOvpcCuda(levels, gi);
     t.stop_timer();
 
     // List of expected types
@@ -199,12 +191,8 @@ TEST(PullingSchemeTest, OVPCCUDA_Xdir) {
     // Initialize all needed objects
     APRTimer t(false);
 
-    t.start_timer("OVPCCUDA - initialize");
-    std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(gi);
-    t.stop_timer();
-
     t.start_timer("OVPCCUDA - compute");
-    computeOvpcCuda(levels, pct, levelMin, levelMax);
+    auto pct = computeOvpcCuda(levels, gi);
     t.stop_timer();
 
     // List of expected types
@@ -241,12 +229,8 @@ TEST(PullingSchemeTest, OVPCCUDA_Zdir) {
     // Initialize all needed objects
     APRTimer t(false);
 
-    t.start_timer("OVPCCUDA - initialize");
-    std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(gi);
-    t.stop_timer();
-
     t.start_timer("OVPCCUDA - compute");
-    computeOvpcCuda(levels, pct, levelMin, levelMax);
+    auto pct = computeOvpcCuda(levels, gi);
     t.stop_timer();
 
     // List of expected types

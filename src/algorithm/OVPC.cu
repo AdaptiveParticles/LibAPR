@@ -107,79 +107,53 @@ void runSecondStep(T *data, T *child, size_t xLen, size_t yLen, size_t zLen, siz
     secondStep<<<numBlocks,threadsPerBlock, 0, aStream>>>(data, child, xLen, yLen, zLen, xLenc, yLenc, zLenc, isLevelMax);
 };
 
-// explicit instantiation of handled types
-template void computeOVPC(const PixelData<float>&, PixelData<TreeElementType>&, int, int);
+class ParticleCellTreeCuda {
+    ScopedCudaMemHandler<uint8_t*, JUST_ALLOC> mem;
+    std::vector<size_t> startOffsets;
+    GenInfo gi;
+    size_t numOfElements = 0;
+    cudaStream_t stream = nullptr;
 
-template <typename T, typename S>
-void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, int levelMax) {
+public:
 
-    // TODO: Depending on implementation of computing particles (next step after OVPC) some port of this method
-    //       might be useful. Leaving it here rigtht now just in case. If not needed in next steps DELETE IT.
+    ParticleCellTreeCuda(const GenInfo &aprInfo, const cudaStream_t aStream) : gi(aprInfo), stream(aStream) {
+        // Calculate size of needed memory for PCT and offsets for particular levels
+        int l_max = aprInfo.l_max - 1;
+        int l_min = aprInfo.l_min;
 
-    ScopedCudaMemHandler<const PixelData<T>, H2D> in(input);
-    ScopedCudaMemHandler<PixelData<S>, D2H> mem(output);
+        startOffsets.resize(l_max + 1, 0);
 
+        for (int l = l_min; l <= l_max; ++l) {
+            auto yLen = ceil(aprInfo.org_dims[0] / PullingScheme::powr(2.0, l_max - l + 1));
+            auto xLen = ceil(aprInfo.org_dims[1] / PullingScheme::powr(2.0, l_max - l + 1));
+            auto zLen = ceil(aprInfo.org_dims[2] / PullingScheme::powr(2.0, l_max - l + 1));
+            size_t levelSize = yLen * xLen * zLen;
+            startOffsets[l] = numOfElements;
+            numOfElements += levelSize;
+        }
 
-    CudaTimer t(true, "OVPCCUDA");
-
-    t.start_timer("wait");
-    waitForCuda();
-    t.stop_timer();
-
-    t.start_timer("ALL");
-    // TODO: This is not needed later - just for having clear debug
-    //cudaMemset(mem.get(), 0, mem.getNumOfBytes());
-
-    // =============== Create pyramid
-    std::vector<S*> levels(levelMax + 1, nullptr);
-    std::vector<size_t> xSize(levelMax + 1);
-    std::vector<size_t> ySize(levelMax + 1);
-    std::vector<size_t> zSize(levelMax + 1);
-
-    int xDS = input.x_num;
-    int yDS = input.y_num;
-    int zDS = input.z_num;
-
-    size_t offset = 0;
-    for (int l = levelMax; l >= levelMin; --l) {
-        levels[l] = reinterpret_cast<TreeElementType *>(mem.get()) + offset;
-        xSize[l] = xDS;
-        ySize[l] = yDS;
-        zSize[l] = zDS;
-
-        offset += xDS * yDS * zDS * sizeof(TreeElementType);
-        // round up to 16-bytes
-        const size_t alignemet = 16;
-        offset = ((offset + alignemet - 1) / alignemet ) * alignemet;
-
-        xDS = ceil(xDS/2.0);
-        yDS = ceil(yDS/2.0);
-        zDS = ceil(zDS/2.0);
+        // Initialize memory, it is not binded to any CPU memory so we provide nullptr
+        mem.initialize(nullptr, numOfElements, stream);
+        cudaMemsetAsync(mem.get(), EMPTY, numOfElements, stream);
     }
 
+    inline uint8_t* operator[](size_t level) { return mem.get() + startOffsets[level]; }
 
-    runCopyAndClampLevels(in.get(), levels[levelMax], in.getSize(), levelMin, levelMax, 0);
+    auto getPCTcpu() {
+        std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(gi);
+        for (int i = gi.l_min; i < gi.l_max; ++i) {
+            checkCuda(cudaMemcpyAsync(pct[i].mesh.get(), (*this)[i], pct[i].mesh.size(), cudaMemcpyDeviceToHost, stream));
+        }
+        checkCuda(cudaStreamSynchronize(stream));
 
-    for (int l = levelMax - 1; l >= levelMin; --l) {
-        runDownsampleMax(levels[l + 1], levels[l], xSize[l + 1], ySize[l + 1], zSize[l + 1], 0);
+        return pct;
     }
+};
 
-
-    // ================== Phase 1 - top to down
-    for (int l = levelMin; l <= levelMax; ++l) {
-        runFirstStep(levels[l], xSize[l], ySize[l], zSize[l], l, 0);
-    }
-    // ================== Phase 1 - down to top
-    for (int l = levelMax - 1; l >= levelMin; --l) {
-        runSecondStep(levels[l], levels[l+1], xSize[l], ySize[l], zSize[l], xSize[l+1], ySize[l+1], zSize[l+1], l == levelMin, 0);
-    }
-    waitForCuda();
-    t.stop_timer();
-}
 
 // explicit instantiation of handled types
-template void computeOvpcCuda(const PixelData<float> &input, std::vector<PixelData<TreeElementType>> &pct, int levelMin, int levelMax);
-template void computeOvpcCuda(const PixelData<int> &input, std::vector<PixelData<TreeElementType>> &pct, int levelMin, int levelMax);
+template std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<float>&, const GenInfo&);
+template std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<int>&, const GenInfo&);
 
 /**
  * CUDA implementation of Pullin Scheme (OVPC - Optimal Valid Particle Cell set).
@@ -191,30 +165,33 @@ template void computeOvpcCuda(const PixelData<int> &input, std::vector<PixelData
  * @param levelMin - min level of APR
  * @param levelMax - max level of APR
  */
-template <typename T, typename S>
-void computeOvpcCuda(const PixelData<T> &input, std::vector<PixelData<S>> &pct, int levelMin, int levelMax) {
+template <typename T>
+std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<T> &input, const GenInfo &gi) {
     // Copy input to CUDA mem and prepare CUDA representation of particle cell tree which will be filled after computing
     // all steps
+
+    ParticleCellTreeCuda pct(gi, 0 /*stream*/);
+    int levelMin = gi.l_min;
+    int levelMax = gi.l_max - 1;
+
     ScopedCudaMemHandler<const PixelData<T>, H2D> in(input);
-    std::vector<ScopedCudaMemHandler<PixelData<S>, D2H>> w;
-    for (int l = 0; l <= levelMax; ++l) {
-        w.push_back(std::move(ScopedCudaMemHandler<PixelData<S>, D2H>(pct[l])));
-    }
 
     // feel the highes level of PCT with provided levels and clamp values to be within [levelMin, levelMax] range
-    runCopyAndClampLevels(in.get(), w[levelMax].get(), in.getSize(), levelMin, levelMax, 0);
+    runCopyAndClampLevels(in.get(), pct[levelMax], in.getSize(), levelMin, levelMax, 0);
 
     // Downsample with max reduction to levelMin to fill the rest of the tree
     for (int l = levelMax - 1; l >= levelMin; --l) {
-        runDownsampleMax(w[l + 1].get(), w[l].get(), pct[l + 1].x_num, pct[l + 1].y_num, pct[l + 1].z_num, 0);
+        runDownsampleMax(pct[l + 1], pct[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], 0);
     }
 
     // ================== Phase 1 - top to down
     for (int l = levelMin; l <= levelMax; ++l) {
-        runFirstStep(w[l].get(), pct[l].x_num, pct[l].y_num, pct[l].z_num, l, 0);
+        runFirstStep(pct[l], gi.x_num[l], gi.y_num[l], gi.z_num[l], l, 0);
     }
     // ================== Phase 1 - down to top
     for (int l = levelMax - 1; l >= levelMin; --l) {
-        runSecondStep(w[l].get(), w[l+1].get(), pct[l].x_num, pct[l].y_num, pct[l].z_num, pct[l + 1].x_num, pct[l + 1].y_num, pct[l + 1].z_num, l == levelMin, 0);
+        runSecondStep(pct[l], pct[l+1], gi.x_num[l], gi.y_num[l], gi.z_num[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], l == levelMin, 0);
     }
+
+    return pct.getPCTcpu();
 }

@@ -7,12 +7,11 @@
 
 
 #include "data_structures/Mesh/PixelData.hpp"
+#include "data_structures/APR/GenInfo.hpp"
 
 using TreeElementType = uint8_t;
 
-template <typename T, typename S>
-void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, int levelMax);
-template <typename T, typename S>
-void computeOvpcCuda(const PixelData<T> &input, std::vector<PixelData<S>> &pct, int levelMin, int levelMax);
+template <typename T>
+std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<T> &input, const GenInfo &gi);
 
 #endif //LIBAPR_PULLINGSCHEMECUDA_HPP

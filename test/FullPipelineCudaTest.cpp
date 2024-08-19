@@ -10,6 +10,7 @@
 #include "TestTools.hpp"
 #include "data_structures/Mesh/PixelDataCuda.h"
 #include "algorithm/APRConverter.hpp"
+#include "misc/CudaTools.cuh"
 
 
 namespace {
@@ -186,16 +187,16 @@ namespace {
             getGradient(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par);
             getLocalIntensityScale(local_scale_temp_GPU, local_scale_temp2_GPU, par);
             computeLevelsCuda(grad_temp_GPU, local_scale_temp_GPU, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
-            int levelMax = aprInfo.l_max - 1;
-            int levelMin = aprInfo.l_min;
-            std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(aprInfo);
-            computeOvpcCuda(local_scale_temp_GPU, pct, levelMin, levelMax);
+            auto pct = computeOvpcCuda(local_scale_temp_GPU, aprInfo);
             timer.stop_timer();
 
             // Compare GPU vs CPU - expect exactly same result
             ASSERT_EQ(compareParticleCellTrees(ps.getParticleCellTree(), pct), 0);
         }
     }
+
+
+
 
     TEST(ComputeThreshold, PIPELINE_TEST_GRADIENT_LIS_LEVELS_PS_LINEARACCESS) {
         APRTimer timer(true);
@@ -263,10 +264,7 @@ namespace {
             getGradient(mGpuImage, grad_temp_GPU, local_scale_temp_GPU, local_scale_temp2_GPU, 0, par);
             getLocalIntensityScale(local_scale_temp_GPU, local_scale_temp2_GPU, par);
             computeLevelsCuda(grad_temp_GPU, local_scale_temp_GPU, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
-            int levelMax = giGpu.l_max - 1;
-            int levelMin = giGpu.l_min;
-            std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(giGpu);
-            computeOvpcCuda(local_scale_temp_GPU, pct, levelMin, levelMax);
+            auto pct = computeOvpcCuda(local_scale_temp_GPU, giGpu);
             auto linearAccessGpu = initializeLinearStructureCuda(giGpu, par, pct);
             timer.stop_timer();
 
