@@ -1,6 +1,7 @@
 #include "LinearAccessCuda.hpp"
 
 #include "misc/CudaTools.cuh"
+#include "algorithm/ParticleCellTreeCuda.cuh"
 
 // CUDA version of GenInfo structure
 typedef struct GenInfoCuda_t {
@@ -90,9 +91,6 @@ public:
     }
 };
 
-typedef ScopedCudaMemHandler<PixelData<uint8_t>, H2D | D2H> ParticleCellTreeLevelCuda;
-typedef std::vector<ParticleCellTreeLevelCuda> ParticleCellTreeCuda;
-
 // *********************************************************************************************************************
 //                       FULL RESOLUTION
 // *********************************************************************************************************************
@@ -134,7 +132,7 @@ __global__ void fullResolution(const uint64_t *level_xz, uint64_t *xz_end, uint1
     }
 }
 
-void runFullResolution(const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y, GenInfo &gi, GenInfoGpuAccess &giga, cudaStream_t aStream) {
+void runFullResolution(const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y, const GenInfo &gi, GenInfoGpuAccess &giga, cudaStream_t aStream) {
     dim3 threadsPerBlock(32, 1, 1);
 
     dim3 numBlocks( (gi.x_num[gi.l_max] + threadsPerBlock.x - 1)/threadsPerBlock.x,
@@ -154,11 +152,10 @@ void runFullResolution(const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y, 
 //                       FIRST STEP
 // *********************************************************************************************************************
 
-constexpr uint8_t UPSAMPLING_SEED_TYPE = 4;
 static constexpr uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
 
 
-__global__ void firstStep(uint8_t *prevLevel, uint8_t *currLevel, int level, uint8_t min_type, GenInfoCuda gic) {
+__global__ void firstStep(const uint8_t *prevLevel, uint8_t *currLevel, int level, uint8_t min_type, GenInfoCuda gic) {
     const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z;
     const uint64_t xLen = gic.x_num[level];
@@ -181,16 +178,16 @@ __global__ void firstStep(uint8_t *prevLevel, uint8_t *currLevel, int level, uin
     }
 }
 
-void runFirstStep(GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, cudaStream_t aStream) {
+void runFirstStep(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, cudaStream_t aStream) {
     dim3 threadsPerBlock(32, 1, 1);
 
     for (int level = gi.l_min + 1; level < gi.l_max; ++level) {
         dim3 numBlocks( (gi.x_num[level] + threadsPerBlock.x - 1)/threadsPerBlock.x,
                         1,
                         (gi.z_num[level] + threadsPerBlock.z - 1)/threadsPerBlock.z);
-        auto &p_mapPrev = p_map[level - 1];
-        auto &p_mapCurr = p_map[level];
-        firstStep<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapPrev.get(), p_mapCurr.get(), level, min_type, giga.getGenInfoCuda());
+        auto *p_mapPrev = p_map[level - 1];
+        auto *p_mapCurr = p_map[level];
+        firstStep<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapPrev, p_mapCurr, level, min_type, giga.getGenInfoCuda());
     }
 
     cudaError_t err = cudaGetLastError();
@@ -232,15 +229,15 @@ __global__ void secondStep(const uint8_t *currLevel, int level, uint8_t min_type
     }
 }
 
-void runSecondStep(GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, cudaStream_t aStream) {
+void runSecondStep(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, cudaStream_t aStream) {
     dim3 threadsPerBlock(32, 1, 1);
 
     for (int level = gi.l_min; level < gi.l_max - 1; ++level) {
         dim3 numBlocks( (gi.x_num[level] + threadsPerBlock.x - 1)/threadsPerBlock.x,
                         1,
                         (gi.z_num[level] + threadsPerBlock.z - 1)/threadsPerBlock.z);
-        auto &p_mapCurr = p_map[level];
-        secondStep<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr.get(), level, min_type, giga.getGenInfoCuda(), level_xz, xz_end);
+        auto *p_mapCurr = p_map[level];
+        secondStep<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr, level, min_type, giga.getGenInfoCuda(), level_xz, xz_end);
     }
 
     cudaError_t err = cudaGetLastError();
@@ -323,15 +320,15 @@ __global__ void secondStepCountParticles(GenInfoCuda gic, const uint64_t *level_
     *gic.total_number_particles = xz_end[counter_total -1];
 }
 
-void runSecondStepLastLevel(GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, uint64_t counter_total, cudaStream_t aStream) {
+void runSecondStepLastLevel(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, uint64_t counter_total, cudaStream_t aStream) {
     dim3 threadsPerBlock(32, 1, 1);
     dim3 numBlocks( (gi.x_num[gi.l_max - 1] + threadsPerBlock.x - 1)/threadsPerBlock.x,
                     1,
                     (gi.z_num[gi.l_max - 1] + threadsPerBlock.z - 1)/threadsPerBlock.z);
 
     int level = gi.l_max - 1;
-    auto &p_mapCurr = p_map[level];
-    secondStepLastLevel<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr.get(), level, min_type, giga.getGenInfoCuda(), level_xz, xz_end);
+    auto *p_mapCurr = p_map[level];
+    secondStepLastLevel<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr, level, min_type, giga.getGenInfoCuda(), level_xz, xz_end);
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -381,15 +378,15 @@ __global__ void getYvalues(const uint8_t *currLevel, int level, uint8_t min_type
     }
 }
 
-void runGetYvalues(GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y_vec, cudaStream_t aStream) {
+void runGetYvalues(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y_vec, cudaStream_t aStream) {
     dim3 threadsPerBlock(32, 1, 1);
 
     for (int level = gi.l_min; level < gi.l_max - 1; ++level) {
         dim3 numBlocks( (gi.x_num[level] + threadsPerBlock.x - 1)/threadsPerBlock.x,
                         1,
                         (gi.z_num[level] + threadsPerBlock.z - 1)/threadsPerBlock.z);
-        auto &p_mapCurr = p_map[level];
-        getYvalues<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr.get(), level, min_type, giga.getGenInfoCuda(), level_xz, xz_end, y_vec);
+        auto *p_mapCurr = p_map[level];
+        getYvalues<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr, level, min_type, giga.getGenInfoCuda(), level_xz, xz_end, y_vec);
     }
 
     cudaError_t err = cudaGetLastError();
@@ -482,15 +479,15 @@ __global__ void fourthStepLastLevel(GenInfoCuda gic, const uint64_t *level_xz, u
     }
 }
 
-void runFourthStep(GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y_vec, uint64_t counter_total, cudaStream_t aStream) {
+void runFourthStep(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y_vec, uint64_t counter_total, cudaStream_t aStream) {
     dim3 threadsPerBlock(32, 1, 1);
     dim3 numBlocks( (gi.x_num[gi.l_max] + threadsPerBlock.x - 1)/threadsPerBlock.x,
                     1,
                     (gi.z_num[gi.l_max] + threadsPerBlock.z - 1)/threadsPerBlock.z);
 
     int level = gi.l_max - 1;
-    auto &p_mapCurr = p_map[level];
-    fourthStep<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr.get(), level, min_type, giga.getGenInfoCuda(), level_xz, xz_end, y_vec);
+    auto *p_mapCurr = p_map[level];
+    fourthStep<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapCurr, level, min_type, giga.getGenInfoCuda(), level_xz, xz_end, y_vec);
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -524,13 +521,14 @@ void runFourthStep(GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_
  *  In current shape it is a good function for testing implementation rather than using it in production code.
  *  Production code should use parts of it and work on pre-allocated memory - probably in GpuProcessingTask.
  */
-LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct) {
+LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct) {
+
+    cudaStream_t aStream = nullptr;
+
     // Copy input to CUDA mem and prepare CUDA representation of particle cell tree which will be filled after computing
     // all steps
-    ParticleCellTreeCuda p_map;
-     for (auto &p : pct) {
-        p_map.emplace_back(std::move(ParticleCellTreeLevelCuda(p)));
-    }
+    ParticleCellTreeCuda p_map (gi, aStream);
+    p_map.uploadPCT2GPU(pct);
 
     uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
 
@@ -560,7 +558,7 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, APRParameters
     size_t maxYvecSize = gi.x_num[gi.l_max] * gi.y_num[gi.l_max] * gi.z_num[gi.l_max];
     y_vec.resize(maxYvecSize);
 
-    cudaStream_t aStream = nullptr;
+
     {
         ScopedCudaMemHandler<uint16_t *, D2H> y_vec_cuda(y_vec.data(), y_vec.size());
         ScopedCudaMemHandler<uint64_t *, D2H> xz_end_vec_cuda(xz_end_vec.data(), xz_end_vec.size());
@@ -582,6 +580,8 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, APRParameters
     //       full size is more than enough? (for example in case of computing particles for multiple frames with same resolution
     //       we can get different size of particles for each frame - with preallocated buffer we can do all of them on it).
     y_vec.resize(gi.total_number_particles);
+
+    p_map.downloadPCTfromGPU(pct);
 
 
     LinearAccessCudaStructs lac;

@@ -58,7 +58,14 @@ public:
         return pct;
     }
 
-    void uploadPCT2GPU(std::vector<PixelData<uint8_t>> pct) {
+    void downloadPCTfromGPU(std::vector<PixelData<uint8_t>> &pct) {
+        for (int i = gi.l_min; i < gi.l_max; ++i) {
+            checkCuda(cudaMemcpyAsync(pct[i].mesh.get(), (*this)[i], pct[i].mesh.size(), cudaMemcpyDeviceToHost, stream));
+        }
+        checkCuda(cudaStreamSynchronize(stream));
+    }
+
+    void uploadPCT2GPU(const std::vector<PixelData<uint8_t>> &pct) {
         for (int i = gi.l_min; i < gi.l_max; ++i) {
             checkCuda(cudaMemcpyAsync((*this)[i], pct[i].mesh.get(), pct[i].mesh.size(), cudaMemcpyHostToDevice, stream));
         }

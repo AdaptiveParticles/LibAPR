@@ -11,7 +11,7 @@ typedef struct {
     VectorData<uint64_t> level_xz_vec;
 } LinearAccessCudaStructs;
 
-LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
+LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
 
 
 #endif //APR_LINEARACCESSCUDA_HPP
