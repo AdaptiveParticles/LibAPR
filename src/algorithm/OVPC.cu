@@ -5,6 +5,7 @@
 #include "misc/CudaTools.cuh"
 #include "data_structures/Mesh/downsample.cuh"
 #include "algorithm/OVPC.h"
+#include "algorithm/ParticleCellTreeCuda.cuh"
 
 
 template <typename T, typename S>
@@ -105,49 +106,6 @@ void runSecondStep(T *data, T *child, size_t xLen, size_t yLen, size_t zLen, siz
                    (yLen + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (zLen + threadsPerBlock.z - 1) / threadsPerBlock.z);
     secondStep<<<numBlocks,threadsPerBlock, 0, aStream>>>(data, child, xLen, yLen, zLen, xLenc, yLenc, zLenc, isLevelMax);
-};
-
-class ParticleCellTreeCuda {
-    ScopedCudaMemHandler<uint8_t*, JUST_ALLOC> mem;
-    std::vector<size_t> startOffsets;
-    GenInfo gi;
-    size_t numOfElements = 0;
-    cudaStream_t stream = nullptr;
-
-public:
-
-    ParticleCellTreeCuda(const GenInfo &aprInfo, const cudaStream_t aStream) : gi(aprInfo), stream(aStream) {
-        // Calculate size of needed memory for PCT and offsets for particular levels
-        int l_max = aprInfo.l_max - 1;
-        int l_min = aprInfo.l_min;
-
-        startOffsets.resize(l_max + 1, 0);
-
-        for (int l = l_min; l <= l_max; ++l) {
-            auto yLen = ceil(aprInfo.org_dims[0] / PullingScheme::powr(2.0, l_max - l + 1));
-            auto xLen = ceil(aprInfo.org_dims[1] / PullingScheme::powr(2.0, l_max - l + 1));
-            auto zLen = ceil(aprInfo.org_dims[2] / PullingScheme::powr(2.0, l_max - l + 1));
-            size_t levelSize = yLen * xLen * zLen;
-            startOffsets[l] = numOfElements;
-            numOfElements += levelSize;
-        }
-
-        // Initialize memory, it is not binded to any CPU memory so we provide nullptr
-        mem.initialize(nullptr, numOfElements, stream);
-        cudaMemsetAsync(mem.get(), EMPTY, numOfElements, stream);
-    }
-
-    inline uint8_t* operator[](size_t level) { return mem.get() + startOffsets[level]; }
-
-    auto getPCTcpu() {
-        std::vector<PixelData<uint8_t>> pct = PullingScheme::generateParticleCellTree(gi);
-        for (int i = gi.l_min; i < gi.l_max; ++i) {
-            checkCuda(cudaMemcpyAsync(pct[i].mesh.get(), (*this)[i], pct[i].mesh.size(), cudaMemcpyDeviceToHost, stream));
-        }
-        checkCuda(cudaStreamSynchronize(stream));
-
-        return pct;
-    }
 };
 
 
