@@ -158,39 +158,40 @@ template std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<int>&, 
 /**
  * CUDA implementation of Pullin Scheme (OVPC - Optimal Valid Particle Cell set).
  * @tparam T - type of input levels
- * @tparam S - type of output Particle Cell Tree
  * @param input - input levels computed in earlier stages
- * @param pct - Particle Cell Tree - as input is used for dimensions of each level, will be filled with computed
- *              Pulling Scheme as a output
- * @param levelMin - min level of APR
- * @param levelMax - max level of APR
+ * @param gi - GenInfo for given APR
+ *
+ * @return - PCT for CPU (copied from GPU)
  */
 template <typename T>
 std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<T> &input, const GenInfo &gi) {
     // Copy input to CUDA mem and prepare CUDA representation of particle cell tree which will be filled after computing
     // all steps
 
-    ParticleCellTreeCuda pct(gi, 0 /*stream*/);
+    cudaStream_t stream = nullptr;
+
+    ScopedCudaMemHandler<const PixelData<T>, H2D> in(input, stream);
+
+    ParticleCellTreeCuda pct(gi, stream);
     int levelMin = gi.l_min;
     int levelMax = gi.l_max - 1;
 
-    ScopedCudaMemHandler<const PixelData<T>, H2D> in(input);
 
     // feel the highes level of PCT with provided levels and clamp values to be within [levelMin, levelMax] range
-    runCopyAndClampLevels(in.get(), pct[levelMax], in.getSize(), levelMin, levelMax, 0);
+    runCopyAndClampLevels(in.get(), pct[levelMax], in.getSize(), levelMin, levelMax, stream);
 
-    // Downsample with max reduction to levelMin to fill the rest of the tree
+    // Downsample with max reduction to levelMin to fill rest of the tree
     for (int l = levelMax - 1; l >= levelMin; --l) {
-        runDownsampleMax(pct[l + 1], pct[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], 0);
+        runDownsampleMax(pct[l + 1], pct[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], stream);
     }
 
     // ================== Phase 1 - top to down
     for (int l = levelMin; l <= levelMax; ++l) {
-        runFirstStep(pct[l], gi.x_num[l], gi.y_num[l], gi.z_num[l], l, 0);
+        runFirstStep(pct[l], gi.x_num[l], gi.y_num[l], gi.z_num[l], l, stream);
     }
     // ================== Phase 1 - down to top
     for (int l = levelMax - 1; l >= levelMin; --l) {
-        runSecondStep(pct[l], pct[l+1], gi.x_num[l], gi.y_num[l], gi.z_num[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], l == levelMin, 0);
+        runSecondStep(pct[l], pct[l+1], gi.x_num[l], gi.y_num[l], gi.z_num[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], l == levelMin, stream);
     }
 
     return pct.getPCTcpu();
