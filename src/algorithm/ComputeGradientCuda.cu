@@ -351,13 +351,6 @@ LinearAccessCudaStructs GpuProcessingTask<ImgType>::getDataFromGpu() {return imp
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}
 
-template <typename ImgType>
-void GpuProcessingTask<ImgType>::doAll() {
-    sendDataToGpu();
-    processOnGpu();
-    getDataFromGpu();
-}
-
 // explicit instantiation of handled types
 template class GpuProcessingTask<uint16_t>;
 template class GpuProcessingTask<float>;

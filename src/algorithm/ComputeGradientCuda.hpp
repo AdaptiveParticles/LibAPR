@@ -49,7 +49,6 @@ public:
     void sendDataToGpu();
     LinearAccessCudaStructs getDataFromGpu();
     void processOnGpu();
-    void doAll();
 };
 
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP
