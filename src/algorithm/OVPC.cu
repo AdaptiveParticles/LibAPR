@@ -182,6 +182,4 @@ void computeOvpcCuda(ImgType *in, ParticleCellTreeCuda &pct, const GenInfo &gi, 
     for (int l = levelMax - 1; l >= levelMin; --l) {
         runSecondStep(pct[l], pct[l+1], gi.x_num[l], gi.y_num[l], gi.z_num[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], l == levelMin, stream);
     }
-
-    std::cout << "------- RUN --------------\n";
 }

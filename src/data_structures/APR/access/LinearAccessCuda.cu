@@ -627,10 +627,6 @@ void computeLinearStructureCuda(uint16_t *y_vec_cuda, ParticleCellTreeCuda &p_ma
         }
     }
 
-//        auto prt = [&](const auto& v){ std::cout << "size=" << v.size() << " data="; for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << ", "; std::cout << std::endl; };
-//    prt(y_vec);
-//    prt(xz_end_vec);
-//    prt(level_xz_vec);
     VectorData<uint16_t> y_vec(true);
     y_vec.resize(gi.total_number_particles);
     checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda, gi.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, aStream));

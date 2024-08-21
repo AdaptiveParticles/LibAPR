@@ -247,6 +247,9 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
 public:
 
+    // TODO: Remove need for passing 'levels' to GpuProcessingTask
+    //       It was used during development to control internal computation like filters, gradient, levels etc. but
+    //       once all is done there is no need for it anymore
     GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel) :
         iCpuImage(inputImage),
         iCpuLevels(levels),
@@ -272,16 +275,16 @@ public:
         y_vec(nullptr, iAprInfo.getSize(), iStream)
     {
 //        std::cout << "\n=============== GpuProcessingTaskImpl ===================\n\n";
-        std::cout << iCpuImage << std::endl;
-        std::cout << iCpuLevels << std::endl;
+//        std::cout << iCpuImage << std::endl;
+//        std::cout << iCpuLevels << std::endl;
     }
 
     void sendDataToGpu() {
-        CurrentTime ct;
-        uint64_t start = ct.microseconds();
+//        CurrentTime ct;
+//        uint64_t start = ct.microseconds();
         image.copyH2D();
-        checkCuda(cudaStreamSynchronize(iStream));
-        std::cout << "SEND time: " << ct.microseconds() - start << std::endl;
+//        checkCuda(cudaStreamSynchronize(iStream));
+//        std::cout << "SEND time: " << ct.microseconds() - start << std::endl;
     }
 
     LinearAccessCudaStructs getDataFromGpu() {
@@ -313,18 +316,14 @@ public:
         getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
                          splineCudaX, splineCudaY, splineCudaZ, boundary.get(),
                         iBsplineOffset, iParameters, iStream);
-        std::cout << "1: " << ct.microseconds() - start << std::endl;
         runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), iStream);
-        std::cout << "2: " << ct.microseconds() - start << std::endl;
         float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
         float level_factor = pow(2, iMaxLevel) * min_dim;
         const float mult_const = level_factor/iParameters.rel_error;
         runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
-        std::cout << "3: " << ct.microseconds() - start << std::endl;
 
         computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
         computeLinearStructureCuda(y_vec.get(), pctc, iAprInfo, iParameters, lacs, iStream);
-        std::cout << iAprInfo << std::endl;
     }
 
     ~GpuProcessingTaskImpl() {
@@ -335,10 +334,10 @@ public:
 
 template <typename ImgType>
 GpuProcessingTask<ImgType>::GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel)
-: impl{new GpuProcessingTaskImpl<ImgType>(image, levels, parameters, bspline_offset, maxLevel)} {std::cout << "GpuProcessingTask\n";}
+: impl{new GpuProcessingTaskImpl<ImgType>(image, levels, parameters, bspline_offset, maxLevel)} { }
 
 template <typename ImgType>
-GpuProcessingTask<ImgType>::~GpuProcessingTask() {std::cout << "~GpuProcessingTask\n";}
+GpuProcessingTask<ImgType>::~GpuProcessingTask() { }
 
 template <typename ImgType>
 GpuProcessingTask<ImgType>::GpuProcessingTask(GpuProcessingTask&&) = default;

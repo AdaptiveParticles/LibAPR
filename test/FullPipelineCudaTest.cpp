@@ -310,9 +310,7 @@ namespace {
 
             // Initialize GPU data structures to same values as CPU
             PixelData<ImageType> mGpuImage(input_image, true);
-            PixelData<ImageType> grad_temp_GPU(grad_temp, true);
-            PixelData<float> local_scale_temp_GPU(local_scale_temp, true);
-            PixelData<float> local_scale_temp2_GPU(local_scale_temp2, true);
+            PixelData<float> local_scale_temp_GPU(local_scale_temp, false);
 
             // Prepare parameters
             APRParameters par;
@@ -346,14 +344,16 @@ namespace {
 
 
             // Calculate pipeline on GPU
-            timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-    //        {
             GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
+            cudaDeviceSynchronize();
+
+            timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
+            //        {
             gpt.sendDataToGpu();
             gpt.processOnGpu();
             auto linearAccessGpu = gpt.getDataFromGpu();
             giGpu.total_number_particles = linearAccessGpu.y_vec.size();
-
+            cudaDeviceSynchronize();
     //        }
             timer.stop_timer();
 
