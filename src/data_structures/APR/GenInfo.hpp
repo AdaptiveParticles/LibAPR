@@ -37,6 +37,8 @@ public:
     GenInfo() {}
     GenInfo(const PixelDataDim &dim) { init(dim); }
 
+    size_t getSize() const { return (size_t)y_num[l_max] * x_num[l_max] * z_num[l_max]; }
+
     //initialize the information given the original dimensions
     void init(const PixelDataDim &dim) {
         init(dim.y, dim.x, dim.z);
@@ -119,6 +121,7 @@ public:
     friend std::ostream & operator<<(std::ostream &os, const GenInfo &gi) {
         os << "GenInfo {\n";
         os << "    Original dimensions(y/x/z): [" << gi.org_dims[0] << ", " << gi.org_dims[1] << ", " << gi.org_dims[2] << "]\n";
+        os << "    Original size: " << gi.getSize() << "\n";
         os << "    Number of dimensions: " << static_cast<int>(gi.number_dimensions) << "\n";
         os << "    l_min, l_max: {" << gi.l_min << " - " << gi.l_max << "}\n";
         os << "    total number of particles: " << gi.total_number_particles << "\n";

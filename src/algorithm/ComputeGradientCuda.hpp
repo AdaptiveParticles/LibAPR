@@ -7,7 +7,7 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/APRParameters.hpp"
-
+#include "data_structures/APR/access/LinearAccessCuda.hpp"
 
 // Test helpers and definitions
 using TypeOfRecBsplineFlags = uint16_t;
@@ -47,7 +47,7 @@ public:
     GpuProcessingTask(GpuProcessingTask&&);
 
     void sendDataToGpu();
-    void getDataFromGpu();
+    LinearAccessCudaStructs getDataFromGpu();
     void processOnGpu();
     void doAll();
 };

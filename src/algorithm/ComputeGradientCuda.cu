@@ -15,6 +15,7 @@
 #include "misc/CudaMemory.cuh"
 #include "algorithm/ParticleCellTreeCuda.cuh"
 #include "algorithm/PullingSchemeCuda.hpp"
+#include "data_structures/APR/access/LinearAccessCuda.hpp"
 
 #include "dsGradient.cuh"
 #include "invBspline.cuh"
@@ -232,6 +233,9 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
     ParticleCellTreeCuda pctc;
 
+    ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> y_vec; // for LinearAccess
+    LinearAccessCudaStructs lacs;
+
     /**
      * @return newly created stream
      */
@@ -264,7 +268,8 @@ public:
         bc4(params.bc4.get(), params.k0, iStream),
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)inputImage.x_num * (size_t)inputImage.z_num},
         boundary{nullptr, boundaryLen, iStream},
-        pctc(iAprInfo, iStream)
+        pctc(iAprInfo, iStream),
+        y_vec(nullptr, iAprInfo.getSize(), iStream)
     {
 //        std::cout << "\n=============== GpuProcessingTaskImpl ===================\n\n";
         std::cout << iCpuImage << std::endl;
@@ -279,12 +284,13 @@ public:
         std::cout << "SEND time: " << ct.microseconds() - start << std::endl;
     }
 
-    void getDataFromGpu() {
-        CurrentTime ct;
-        uint64_t start = ct.microseconds();
-        local_scale_temp.copyD2H();
-        checkCuda(cudaStreamSynchronize(iStream));
-        std::cout << "RCV time: " << ct.microseconds() - start << std::endl;
+    LinearAccessCudaStructs getDataFromGpu() {
+//        CurrentTime ct;
+//        uint64_t start = ct.microseconds();
+//        local_scale_temp.copyD2H();
+//        checkCuda(cudaStreamSynchronize(iStream));
+//        std::cout << "RCV time: " << ct.microseconds() - start << std::endl;
+        return std::move(lacs);
     }
 
     void processOnGpu() {
@@ -317,6 +323,8 @@ public:
         std::cout << "3: " << ct.microseconds() - start << std::endl;
 
         computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
+        computeLinearStructureCuda(y_vec.get(), pctc, iAprInfo, iParameters, lacs, iStream);
+        std::cout << iAprInfo << std::endl;
     }
 
     ~GpuProcessingTaskImpl() {
@@ -339,7 +347,7 @@ template <typename ImgType>
 void GpuProcessingTask<ImgType>::sendDataToGpu() {impl->sendDataToGpu();}
 
 template <typename ImgType>
-void GpuProcessingTask<ImgType>::getDataFromGpu() {impl->getDataFromGpu();}
+LinearAccessCudaStructs GpuProcessingTask<ImgType>::getDataFromGpu() {return impl->getDataFromGpu();}
 
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}

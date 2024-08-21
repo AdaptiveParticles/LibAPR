@@ -592,3 +592,51 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRPara
 
     return lac;
 }
+
+void computeLinearStructureCuda(uint16_t *y_vec_cuda, ParticleCellTreeCuda &p_map, GenInfo &gi, const APRParameters &apr_parameters, LinearAccessCudaStructs &lacs, cudaStream_t aStream) {
+
+    uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
+
+    VectorData<uint64_t> xz_end_vec(true);
+    VectorData<uint64_t> level_xz_vec(true);
+
+    // initialize_xz_linear() - CPU impl.
+    uint64_t counter_total = 1; //the buffer val to allow -1 calls without checking.
+    level_xz_vec.resize(gi.l_max + 2, 0); //includes a buffer for -1 calls, and therefore needs to be called with level + 1;
+    level_xz_vec[0] = 1; //allowing for the offset.
+    for (int i = 0; i <= gi.l_max; ++i) {
+        counter_total += gi.x_num[i] * gi.z_num[i];
+        level_xz_vec[i + 1] = counter_total;
+    }
+    xz_end_vec.resize(counter_total, 0);
+
+
+    {
+        ScopedCudaMemHandler<uint64_t *, D2H> xz_end_vec_cuda(xz_end_vec.data(), xz_end_vec.size());
+        ScopedCudaMemHandler<uint64_t *, H2D | D2H> level_xz_vec_cuda(level_xz_vec.data(), level_xz_vec.size());
+        GenInfoGpuAccess giga(gi, aStream);
+        if (gi.l_max <= 2) {
+            runFullResolution(level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda, gi, giga, aStream);
+        }
+        else {
+            runFirstStep(gi, giga, p_map, min_type, aStream);
+            runSecondStep(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), aStream);
+            runSecondStepLastLevel(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), counter_total, aStream);
+            runGetYvalues(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda, aStream);
+            runFourthStep(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda, counter_total, aStream);
+        }
+    }
+
+//        auto prt = [&](const auto& v){ std::cout << "size=" << v.size() << " data="; for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << ", "; std::cout << std::endl; };
+//    prt(y_vec);
+//    prt(xz_end_vec);
+//    prt(level_xz_vec);
+    VectorData<uint16_t> y_vec(true);
+    y_vec.resize(gi.total_number_particles);
+    checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda, gi.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, aStream));
+    checkCuda(cudaStreamSynchronize(aStream));
+
+    lacs.y_vec.swap(y_vec);
+    lacs.xz_end_vec.swap(xz_end_vec);
+    lacs.level_xz_vec.swap(level_xz_vec);
+}

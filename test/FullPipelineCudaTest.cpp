@@ -277,7 +277,7 @@ namespace {
         }
     }
 
-    TEST(ComputeThreshold, PIPELINE_TEST_GRADIENT_LIS_LEVELS_GpuProcessingTask) {
+    TEST(ComputeThreshold, FULL_PIPELINE_TEST_CPU_vs_GpuProcessingTask) {
         APRTimer timer(true);
 
         // TODO: This tets fails if dim of input image is smaller than ~8 (not sure in which direction yet)
@@ -288,11 +288,15 @@ namespace {
         // Generate random mesh of two sizes very small and reasonable large to catch all possible computation errors
         using ImageType = float;
         constexpr PixelDataDim dim1{4, 4, 3};
-        constexpr PixelDataDim dim2{163, 123, 555};
+        constexpr PixelDataDim dim2{1024,512,512};
         for (int d = 0; d <= 3; d++) {
             auto &dim = (d % 2 == 0) ? dim1 : dim2;
             PixelData<ImageType> input_image = (d / 2 == 0) ? getRandInitializedMesh<ImageType>(dim, 13) :
-                                                              getMeshWithBlobInMiddle<ImageType>(dim);
+                                               getMeshWithBlobInMiddle<ImageType>(dim);
+
+//            constexpr PixelDataDim dim = dim1;
+//            PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(dim, 13);
+
             int maxLevel = ceil(std::log2(dim.maxDimSize()));
 
             // Initialize CPU data structures
@@ -321,31 +325,51 @@ namespace {
             par.dz = 1;
             par.neighborhood_optimization = true;
 
+            GenInfo aprInfo(input_image.getDimension());
+            GenInfo giGpu(input_image.getDimension());
+
+            // Calculate pipeline on CPU
             // Calculate pipeline on CPU
             timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
             ComputeGradient().get_gradient(mCpuImage, grad_temp, local_scale_temp, par);
             LocalIntensityScale().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
             LocalParticleCellSet lpcs = LocalParticleCellSet();
             lpcs.computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
+            PullingScheme ps;
+            ps.initialize_particle_cell_tree(aprInfo);
+            lpcs.get_local_particle_cell_set(ps, local_scale_temp, local_scale_temp2, par);
+            ps.pulling_scheme_main();
+            LinearAccess linearAccess;
+            linearAccess.genInfo = &aprInfo;
+            linearAccess.initialize_linear_structure(par, ps.getParticleCellTree());
             timer.stop_timer();
 
 
             // Calculate pipeline on GPU
             timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-            {
-                GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
-                gpt.doAll();
-            }
+    //        {
+            GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
+            gpt.sendDataToGpu();
+            gpt.processOnGpu();
+            auto linearAccessGpu = gpt.getDataFromGpu();
+            giGpu.total_number_particles = linearAccessGpu.y_vec.size();
+
+    //        }
             timer.stop_timer();
 
             // Compare GPU vs CPU - expect exactly same result
-            EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0), 0);
+            EXPECT_EQ(compareParticles(linearAccessGpu.y_vec, linearAccess.y_vec), 0);
+            EXPECT_EQ(compareParticles(linearAccessGpu.level_xz_vec, linearAccess.level_xz_vec), 0);
+            EXPECT_EQ(compareParticles(linearAccessGpu.xz_end_vec, linearAccess.xz_end_vec), 0);
+
+            EXPECT_EQ(aprInfo.total_number_particles, giGpu.total_number_particles);
+            EXPECT_EQ(linearAccessGpu.y_vec.size(), linearAccess.y_vec.size());
 
         }
     }
+
 #endif // APR_USE_CUDA
 }
-
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
