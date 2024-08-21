@@ -4,7 +4,7 @@
 
 #include "data_structures/APR/GenInfo.hpp"
 #include "algorithm/PullingScheme.hpp"
-
+#include "misc/CudaTools.cuh"
 
 /*
  * CUDA representation of PCT (Particle Cell Tree)

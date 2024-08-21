@@ -34,6 +34,9 @@ public:
 
     std::vector<int> level_size; // precomputation of the size of each level, used by the iterators.
 
+    GenInfo() {}
+    GenInfo(const PixelDataDim &dim) { init(dim); }
+
     //initialize the information given the original dimensions
     void init(const PixelDataDim &dim) {
         init(dim.y, dim.x, dim.z);

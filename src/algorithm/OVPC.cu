@@ -154,3 +154,34 @@ std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<T> &input, const
 
     return pct.getPCTcpu();
 }
+
+// explicit instantiation of handled types
+template void computeOvpcCuda(float *in, ParticleCellTreeCuda &pct, const GenInfo &gi, cudaStream_t stream);
+template void computeOvpcCuda(int *in, ParticleCellTreeCuda &pct, const GenInfo &gi, cudaStream_t stream);
+
+
+template <typename ImgType>
+void computeOvpcCuda(ImgType *in, ParticleCellTreeCuda &pct, const GenInfo &gi, cudaStream_t stream) {
+    int levelMin = gi.l_min;
+    int levelMax = gi.l_max - 1;
+
+
+    // feel the highes level of PCT with provided levels and clamp values to be within [levelMin, levelMax] range
+    runCopyAndClampLevels(in, pct[levelMax], gi.y_num[levelMax]*gi.x_num[levelMax]*gi.z_num[levelMax], levelMin, levelMax, stream);
+
+    // Downsample with max reduction to levelMin to fill rest of the tree
+    for (int l = levelMax - 1; l >= levelMin; --l) {
+        runDownsampleMax(pct[l + 1], pct[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], stream);
+    }
+
+    // ================== Phase 1 - top to down
+    for (int l = levelMin; l <= levelMax; ++l) {
+        runFirstStep(pct[l], gi.x_num[l], gi.y_num[l], gi.z_num[l], l, stream);
+    }
+    // ================== Phase 1 - down to top
+    for (int l = levelMax - 1; l >= levelMin; --l) {
+        runSecondStep(pct[l], pct[l+1], gi.x_num[l], gi.y_num[l], gi.z_num[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], l == levelMin, stream);
+    }
+
+    std::cout << "------- RUN --------------\n";
+}

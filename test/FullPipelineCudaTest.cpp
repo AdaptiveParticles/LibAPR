@@ -238,10 +238,8 @@ namespace {
             par.dz = 1;
             par.neighborhood_optimization = true;
 
-            GenInfo aprInfo;
-            aprInfo.init(input_image.getDimension());
-            GenInfo giGpu;
-            giGpu.init(input_image.getDimension());
+            GenInfo aprInfo(input_image.getDimension());
+            GenInfo giGpu(input_image.getDimension());
 
             // Calculate pipeline on CPU
             timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");

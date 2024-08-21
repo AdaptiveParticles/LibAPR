@@ -506,7 +506,7 @@ void runFourthStep(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCu
 
 
 // *********************************************************************************************************************
-//   MAIN FUNC TO CALL - implements logic of  inearAccess::initialize_linear_structure CPU func.
+//   MAIN FUNC TO CALL - implements logic of  LinearAccess::initialize_linear_structure CPU func.
 // *********************************************************************************************************************
 
 
@@ -581,6 +581,7 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRPara
     //       we can get different size of particles for each frame - with preallocated buffer we can do all of them on it).
     y_vec.resize(gi.total_number_particles);
 
+    // Transfer changes to PCT from GPU to CPU (this is needed only for tests)
     p_map.downloadPCTfromGPU(pct);
 
 

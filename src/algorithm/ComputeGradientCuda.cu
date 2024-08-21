@@ -13,6 +13,8 @@
 #include "algorithm/LocalIntensityScale.cuh"
 #include "misc/CudaTools.cuh"
 #include "misc/CudaMemory.cuh"
+#include "algorithm/ParticleCellTreeCuda.cuh"
+#include "algorithm/PullingSchemeCuda.hpp"
 
 #include "dsGradient.cuh"
 #include "invBspline.cuh"
@@ -207,6 +209,7 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     const PixelData<ImgType> &iCpuImage;
     PixelData<float> &iCpuLevels;
     const APRParameters &iParameters;
+    GenInfo iAprInfo;
     float iBsplineOffset;
     int iMaxLevel;
 
@@ -226,6 +229,8 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     ScopedCudaMemHandler<float*, H2D> bc4;
     const size_t boundaryLen;
     ScopedCudaMemHandler<float*, JUST_ALLOC> boundary;
+
+    ParticleCellTreeCuda pctc;
 
     /**
      * @return newly created stream
@@ -247,6 +252,7 @@ public:
         local_scale_temp (levels, iStream),
         local_scale_temp2 (levels, iStream),
         iParameters(parameters),
+        iAprInfo(iCpuImage.getDimension()),
         iBsplineOffset(bspline_offset),
         iMaxLevel(maxLevel),
         // TODO: This is wrong and done only for compile. BsplineParams has to be computed seperately for each dimension.
@@ -257,7 +263,8 @@ public:
         bc3(params.bc3.get(), params.k0, iStream),
         bc4(params.bc4.get(), params.k0, iStream),
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)inputImage.x_num * (size_t)inputImage.z_num},
-        boundary{nullptr, boundaryLen, iStream}
+        boundary{nullptr, boundaryLen, iStream},
+        pctc(iAprInfo, iStream)
     {
 //        std::cout << "\n=============== GpuProcessingTaskImpl ===================\n\n";
         std::cout << iCpuImage << std::endl;
@@ -308,6 +315,8 @@ public:
         const float mult_const = level_factor/iParameters.rel_error;
         runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
         std::cout << "3: " << ct.microseconds() - start << std::endl;
+
+        computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
     }
 
     ~GpuProcessingTaskImpl() {
