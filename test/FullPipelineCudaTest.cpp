@@ -294,9 +294,6 @@ namespace {
             PixelData<ImageType> input_image = (d / 2 == 0) ? getRandInitializedMesh<ImageType>(dim, 13) :
                                                getMeshWithBlobInMiddle<ImageType>(dim);
 
-//            constexpr PixelDataDim dim = dim1;
-//            PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(dim, 13);
-
             int maxLevel = ceil(std::log2(dim.maxDimSize()));
 
             // Initialize CPU data structures
@@ -327,7 +324,6 @@ namespace {
             GenInfo giGpu(input_image.getDimension());
 
             // Calculate pipeline on CPU
-            // Calculate pipeline on CPU
             timer.start_timer(">>>>>>>>>>>>>>>>> CPU PIPELINE");
             ComputeGradient().get_gradient(mCpuImage, grad_temp, local_scale_temp, par);
             LocalIntensityScale().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
@@ -344,17 +340,13 @@ namespace {
 
 
             // Calculate pipeline on GPU
-            GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
-            cudaDeviceSynchronize();
-
             timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-            //        {
+            GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
             gpt.sendDataToGpu();
             gpt.processOnGpu();
             auto linearAccessGpu = gpt.getDataFromGpu();
             giGpu.total_number_particles = linearAccessGpu.y_vec.size();
             cudaDeviceSynchronize();
-    //        }
             timer.stop_timer();
 
             // Compare GPU vs CPU - expect exactly same result
