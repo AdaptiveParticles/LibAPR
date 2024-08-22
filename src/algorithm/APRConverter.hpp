@@ -117,7 +117,7 @@ protected:
     PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
     PixelData<float> local_scale_temp2;
 
-    void applyParameters(APR& aAPR,APRParameters& aprParameters);
+    void applyParameters(APRParameters& aprParameters);
 
     template<typename T>
     void computeL(APR& aAPR,PixelData<T>& input_image);
@@ -184,7 +184,7 @@ void APRConverter<ImageType>::get_apr_custom_grad_scale(APR& aAPR,PixelData<Imag
     }
 
     aAPR.parameters = par;
-    applyParameters(aAPR,par);
+    applyParameters(par);
     solveForAPR(aAPR);
     generateDatastructures(aAPR);
 
@@ -251,7 +251,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
 }
 
 template<typename ImageType>
-void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParameters) {
+void APRConverter<ImageType>::applyParameters(APRParameters& aprParameters) {
     //
     //  Apply the main parameters
     //
@@ -265,39 +265,7 @@ void APRConverter<ImageType>::applyParameters(APR& aAPR,APRParameters& aprParame
     }
     fine_grained_timer.stop_timer();
 
-    fine_grained_timer.start_timer("threshold");
-    iComputeGradient.threshold_gradient(grad_temp,local_scale_temp2,aprParameters.Ip_th + bspline_offset);
-    fine_grained_timer.stop_timer();
-
-    float max_th = 60000;
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
-    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
-
-        float rescaled = local_scale_temp.mesh[i];
-        if (rescaled < aprParameters.sigma_th) {
-            rescaled = (rescaled < aprParameters.sigma_th_max) ? max_th : par.sigma_th;
-            local_scale_temp.mesh[i] = rescaled;
-        }
-    }
-
-#ifdef HAVE_LIBTIFF
-    if(par.output_steps) {
-        TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_rescaled.tif", local_scale_temp);
-    }
-#endif
-
-#ifdef HAVE_OPENMP
-#pragma omp parallel for default(shared)
-#endif
-    for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
-
-        if(grad_temp.mesh[i] < aprParameters.grad_th){
-            grad_temp.mesh[i] = 0;
-        }
-    }
+    iComputeGradient.applyParameters(grad_temp, local_scale_temp, local_scale_temp2, aprParameters, bspline_offset);
 }
 
 
@@ -405,7 +373,7 @@ inline bool APRConverter<ImageType>::get_lrf(APR &aAPR, PixelData<T>& input_imag
 template<typename ImageType>
 inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
 
-    applyParameters(aAPR,par);
+    applyParameters(par);
     aAPR.parameters = par;
 
     solveForAPR(aAPR);
@@ -426,104 +394,45 @@ inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
  */
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input_image) {
-    if (!initPipelineAPR(aAPR, input_image)) return false;
 
+    if (!initPipelineAPR(aAPR, input_image)) return false;
 
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
-    method_timer.start_timer("compute_gradient_magnitude_using_bsplines and local instensity scale CUDA");
-    APRTimer t(true);
-    APRTimer d(true);
-    t.start_timer(" =========== ALL");
-    {
+    computation_timer.start_timer("init_mem");
+    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
-        computation_timer.start_timer("init_mem");
-        PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    /////////////////////////////////
+    /// Pipeline
+    ////////////////////////
+    // offset image by factor (this is required if there are zero areas in the background with
+    // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+    // Warning both of these could result in over-flow!
 
-        /////////////////////////////////
-        /// Pipeline
-        ////////////////////////
-        // offset image by factor (this is required if there are zero areas in the background with
-        // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-        // Warning both of these could result in over-flow!
-
-        if (std::is_same<uint16_t, ImageType>::value) {
-            bspline_offset = 100;
-            image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-        } else if (std::is_same<uint8_t, ImageType>::value) {
-            bspline_offset = 5;
-            image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-        } else {
-            image_temp.copyFromMesh(input_image);
-        }
-
-        computation_timer.stop_timer();
-
-        std::vector<GpuProcessingTask<ImageType>> gpts;
-
-        int numOfStreams = 1;
-        int repetitionsPerStream = 1;
-
-        computation_timer.start_timer("compute_L");
-        // Create streams and send initial task to do
-        for (int i = 0; i < numOfStreams; ++i) {
-            gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
-            gpts.back().sendDataToGpu();
-            gpts.back().processOnGpu();
-        }
-        computation_timer.stop_timer();
-
-
-        for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
-            int c = i % numOfStreams;
-
-            computation_timer.start_timer("apply_parameters");
-            // get data from previous task
-            gpts[c].getDataFromGpu();
-
-            computation_timer.stop_timer();
-
-            // in theory we get new data and send them to task
-            if (i  < numOfStreams * (repetitionsPerStream - 1)) {
-                gpts[c].sendDataToGpu();
-                gpts[c].processOnGpu();
-            }
-
-            // Postprocess on CPU
-            std::cout << "--------- start CPU processing ---------- " << i << std::endl;
-
-            computation_timer.start_timer("solve_for_apr");
-            iPullingScheme.initialize_particle_cell_tree(aAPR.aprInfo);
-
-            PixelData<float> lst(local_scale_temp, true);
-
-#ifdef HAVE_LIBTIFF
-            if (par.output_steps){
-                TiffUtils::saveMeshAsTiff(par.output_dir + "local_intensity_scale_step.tif", lst);
-            }
-#endif
-
-#ifdef HAVE_LIBTIFF
-            if (par.output_steps){
-                TiffUtils::saveMeshAsTiff(par.output_dir + "gradient_step.tif", grad_temp);
-            }
-#endif
-
-            iLocalParticleSet.get_local_particle_cell_set(iPullingScheme,lst, local_scale_temp2,par);
-
-            iPullingScheme.pulling_scheme_main();
-
-            computation_timer.stop_timer();
-
-            computation_timer.start_timer("generate_data_structures");
-            generateDatastructures(aAPR);
-            computation_timer.stop_timer();
-        }
-        std::cout << "Total n ENDED" << std::endl;
-
+    if (std::is_same<uint16_t, ImageType>::value) {
+        bspline_offset = 100;
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+    } else if (std::is_same<uint8_t, ImageType>::value) {
+        bspline_offset = 5;
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+    } else {
+        image_temp.copyFromMesh(input_image);
     }
-    t.stop_timer();
-    method_timer.stop_timer();
+
+    GpuProcessingTask<ImageType> gpt(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max());
+    gpt.sendDataToGpu();
+    gpt.processOnGpu();
+    auto linearAccessGpu = gpt.getDataFromGpu();
+
+    aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
+
+    // generateDatastructures(aAPR) for linearAcceess for CUDA
+    aAPR.linearAccess.y_vec.copy(linearAccessGpu.y_vec);
+    aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
+    aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
+    aAPR.apr_initialized = true;
+
+    std::cout << "CUDA pipeline finished!\n";
 
     return true;
 }
@@ -565,7 +474,7 @@ inline bool APRConverter<ImageType>::get_apr_cpu(APR &aAPR, PixelData<T> &input_
         method_timer.stop_timer();
     }
 
-    applyParameters(aAPR,par);
+    applyParameters(par);
 
     computation_timer.stop_timer();
 
@@ -597,7 +506,7 @@ template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_image) {
 // TODO: CUDA pipeline is temporarily turned off and CPU version is always chosen.
 //       After revising a CUDA pipeline remove "#if true // " part.
-#if true // #ifndef APR_USE_CUDA
+#ifndef APR_USE_CUDA
     return get_apr_cpu(aAPR, input_image);
 #else
     return get_apr_cuda(aAPR, input_image);

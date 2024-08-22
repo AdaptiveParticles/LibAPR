@@ -57,6 +57,7 @@ namespace {
     }
 
     BsplineParams prepareBsplineStuff(size_t dimLen, float lambda, float tol, int maxFilterLen = -1) {
+
         // Recursive Filter Implimentation for Smoothing BSplines
         // B-Spline Signal Processing: Part II - Efficient Design and Applications, Unser 1993
 
@@ -79,8 +80,8 @@ namespace {
 
         const float norm_factor = powf((1 - 2.0 * rho * cosf(omg) + powf(rho, 2)), 2);
   
-        //std::cout << std::fixed << std::setprecision(9) << "GPU: xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1
-        //          << " b2=" << b2 << " k0=" << k0 << " minLen=" << minLen << " norm_factor=" << norm_factor << std::endl;
+//        std::cout << std::fixed << std::setprecision(9) << "GPU: xi=" << xi << " rho=" << rho << " omg=" << omg << " gamma=" << gamma << " b1=" << b1
+//                  << " b2=" << b2 << " k0=" << k0 << " minLen=" << minLen << " norm_factor=" << norm_factor << " lambda=" << lambda << " tol=" << tol << std::endl;
 
         // ------- Calculating boundary conditions
 
@@ -169,18 +170,18 @@ void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_sc
 
     // TODO: Used PixelDataDim in all methods below and change input parameter from image to imageDim
 
-    runBsplineYdir(cudaImage, image.getDimension(), py, boundary, aStream);
-    runBsplineXdir(cudaImage, image.getDimension(), px, aStream);
-    runBsplineZdir(cudaImage, image.getDimension(), pz, aStream);
+    if (image.y_num > 2) runBsplineYdir(cudaImage, image.getDimension(), py, boundary, aStream);
+    if (image.x_num > 2) runBsplineXdir(cudaImage, image.getDimension(), px, aStream);
+    if (image.z_num > 2) runBsplineZdir(cudaImage, image.getDimension(), pz, aStream);
 
 
     runKernelGradient(cudaImage, cudaGrad, image.getDimension(), local_scale_temp.getDimension(), par.dx, par.dy, par.dz, aStream);
 
     runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
 
-    runInvBsplineYdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
-    runInvBsplineXdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
-    runInvBsplineZdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    if (image.y_num > 2) runInvBsplineYdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    if (image.x_num > 2) runInvBsplineXdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    if (image.z_num > 2) runInvBsplineZdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
 }
 
 class CurrentTime {
@@ -200,6 +201,49 @@ public:
                 (m_clock.now().time_since_epoch()).count();
     }
 };
+
+
+/**
+ * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.
+ * @param input
+ * @param output
+ * @param length - len of input/output arrays
+ * @param thresholdLevel
+ */
+template <typename T, typename S>
+__global__ void threshold(const T *input, S *output, size_t length, float thresholdLevel) {
+    size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx < length) {
+        if (input[idx] <= thresholdLevel) { output[idx] = 0; }
+    }
+}
+
+template <typename ImgType, typename T>
+void runThreshold(ImgType *cudaImage, T *cudaGrad, size_t x_num, size_t y_num, size_t z_num, float Ip_th, cudaStream_t aStream) {
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((x_num * y_num * z_num + threadsPerBlock.x - 1)/threadsPerBlock.x);
+    threshold<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, cudaGrad, x_num * y_num * z_num, Ip_th);
+};
+
+template<typename T>
+__global__ void rescaleAndThreshold(T *data, size_t len, float sigmaThreshold, float sigmaThresholdMax) {
+    const float max_th = 60000.0;
+    size_t idx = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < len) {
+        float rescaled = data[idx];
+        if (rescaled < sigmaThreshold) {
+            rescaled = (rescaled < sigmaThresholdMax) ? max_th : sigmaThreshold;
+        }
+        data[idx] = rescaled;
+    }
+}
+
+template <typename T>
+void runRescaleAndThreshold(T *data, size_t len, float sigma, float sigmaMax, cudaStream_t aStream) {
+    dim3 threadsPerBlock(64);
+    dim3 numBlocks((len + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    rescaleAndThreshold <<< numBlocks, threadsPerBlock, 0, aStream >>> (data, len, sigma, sigmaMax);
+}
 
 
 template <typename U>
@@ -264,11 +308,11 @@ public:
         iMaxLevel(maxLevel),
         // TODO: This is wrong and done only for compile. BsplineParams has to be computed seperately for each dimension.
         //       Should be fixed when other parts of pipeline are ready.
-        params(prepareBsplineStuff((size_t)inputImage.x_num, parameters.lambda, tolerance)),
-        bc1(params.bc1.get(), params.k0, iStream),
-        bc2(params.bc2.get(), params.k0, iStream),
-        bc3(params.bc3.get(), params.k0, iStream),
-        bc4(params.bc4.get(), params.k0, iStream),
+//        params(prepareBsplineStuff((size_t)inputImage.x_num, parameters.lambda, tolerance)),
+//        bc1(params.bc1.get(), params.k0, iStream),
+//        bc2(params.bc2.get(), params.k0, iStream),
+//        bc3(params.bc3.get(), params.k0, iStream),
+//        bc4(params.bc4.get(), params.k0, iStream),
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)inputImage.x_num * (size_t)inputImage.z_num},
         boundary{nullptr, boundaryLen, iStream},
         pctc(iAprInfo, iStream),
@@ -317,6 +361,13 @@ public:
                          splineCudaX, splineCudaY, splineCudaZ, boundary.get(),
                         iBsplineOffset, iParameters, iStream);
         runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), iStream);
+
+        // Apply parameters from APRConverter:
+        runThreshold(local_scale_temp2.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.Ip_th + iBsplineOffset, iStream);
+        runRescaleAndThreshold(local_scale_temp.get(), iCpuLevels.mesh.size(), iParameters.sigma_th, iParameters.sigma_th_max, iStream);
+        runThreshold(gradient.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.grad_th, iStream);
+        // TODO: automatic parameters are not implemented for GPU pipeline (yet)
+
         float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
         float level_factor = pow(2, iMaxLevel) * min_dim;
         const float mult_const = level_factor/iParameters.rel_error;

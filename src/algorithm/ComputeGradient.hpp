@@ -38,6 +38,35 @@ public:
     template<typename T>
     void calc_inv_bspline_z(PixelData<T> &input);
 
+    template<typename T>
+    void applyParameters(PixelData<T> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, APRParameters &aprParameters, float bspline_offset) {
+        threshold_gradient(grad_temp,local_scale_temp2,aprParameters.Ip_th + bspline_offset);
+
+        float max_th = 60000;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+        for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+            float rescaled = local_scale_temp.mesh[i];
+            if (rescaled < aprParameters.sigma_th) {
+                rescaled = (rescaled < aprParameters.sigma_th_max) ? max_th : aprParameters.sigma_th;
+                local_scale_temp.mesh[i] = rescaled;
+            }
+        }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared)
+#endif
+        for (size_t i = 0; i < grad_temp.mesh.size(); ++i) {
+
+            if(grad_temp.mesh[i] < aprParameters.grad_th){
+                grad_temp.mesh[i] = 0;
+            }
+        }
+    }
+
     struct three_temps {
         float temp_1, temp_2, temp_3;
     };

@@ -280,11 +280,6 @@ namespace {
     TEST(ComputeThreshold, FULL_PIPELINE_TEST_CPU_vs_GpuProcessingTask) {
         APRTimer timer(true);
 
-        // TODO: This tets fails if dim of input image is smaller than ~8 (not sure in which direction yet)
-        //       It fails for {4,4,3} for sure and surprisingly only for mesh with blob inside...
-        //       Investigate why it fails while it works nicely in tests above (difference must be somewhere in GpuProcessingTask).
-
-
         // Generate random mesh of two sizes very small and reasonable large to catch all possible computation errors
         using ImageType = float;
         constexpr PixelDataDim dim1{4, 4, 3};
@@ -320,6 +315,8 @@ namespace {
             par.dz = 1;
             par.neighborhood_optimization = true;
 
+            float bspline_offset = 0;
+
             GenInfo aprInfo(input_image.getDimension());
             GenInfo giGpu(input_image.getDimension());
 
@@ -328,6 +325,7 @@ namespace {
             ComputeGradient().get_gradient(mCpuImage, grad_temp, local_scale_temp, par);
             LocalIntensityScale().get_local_intensity_scale(local_scale_temp, local_scale_temp2, par);
             LocalParticleCellSet lpcs = LocalParticleCellSet();
+            ComputeGradient().applyParameters(grad_temp, local_scale_temp, local_scale_temp2, par, bspline_offset);
             lpcs.computeLevels(grad_temp, local_scale_temp, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
             PullingScheme ps;
             ps.initialize_particle_cell_tree(aprInfo);
@@ -341,7 +339,7 @@ namespace {
 
             // Calculate pipeline on GPU
             timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-            GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, 0, maxLevel);
+            GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, bspline_offset, maxLevel);
             gpt.sendDataToGpu();
             gpt.processOnGpu();
             auto linearAccessGpu = gpt.getDataFromGpu();
