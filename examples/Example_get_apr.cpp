@@ -44,89 +44,148 @@ Advanced (Direct) Settings:
 #include "algorithm/APRConverter.hpp"
 
 
-int runAPR(cmdLineOptions options) {
-    //the apr datastructure
+int runAPR(cmdLineOptions options, int num_iterations = 1) {
     APR apr;
+    APR apr_cpu;
+    APRConverter<uint16_t> aprConverter;
 
-    APRConverter<float> aprConverter;
-
-    //read in the command line options into the parameters file
+    // Set parameters from options
     aprConverter.par.Ip_th = options.Ip_th;
     aprConverter.par.rel_error = options.rel_error;
     aprConverter.par.lambda = options.lambda;
     aprConverter.par.mask_file = options.mask_file;
     aprConverter.par.sigma_th = options.sigma_th;
-    aprConverter.par.auto_parameters = options.auto_parameters;
+    aprConverter.par.auto_parameters = true;
     aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
     aprConverter.par.output_steps = options.output_steps;
     aprConverter.par.grad_th = options.grad_th;
 
-    //where things are
     aprConverter.par.input_image_name = options.input;
     aprConverter.par.input_dir = options.directory;
     aprConverter.par.name = options.output;
     aprConverter.par.output_dir = options.output_dir;
 
+    // Set timer flags
     aprConverter.fine_grained_timer.verbose_flag = false;
-    aprConverter.method_timer.verbose_flag = false;
-    aprConverter.computation_timer.verbose_flag = false;
+    aprConverter.method_timer.verbose_flag = true;
+    aprConverter.computation_timer.verbose_flag = true;
     aprConverter.allocation_timer.verbose_flag = false;
     aprConverter.total_timer.verbose_flag = true;
 
+    APRTimer timer;
+    timer.verbose_flag = true;
+
+    // Read input
+    timer.start_timer("Read Input");
     PixelData<uint16_t> input_img = TiffUtils::getMesh<uint16_t>(options.directory + options.input);
+    timer.stop_timer();
 
-    //Gets the APR
-    if(aprConverter.get_apr(apr, input_img)){
+    // Calculate data size in MB using base-1000
+    double data_size_mb = (2.0 * input_img.x_num * input_img.y_num * input_img.z_num) / (1000.0 * 1000.0 * 1000);
 
-        ParticleData<uint16_t> particle_intensities;
-        particle_intensities.sample_image(apr, input_img); // sample your particles from your image
-        //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
+    // Initial CPU run
+    timer.start_timer("GET APR CPU");
+    aprConverter.get_apr_cpu(apr_cpu, input_img);
+    double cpu_time = timer.stop_timer();
+    double cpu_rate = data_size_mb / (cpu_time / 1000.0);
 
-        //output
-        std::string save_loc = options.output_dir;
-        std::string file_name = options.output;
+    // Vectors for benchmark statistics
+    std::vector<double> cuda_alloc_times;
+    std::vector<double> cuda_compute_times;
+    cuda_alloc_times.reserve(num_iterations);
+    cuda_compute_times.reserve(num_iterations);
 
-        APRTimer timer;
+    aprConverter.par = apr_cpu.parameters;
 
-        timer.verbose_flag = true;
+    // Benchmarking loop
+    for(int i = 0; i < num_iterations; i++) {
+        
+        // aprConverterLoop = APRConverter<uint16_t>();
+        timer.start_timer("GET APR CUDA");
+        aprConverter.get_apr_cuda(apr, input_img);
+        cuda_alloc_times.push_back(timer.stop_timer());
 
-        std::cout << std::endl;
-        float original_pixel_image_size = (2.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/1000000.0f;
-        std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
-
-        timer.start_timer("writing output");
-
-        std::cout << "Writing the APR to hdf5..." << std::endl;
-
-        //write the APR to hdf5 file
-        APRFile aprFile;
-
-        aprFile.open(save_loc + file_name + ".apr");
-
-        aprFile.write_apr(apr, 0, "t", options.store_tree);
-        aprFile.write_particles("particles",particle_intensities);
-
-        float apr_file_size = aprFile.current_file_size_MB();
-
-        timer.stop_timer();
-
-        float computational_ratio = (1.0f* apr.org_dims(0)* apr.org_dims(1)* apr.org_dims(2))/(1.0f*apr.total_number_particles());
-
-        std::cout << std::endl;
-        std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
-        std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
-        std::cout << std::endl;
-
-        if(aprConverter.par.output_steps){
-            particle_intensities.fill_with_levels(apr);
-            PixelData<uint16_t> level_img;
-            APRReconstruction::reconstruct_constant(apr,level_img,particle_intensities);
-            TiffUtils::saveMeshAsTiff(options.output_dir + "level_image.tif",level_img);
-        }
-
-    } else {
-        std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
+        timer.start_timer("GET APR CUDA NO ALLOC");
+        aprConverter.get_apr_cuda(apr_cpu, input_img);
+        cuda_compute_times.push_back(timer.stop_timer());
     }
+
+    // Statistics calculation
+    auto compute_stats = [&data_size_mb](const std::vector<double>& times) {
+        double mean_time = std::accumulate(times.begin(), times.end(), 0.0) / times.size();
+        double mean_rate = data_size_mb / (mean_time / 1000.0);
+        
+        std::vector<double> sorted_times = times;
+        std::sort(sorted_times.begin(), sorted_times.end());
+        double median_time = sorted_times[sorted_times.size()/2];
+        double median_rate = data_size_mb / (median_time / 1000.0);
+        
+        double min_time = *std::min_element(times.begin(), times.end());
+        double max_time = *std::max_element(times.begin(), times.end());
+        double min_rate = data_size_mb / (max_time / 1000.0);
+        double max_rate = data_size_mb / (min_time / 1000.0);
+
+        return std::make_tuple(mean_rate, median_rate, min_rate, max_rate);
+    };
+
+    auto [mean_alloc_rate, median_alloc_rate, min_alloc_rate, max_alloc_rate] = 
+        compute_stats(cuda_alloc_times);
+    auto [mean_compute_rate, median_compute_rate, min_compute_rate, max_compute_rate] = 
+        compute_stats(cuda_compute_times);
+
+    // Print performance metrics
+    std::cout << "\nPerformance Metrics:" << std::endl;
+    std::cout << std::fixed << std::setprecision(2);
+    std::cout << "Data size: " << data_size_mb << " MB" << std::endl;
+    std::cout << "CPU Processing Rate: " << cpu_rate << " MB/s" << std::endl;
+    
+    std::cout << "\nCUDA with allocation (MB/s):" << std::endl;
+    std::cout << "  Mean: " << mean_alloc_rate << std::endl;
+    std::cout << "  Median: " << median_alloc_rate << std::endl;
+    std::cout << "  Min: " << min_alloc_rate << std::endl;
+    std::cout << "  Max: " << max_alloc_rate << std::endl;
+    
+    std::cout << "\nCUDA computation only (MB/s):" << std::endl;
+    std::cout << "  Mean: " << mean_compute_rate << std::endl;
+    std::cout << "  Median: " << median_compute_rate << std::endl;
+    std::cout << "  Min: " << min_compute_rate << std::endl;
+    std::cout << "  Max: " << max_compute_rate << std::endl;
+
+    // Sample intensities and save output
+    timer.start_timer("SAMPLE_INTENSITIES");
+    ParticleData<uint16_t> particle_intensities;
+    particle_intensities.sample_image(apr, input_img);
+    timer.stop_timer();
+
+    std::string save_loc = options.output_dir;
+    std::string file_name = options.output;
+
+    float original_pixel_image_size = (2.0f * apr.org_dims(0) * apr.org_dims(1) * apr.org_dims(2))/1000000.0f;
+    std::cout << "\nOriginal image size: " << original_pixel_image_size << " MB" << std::endl;
+
+    timer.start_timer("writing output");
+    std::cout << "Writing the APR to hdf5..." << std::endl;
+
+    APRFile aprFile;
+    aprFile.open(save_loc + file_name + ".apr");
+    aprFile.write_apr(apr, 0, "t", options.store_tree);
+    aprFile.write_particles("particles", particle_intensities);
+
+    float apr_file_size = aprFile.current_file_size_MB();
+    timer.stop_timer();
+
+    float computational_ratio = (1.0f * apr.org_dims(0) * apr.org_dims(1) * apr.org_dims(2))/(1.0f * apr.total_number_particles());
+
+    std::cout << "\nComputational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
+    std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
+
+    if(aprConverter.par.output_steps) {
+        particle_intensities.fill_with_levels(apr);
+        PixelData<uint16_t> level_img;
+        APRReconstruction::reconstruct_constant(apr, level_img, particle_intensities);
+        TiffUtils::saveMeshAsTiff(options.output_dir + "level_image.tif", level_img);
+    }
+
     return 0;
 }
 

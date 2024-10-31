@@ -401,7 +401,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
 
     computation_timer.start_timer("init_mem");
     PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
-
+    computation_timer.stop_timer();
     /////////////////////////////////
     /// Pipeline
     ////////////////////////
@@ -409,6 +409,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
     // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow!
 
+    computation_timer.start_timer("offset");
     if (std::is_same<uint16_t, ImageType>::value) {
         bspline_offset = 100;
         image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
@@ -418,12 +419,27 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
     } else {
         image_temp.copyFromMesh(input_image);
     }
+    computation_timer.stop_timer();
 
+
+    computation_timer.start_timer("gpt");
     GpuProcessingTask<ImageType> gpt(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max());
+    computation_timer.stop_timer();
+    
+    computation_timer.start_timer("send");
     gpt.sendDataToGpu();
-    gpt.processOnGpu();
-    auto linearAccessGpu = gpt.getDataFromGpu();
+    computation_timer.stop_timer();
 
+    computation_timer.start_timer("process");
+    gpt.processOnGpu();
+    computation_timer.stop_timer();
+
+    computation_timer.start_timer("get");
+    auto linearAccessGpu = gpt.getDataFromGpu();
+    computation_timer.stop_timer();
+
+
+    computation_timer.start_timer("copy");
     aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
 
     // generateDatastructures(aAPR) for linearAcceess for CUDA
@@ -431,6 +447,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
     aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
     aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
     aAPR.apr_initialized = true;
+    computation_timer.stop_timer();
 
     std::cout << "CUDA pipeline finished!\n";
 
