@@ -44,7 +44,7 @@ Advanced (Direct) Settings:
 #include "algorithm/APRConverter.hpp"
 
 
-int runAPR(cmdLineOptions options, int num_iterations = 1) {
+int runAPR(cmdLineOptions options, int num_iterations = 30) {
     APR apr;
     APR apr_cpu;
     APRConverter<uint16_t> aprConverter;
@@ -97,16 +97,18 @@ int runAPR(cmdLineOptions options, int num_iterations = 1) {
 
     aprConverter.par = apr_cpu.parameters;
 
+    timer.start_timer("GET APR CUDA ALLOC");
+    aprConverter.get_apr_cuda(apr, input_img);
+    timer.stop_timer();
+
     // Benchmarking loop
     for(int i = 0; i < num_iterations; i++) {
         
         // aprConverterLoop = APRConverter<uint16_t>();
-        timer.start_timer("GET APR CUDA");
-        aprConverter.get_apr_cuda(apr, input_img);
-        cuda_alloc_times.push_back(timer.stop_timer());
-
         timer.start_timer("GET APR CUDA NO ALLOC");
-        aprConverter.get_apr_cuda(apr_cpu, input_img);
+        aprConverter.get_apr_cuda(apr, input_img);
+        ParticleData<uint16_t> particle_intensities;
+        particle_intensities.sample_image(apr, input_img);
         cuda_compute_times.push_back(timer.stop_timer());
     }
 
@@ -127,9 +129,6 @@ int runAPR(cmdLineOptions options, int num_iterations = 1) {
 
         return std::make_tuple(mean_rate, median_rate, min_rate, max_rate);
     };
-
-    auto [mean_alloc_rate, median_alloc_rate, min_alloc_rate, max_alloc_rate] = 
-        compute_stats(cuda_alloc_times);
     auto [mean_compute_rate, median_compute_rate, min_compute_rate, max_compute_rate] = 
         compute_stats(cuda_compute_times);
 
@@ -138,12 +137,7 @@ int runAPR(cmdLineOptions options, int num_iterations = 1) {
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "Data size: " << data_size_mb << " MB" << std::endl;
     std::cout << "CPU Processing Rate: " << cpu_rate << " MB/s" << std::endl;
-    
-    std::cout << "\nCUDA with allocation (MB/s):" << std::endl;
-    std::cout << "  Mean: " << mean_alloc_rate << std::endl;
-    std::cout << "  Median: " << median_alloc_rate << std::endl;
-    std::cout << "  Min: " << min_alloc_rate << std::endl;
-    std::cout << "  Max: " << max_alloc_rate << std::endl;
+
     
     std::cout << "\nCUDA computation only (MB/s):" << std::endl;
     std::cout << "  Mean: " << mean_compute_rate << std::endl;

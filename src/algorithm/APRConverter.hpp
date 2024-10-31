@@ -117,6 +117,8 @@ protected:
     PixelData<float> local_scale_temp; // Used as down-sampled images for some averaging steps where it is useful to not lose precision, or get over-flow errors
     PixelData<float> local_scale_temp2;
 
+    PixelData<ImageType> image_temp;
+
     void applyParameters(APRParameters& aprParameters);
 
     template<typename T>
@@ -205,6 +207,7 @@ void APRConverter<ImageType>::computeL(APR& aAPR,PixelData<T>& input_image){
     //assuming uint16, the total memory cost shoudl be approximately (1 + 1 + 1/8 + 2/8 + 2/8) = 2 5/8 original image size in u16bit
     //storage of the particle cell tree for computing the pulling scheme
     allocation_timer.start_timer("init and copy image");
+    
     PixelData<ImageType> image_temp(input_image, false /* don't copy */, false /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
 
     allocation_timer.stop_timer();
@@ -397,10 +400,12 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
 
     if (!initPipelineAPR(aAPR, input_image)) return false;
 
+    computation_timer.start_timer("init_mem");
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
-    computation_timer.start_timer("init_mem");
-    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    if (image_temp.size() ==0){
+        image_temp.init(input_image.y_num, input_image.x_num, input_image.z_num, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    }
     computation_timer.stop_timer();
     /////////////////////////////////
     /// Pipeline
