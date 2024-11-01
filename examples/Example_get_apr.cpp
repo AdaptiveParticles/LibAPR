@@ -48,18 +48,23 @@ int runAPR(cmdLineOptions options) {
     //the apr datastructure
     APR apr;
 
-    APRConverter<float> aprConverter;
+    APRConverter<uint16_t> aprConverter;
 
     //read in the command line options into the parameters file
-    aprConverter.par.Ip_th = options.Ip_th;
-    aprConverter.par.rel_error = options.rel_error;
-    aprConverter.par.lambda = options.lambda;
+        //read in the command line options into the parameters file
+    aprConverter.par.Ip_th = 10.0;
+    aprConverter.par.rel_error = 0.1;
+    aprConverter.par.lambda = 3.0;
     aprConverter.par.mask_file = options.mask_file;
-    aprConverter.par.sigma_th = options.sigma_th;
-    aprConverter.par.auto_parameters = options.auto_parameters;
+    aprConverter.par.sigma_th = 23.0;
+    aprConverter.par.auto_parameters = false;
     aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
-    aprConverter.par.output_steps = options.output_steps;
-    aprConverter.par.grad_th = options.grad_th;
+    aprConverter.par.output_steps = false;
+    aprConverter.par.grad_th = 3.0;
+
+    std::cout << "IP Threshold: " << aprConverter.par.Ip_th << std::endl;
+    std::cout << "Relative Error: " << aprConverter.par.rel_error << std::endl;
+    std::cout << "Lambda: " << aprConverter.par.lambda << std::endl;
 
     //where things are
     aprConverter.par.input_image_name = options.input;
@@ -68,8 +73,8 @@ int runAPR(cmdLineOptions options) {
     aprConverter.par.output_dir = options.output_dir;
 
     aprConverter.fine_grained_timer.verbose_flag = false;
-    aprConverter.method_timer.verbose_flag = false;
-    aprConverter.computation_timer.verbose_flag = false;
+    aprConverter.method_timer.verbose_flag = true;
+    aprConverter.computation_timer.verbose_flag = true;
     aprConverter.allocation_timer.verbose_flag = false;
     aprConverter.total_timer.verbose_flag = true;
 
@@ -81,6 +86,8 @@ int runAPR(cmdLineOptions options) {
         ParticleData<uint16_t> particle_intensities;
         particle_intensities.sample_image(apr, input_img); // sample your particles from your image
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
+
+        std::cout << "Total number particles: " << apr.total_number_particles() << std::endl;
 
         //output
         std::string save_loc = options.output_dir;

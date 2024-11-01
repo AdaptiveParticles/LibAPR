@@ -73,7 +73,8 @@ inline void ComputeGradient::get_gradient(PixelData<ImageType> &image_temp, Pixe
     //  Calculate the gradient from the input image. (You could replace this method with your own)
     //  Input: full sized image.
     //  Output: down-sampled by 2 gradient magnitude (Note, the gradient is calculated at pixel level then maximum down sampled within the loops below)
-
+    timer.verbose_flag = true;
+    
     timer.start_timer("smooth_bspline");
     if(par.lambda > 0) {
         get_smooth_bspline_3D(image_temp, par.lambda);
@@ -178,7 +179,7 @@ void ComputeGradient::get_smooth_bspline_3D(PixelData<T>& input, float lambda) {
     //
 
     APRTimer spline_timer;
-    spline_timer.verbose_flag = false;
+    spline_timer.verbose_flag = true;
 
     float tol = 0.0001;
 
@@ -224,7 +225,7 @@ inline float ComputeGradient::impulse_resp_back(float k,float rho,float omg,floa
  */
 template<typename T>
 std::enable_if_t<std::is_floating_point<T>::value, T>
-round(float val, size_t &errCount) {
+round(float val, const size_t &errCount) {
     return val;
 }
 
@@ -233,13 +234,13 @@ round(float val, size_t &errCount) {
  */
 template<typename T>
 std::enable_if_t<!std::is_floating_point<T>::value, T>
-round(float val, size_t &errCount) {
+round(float val, const size_t &errCount) {
 
     val = std::round(val);
 
-    if(val < std::numeric_limits<T>::min() || val > std::numeric_limits<T>::max()) {
-        errCount++;
-    }
+    // if(val < std::numeric_limits<T>::min() || val > std::numeric_limits<T>::max()) {
+    //     errCount++;
+    // }
     return val;
 }
 
@@ -332,12 +333,12 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
     APRTimer btime;
     btime.verbose_flag = false;
 
-    size_t error_count = 0;     // count overflow errors
+    const size_t error_count = 0;     // count overflow errors
 
     //forwards direction
     btime.start_timer("forward_loop_y");
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) reduction(+: error_count)
+	#pragma omp parallel for default(shared)
     #endif
     for (size_t z = 0; z < z_num; ++z) {
         const size_t jxnumynum = z * x_num * y_num;
@@ -383,7 +384,7 @@ void ComputeGradient::bspline_filt_rec_y(PixelData<T>& image,float lambda,float 
 
     btime.start_timer("backward_loop_y");
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) reduction(+: error_count)
+	#pragma omp parallel for default(shared)
     #endif
     for (int64_t j = z_num - 1; j >= 0; --j) {
         const size_t jxnumynum = j * x_num * y_num;
@@ -508,20 +509,19 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
     std::vector<float> temp_vec3(y_num,0);
     std::vector<float> temp_vec4(y_num,0);
 
-    size_t error_count = 0;     // count overflow errors
+    const size_t error_count = 0;     // count overflow errors
 
     //Initialization and boundary conditions
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4) reduction(+: error_count)
+	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4) 
     #endif
     for (size_t i = 0; i < x_num; ++i) {
-
         std::fill(temp_vec1.begin(), temp_vec1.end(), 0);
         std::fill(temp_vec2.begin(), temp_vec2.end(), 0);
         std::fill(temp_vec3.begin(), temp_vec3.end(), 0);
         std::fill(temp_vec4.begin(), temp_vec4.end(), 0);
 
-        size_t iynum = i * y_num;
+        const size_t iynum = i * y_num;
 
         for (size_t j = 0; j < minLen; ++j) {
             size_t index = j * x_num * y_num + iynum;
@@ -578,7 +578,7 @@ void ComputeGradient::bspline_filt_rec_z(PixelData<T>& image,float lambda,float 
 
         //main loop
         for (int64_t j = z_num - 3; j >= 0; --j) {
-            size_t index = j * x_num * y_num + i * y_num;
+            const size_t index = j * x_num * y_num + i * y_num;
 
             #ifdef HAVE_OPENMP
 	        #pragma omp simd
@@ -692,10 +692,10 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
     std::vector<float> temp_vec3(y_num,0);
     std::vector<float> temp_vec4(y_num,0);
 
-    size_t error_count = 0;     // count overflow errors
+    const size_t error_count = 0;     // count overflow errors
 
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4) reduction(+: error_count)
+	#pragma omp parallel for default(shared) firstprivate(temp_vec1, temp_vec2, temp_vec3, temp_vec4)
     #endif
     for (size_t j = 0;j < z_num; ++j) {
         std::fill(temp_vec1.begin(), temp_vec1.end(), 0);
@@ -703,7 +703,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         std::fill(temp_vec3.begin(), temp_vec3.end(), 0);
         std::fill(temp_vec4.begin(), temp_vec4.end(), 0);
 
-        size_t jxnumynum = j * y_num * x_num;
+        const size_t jxnumynum = j * y_num * x_num;
 
         for (size_t i = 0; i < minLen; ++i) {
 
@@ -729,7 +729,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
         }
 
         for (size_t i = 2;i < x_num; ++i) {
-            size_t index = i * y_num + jxnumynum;
+            const size_t index = i * y_num + jxnumynum;
 
             #ifdef HAVE_OPENMP
             #pragma omp simd
@@ -758,7 +758,7 @@ void ComputeGradient::bspline_filt_rec_x(PixelData<T>& image,float lambda,float 
 
         //main loop
         for (int64_t i = x_num - 3; i >= 0; --i){
-            size_t index = jxnumynum + i*y_num;
+            const size_t index = jxnumynum + i*y_num;
 
             #ifdef HAVE_OPENMP
             #pragma omp simd
