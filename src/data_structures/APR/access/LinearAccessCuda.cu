@@ -560,9 +560,9 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRPara
 
 
     {
-        ScopedCudaMemHandler<uint16_t *, D2H> y_vec_cuda(y_vec.data(), y_vec.size());
-        ScopedCudaMemHandler<uint64_t *, D2H> xz_end_vec_cuda(xz_end_vec.data(), xz_end_vec.size());
-        ScopedCudaMemHandler<uint64_t *, H2D | D2H> level_xz_vec_cuda(level_xz_vec.data(), level_xz_vec.size());
+        ScopedCudaMemHandler<uint16_t *, D2H> y_vec_cuda(y_vec.data(), y_vec.size(), aStream);
+        ScopedCudaMemHandler<uint64_t *, D2H> xz_end_vec_cuda(xz_end_vec.data(), xz_end_vec.size(), aStream);
+        ScopedCudaMemHandler<uint64_t *, H2D | D2H> level_xz_vec_cuda(level_xz_vec.data(), level_xz_vec.size(), aStream);
         GenInfoGpuAccess giga(gi, aStream);
         if (gi.l_max <= 2) {
             runFullResolution(level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda.get(), gi, giga, aStream);
@@ -612,8 +612,8 @@ void computeLinearStructureCuda(uint16_t *y_vec_cuda, ParticleCellTreeCuda &p_ma
 
 
     {
-        ScopedCudaMemHandler<uint64_t *, D2H> xz_end_vec_cuda(xz_end_vec.data(), xz_end_vec.size());
-        ScopedCudaMemHandler<uint64_t *, H2D | D2H> level_xz_vec_cuda(level_xz_vec.data(), level_xz_vec.size());
+        ScopedCudaMemHandler<uint64_t *, D2H> xz_end_vec_cuda(xz_end_vec.data(), xz_end_vec.size(), aStream);
+        ScopedCudaMemHandler<uint64_t *, H2D | D2H> level_xz_vec_cuda(level_xz_vec.data(), level_xz_vec.size(), aStream);
         GenInfoGpuAccess giga(gi, aStream);
         if (gi.l_max <= 2) {
             runFullResolution(level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda, gi, giga, aStream);

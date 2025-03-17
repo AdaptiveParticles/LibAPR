@@ -134,7 +134,7 @@ namespace {
         };
     }
 
-    auto transferSpline(BsplineParams &aParams, cudaStream_t aStream) {
+    auto transferSpline(const BsplineParams &aParams, cudaStream_t aStream) {
         ScopedCudaMemHandler<float*, H2D> bc1(aParams.bc1.get(), aParams.k0, aStream);
         ScopedCudaMemHandler<float*, H2D> bc2(aParams.bc2.get(), aParams.k0, aStream);
         ScopedCudaMemHandler<float*, H2D> bc3(aParams.bc3.get(), aParams.k0, aStream);
@@ -267,11 +267,13 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
     // bspline stuff
     const float tolerance = 0.0001;
-    BsplineParams params;
-    ScopedCudaMemHandler<float*, H2D> bc1;
-    ScopedCudaMemHandler<float*, H2D> bc2;
-    ScopedCudaMemHandler<float*, H2D> bc3;
-    ScopedCudaMemHandler<float*, H2D> bc4;
+    std::pair<BsplineParamsCuda, BsplineParamsCudaMemoryHandlers> cudax;
+    std::pair<BsplineParamsCuda, BsplineParamsCudaMemoryHandlers> cuday;
+    std::pair<BsplineParamsCuda, BsplineParamsCudaMemoryHandlers> cudaz;
+    BsplineParamsCuda splineCudaX;
+    BsplineParamsCuda splineCudaY;
+    BsplineParamsCuda splineCudaZ;
+
     const size_t boundaryLen;
     ScopedCudaMemHandler<float*, JUST_ALLOC> boundary;
 
@@ -306,19 +308,18 @@ public:
         iAprInfo(iCpuImage.getDimension()),
         iBsplineOffset(bspline_offset),
         iMaxLevel(maxLevel),
-        // TODO: This is wrong and done only for compile. BsplineParams has to be computed seperately for each dimension.
-        //       Should be fixed when other parts of pipeline are ready.
-//        params(prepareBsplineStuff((size_t)inputImage.x_num, parameters.lambda, tolerance)),
-//        bc1(params.bc1.get(), params.k0, iStream),
-//        bc2(params.bc2.get(), params.k0, iStream),
-//        bc3(params.bc3.get(), params.k0, iStream),
-//        bc4(params.bc4.get(), params.k0, iStream),
+        cudax(transferSpline(prepareBsplineStuff(iCpuImage.x_num, iParameters.lambda, tolerance), iStream)),
+        cuday(transferSpline(prepareBsplineStuff(iCpuImage.y_num, iParameters.lambda, tolerance), iStream)),
+        cudaz(transferSpline(prepareBsplineStuff(iCpuImage.z_num, iParameters.lambda, tolerance), iStream)),
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)inputImage.x_num * (size_t)inputImage.z_num},
         boundary{nullptr, boundaryLen, iStream},
         pctc(iAprInfo, iStream),
         y_vec(nullptr, iAprInfo.getSize(), iStream)
     {
-//        std::cout << "\n=============== GpuProcessingTaskImpl ===================\n\n";
+        splineCudaX = cudax.first;
+        splineCudaY = cuday.first;
+        splineCudaZ = cudaz.first;
+        std::cout << "\n=============== GpuProcessingTaskImpl ===================" << iStream << "\n\n";
 //        std::cout << iCpuImage << std::endl;
 //        std::cout << iCpuLevels << std::endl;
     }
@@ -332,47 +333,42 @@ public:
     }
 
     LinearAccessCudaStructs getDataFromGpu() {
-//        CurrentTime ct;
-//        uint64_t start = ct.microseconds();
-//        local_scale_temp.copyD2H();
-//        checkCuda(cudaStreamSynchronize(iStream));
-//        std::cout << "RCV time: " << ct.microseconds() - start << std::endl;
+        // TODO: Temporarily turned off here since synchronized already in computeLinearStructureCuda 
+        // checkCuda(cudaStreamSynchronize(iStream));
+
         return std::move(lacs);
     }
 
     void processOnGpu() {
-        CurrentTime ct;
+        // image.copyH2D();
+        CurrentTime ct{};
         uint64_t start = ct.microseconds();
 
-        // TODO: temporarily bspline params are generated here
-        //       In principle this is OK and correct but would be faster (for processing series of same size images) if
-        //       they would be calculated in constructor of GpuProcessingTaskImpl class (once).
-        BsplineParams px = prepareBsplineStuff(iCpuImage.x_num, iParameters.lambda, tolerance);
-        auto cudax = transferSpline(px, iStream);
-        auto splineCudaX = cudax.first;
-        BsplineParams py = prepareBsplineStuff(iCpuImage.y_num, iParameters.lambda, tolerance);
-        auto cuday = transferSpline(py, iStream);
-        auto splineCudaY = cuday.first;
-        BsplineParams pz = prepareBsplineStuff(iCpuImage.z_num, iParameters.lambda, tolerance);
-        auto cudaz = transferSpline(pz, iStream);
-        auto splineCudaZ = cudaz.first;
-
+        CudaTimer time(false, "PIPELINE");
+        time.start_timer("getgradient");
         getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
                          splineCudaX, splineCudaY, splineCudaZ, boundary.get(),
                         iBsplineOffset, iParameters, iStream);
+        time.stop_timer();
+        time.start_timer("intensity");
         runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), iStream);
+        time.stop_timer();
+
 
         // Apply parameters from APRConverter:
+        time.start_timer("runs....");
         runThreshold(local_scale_temp2.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.Ip_th + iBsplineOffset, iStream);
         runRescaleAndThreshold(local_scale_temp.get(), iCpuLevels.mesh.size(), iParameters.sigma_th, iParameters.sigma_th_max, iStream);
         runThreshold(gradient.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.grad_th, iStream);
         // TODO: automatic parameters are not implemented for GPU pipeline (yet)
+        time.stop_timer();
 
+        time.start_timer("compute lev");
         float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
         float level_factor = pow(2, iMaxLevel) * min_dim;
         const float mult_const = level_factor/iParameters.rel_error;
         runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
-
+        time.stop_timer();
         computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
         computeLinearStructureCuda(y_vec.get(), pctc, iAprInfo, iParameters, lacs, iStream);
     }
