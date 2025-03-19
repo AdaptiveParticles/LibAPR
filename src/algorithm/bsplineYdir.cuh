@@ -242,22 +242,13 @@ __global__ void bsplineYdirProcess(T *image, const PixelDataDim dim, BsplinePara
  * Function for launching a kernel
  */
 template <typename T>
-void runBsplineYdir(T *cudaImage, PixelDataDim dim, BsplineParamsCuda &p, float *boundary, cudaStream_t aStream) {
+void runBsplineYdir(T *cudaImage, PixelDataDim dim, BsplineParamsCuda &p, float *boundary, bool *error, cudaStream_t aStream) {
 
     dim3 threadsPerBlock(numOfThreads);
     dim3 numBlocks((dim.x * dim.z + threadsPerBlock.x - 1) / threadsPerBlock.x);
     size_t sharedMemSize = (2 /*bc vectors*/) * (p.k0) * sizeof(float) + numOfThreads * (p.k0) * sizeof(float);
-    bool isErrorDetected = false;
-    {
-        ScopedCudaMemHandler<bool *, H2D | D2H> error(&isErrorDetected, 1, aStream);
-        bsplineYdirBoundary<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, p, boundary, error.get());
-        sharedMemSize = numOfThreads * blockWidth * sizeof(float);
-        bsplineYdirProcess<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, p, boundary, error.get());
-    }
-
-    if (isErrorDetected) {
-        throw std::invalid_argument("integer under-/overflow encountered in CUDA bsplineYdir - "
-                                    "try squashing the input image to a narrower range or use APRConverter<float>");
-    }
+    bsplineYdirBoundary<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, p, boundary, error);
+    sharedMemSize = numOfThreads * blockWidth * sizeof(float);
+    bsplineYdirProcess<T> <<< numBlocks, threadsPerBlock, sharedMemSize, aStream >>>(cudaImage, dim, p, boundary, error);
 }
 #endif

@@ -166,13 +166,21 @@ template <typename ImgType>
 void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_scale_temp,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      BsplineParamsCuda &px, BsplineParamsCuda &py, BsplineParamsCuda &pz, float *boundary,
+                     bool &isErrorDetected, ScopedCudaMemHandler<bool *, JUST_ALLOC>& isErrorDetectedCuda,
                      float bspline_offset, const APRParameters &par, cudaStream_t aStream) {
 
     // TODO: Used PixelDataDim in all methods below and change input parameter from image to imageDim
 
-    if (image.y_num > 2) runBsplineYdir(cudaImage, image.getDimension(), py, boundary, aStream);
+    isErrorDetected = false;
+    isErrorDetectedCuda.copyH2D();
+    if (image.y_num > 2) runBsplineYdir(cudaImage, image.getDimension(), py, boundary, isErrorDetectedCuda.get(), aStream);
     if (image.x_num > 2) runBsplineXdir(cudaImage, image.getDimension(), px, aStream);
     if (image.z_num > 2) runBsplineZdir(cudaImage, image.getDimension(), pz, aStream);
+    isErrorDetectedCuda.copyD2H();
+    if (isErrorDetected) {
+        throw std::invalid_argument("integer under-/overflow encountered in CUDA bspline(XYZ)dir - "
+                                    "try squashing the input image to a narrower range or use APRConverter<float>");
+    }
 
 
     runKernelGradient(cudaImage, cudaGrad, image.getDimension(), local_scale_temp.getDimension(), par.dx, par.dy, par.dz, aStream);
@@ -273,6 +281,8 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     BsplineParamsCuda splineCudaX;
     BsplineParamsCuda splineCudaY;
     BsplineParamsCuda splineCudaZ;
+    bool isErrorDetected;
+    ScopedCudaMemHandler<bool *, JUST_ALLOC> isErrorDetectedCuda;
 
     const size_t boundaryLen;
     ScopedCudaMemHandler<float*, JUST_ALLOC> boundary;
@@ -311,6 +321,7 @@ public:
         cudax(transferSpline(prepareBsplineStuff(iCpuImage.x_num, iParameters.lambda, tolerance), iStream)),
         cuday(transferSpline(prepareBsplineStuff(iCpuImage.y_num, iParameters.lambda, tolerance), iStream)),
         cudaz(transferSpline(prepareBsplineStuff(iCpuImage.z_num, iParameters.lambda, tolerance), iStream)),
+        isErrorDetectedCuda(&isErrorDetected, 1, iStream),
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)inputImage.x_num * (size_t)inputImage.z_num},
         boundary{nullptr, boundaryLen, iStream},
         pctc(iAprInfo, iStream),
@@ -347,7 +358,7 @@ public:
         CudaTimer time(false, "PIPELINE");
         time.start_timer("getgradient");
         getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
-                         splineCudaX, splineCudaY, splineCudaZ, boundary.get(),
+                         splineCudaX, splineCudaY, splineCudaZ, boundary.get(), isErrorDetected, isErrorDetectedCuda,
                         iBsplineOffset, iParameters, iStream);
         time.stop_timer();
         time.start_timer("intensity");
@@ -420,6 +431,8 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
     ScopedCudaMemHandler<PixelData<ImgType>, D2H | H2D> cudaInput(input, aStream);
 
     APRTimer timer(false);
+    bool isErrorDetected = false;
+    ScopedCudaMemHandler<bool*, H2D | D2H> error(&isErrorDetected, 1, aStream);
     timer.start_timer("GpuDeviceTimeFull");
     if (flags & BSPLINE_Y_DIR) {
         BsplineParams p = prepareBsplineStuff((size_t)input.y_num, lambda, tolerance, maxFilterLen);
@@ -427,7 +440,7 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
         auto splineCuda = cuda.first;
         int boundaryLen = (2 /*two first elements*/ + 2 /* two last elements */) * input.x_num * input.z_num;
         ScopedCudaMemHandler<float*, JUST_ALLOC> boundary(nullptr, boundaryLen, aStream); // allocate memory on device
-        runBsplineYdir(cudaInput.get(), input.getDimension(), splineCuda, boundary.get(), aStream);
+        runBsplineYdir(cudaInput.get(), input.getDimension(), splineCuda, boundary.get(), error.get(), aStream);
     }
     if (flags & BSPLINE_X_DIR) {
         BsplineParams p = prepareBsplineStuff((size_t)input.x_num, lambda, tolerance, maxFilterLen);
@@ -441,6 +454,14 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
         auto splineCuda = cuda.first;
         runBsplineZdir(cudaInput.get(), input.getDimension(), splineCuda, aStream);
     }
+
+    waitForCuda();
+
+    if (isErrorDetected) {
+        throw std::invalid_argument("integer under-/overflow encountered in CUDA bspline(XYZ)dir - "
+                                    "try squashing the input image to a narrower range or use APRConverter<float>");
+    }
+
     timer.stop_timer();
 }
 
@@ -510,9 +531,12 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
     BsplineParams pz = prepareBsplineStuff(image.z_num, par.lambda, tolerance);
     auto cudaz = transferSpline(pz, aStream);
     auto splineCudaZ = cudaz.first;
-
-    getGradientCuda(image, local_scale_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(),
-                    splineCudaX, splineCudaY, splineCudaZ, boundary.get(), bspline_offset, par, aStream);
+    bool isErrorDetected = false;
+    {
+        ScopedCudaMemHandler<bool*, JUST_ALLOC> isErrorDetectedCuda(&isErrorDetected, 1, aStream);
+        getGradientCuda(image, local_scale_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(),
+                        splineCudaX, splineCudaY, splineCudaZ, boundary.get(), isErrorDetected, isErrorDetectedCuda, bspline_offset, par, aStream);
+    }
 }
 
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz) {
