@@ -9,23 +9,8 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-#include <cassert>
+#include "misc/CudaTools.cuh"
 
-
-// TODO: this method is duplicated in CudaTools.cuh
-//       Somehow including it here break compilation - fix it please.
-#define checkCuda(ans) { cudaAssert2((ans), __FILE__, __LINE__); }
-inline void cudaAssert2(cudaError_t code, const char *file, int line, bool abort=true)
-{
-#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
-    if (code != cudaSuccess)
-    {
-        fprintf(stderr,"GPUassert: (%d) %s %s %d\n", code, cudaGetErrorString(code), file, line);
-        assert(code == cudaSuccess); // If debugging it helps to see call tree somehow
-        if (abort) exit(code);
-    }
-#endif
-}
 
 inline void* getPinnedMemory(size_t aNumOfBytes) {
     void *memory = nullptr;

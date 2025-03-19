@@ -5,15 +5,12 @@
 #ifndef LIBAPR_CUDATOOLS_HPP
 #define LIBAPR_CUDATOOLS_HPP
 
-
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cuda_runtime_api.h>
 #include <iostream>
 #include <chrono>
-
-#include "data_structures/Mesh/PixelData.hpp"
-
+#include <cassert>
 
 #define checkCuda(ans) { cudaAssert((ans), __FILE__, __LINE__); }
 inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -112,6 +109,8 @@ enum CopyDir : CopyDirType {
     INVALID = 4     // Just wrong/last value keeper for validating settings
 };
 
+template <typename T>
+class PixelData;
 
 /**
  * Checks if provided type is a PixelData container

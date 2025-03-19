@@ -147,9 +147,6 @@ TEST(PullingSchemeTest, OVPCCUDA_Ydir) {
     const PixelDataDim dim = levels.getDimension();
     gi.init(2 * dim.y, dim.x, dim.z); // <-- Y-dir
 
-    int levelMax = gi.l_max - 1;
-    int levelMin = gi.l_min;
-
     // Initialize all needed objects
     APRTimer t(false);
 
@@ -185,9 +182,6 @@ TEST(PullingSchemeTest, OVPCCUDA_Xdir) {
     const PixelDataDim dim = levels.getDimension();
     gi.init(dim.y, 2 * dim.x, dim.z); // <-- X-dir
 
-    int levelMax = gi.l_max - 1;
-    int levelMin = gi.l_min;
-
     // Initialize all needed objects
     APRTimer t(false);
 
@@ -222,9 +216,6 @@ TEST(PullingSchemeTest, OVPCCUDA_Zdir) {
     GenInfo gi;
     const PixelDataDim dim = levels.getDimension();
     gi.init(dim.y, dim.x, 2 * dim.z); // <-- Z-dir
-
-    int levelMax = gi.l_max - 1;
-    int levelMin = gi.l_min;
 
     // Initialize all needed objects
     APRTimer t(false);
