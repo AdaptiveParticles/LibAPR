@@ -174,22 +174,22 @@ void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_sc
     isErrorDetected = false;
     isErrorDetectedCuda.copyH2D();
     if (image.y_num > 2) runBsplineYdir(cudaImage, image.getDimension(), py, boundary, isErrorDetectedCuda.get(), aStream);
-    if (image.x_num > 2) runBsplineXdir(cudaImage, image.getDimension(), px, aStream);
-    if (image.z_num > 2) runBsplineZdir(cudaImage, image.getDimension(), pz, aStream);
-    isErrorDetectedCuda.copyD2H();
-    if (isErrorDetected) {
-        throw std::invalid_argument("integer under-/overflow encountered in CUDA bspline(XYZ)dir - "
-                                    "try squashing the input image to a narrower range or use APRConverter<float>");
-    }
-
-
-    runKernelGradient(cudaImage, cudaGrad, image.getDimension(), local_scale_temp.getDimension(), par.dx, par.dy, par.dz, aStream);
-
-    runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
-
-    if (image.y_num > 2) runInvBsplineYdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
-    if (image.x_num > 2) runInvBsplineXdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
-    if (image.z_num > 2) runInvBsplineZdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    if (image.x_num > 2) runBsplineXdir(cudaImage, image.getDimension(), px, isErrorDetectedCuda.get(), aStream);
+    // if (image.z_num > 2) runBsplineZdir(cudaImage, image.getDimension(), pz, aStream);
+    // isErrorDetectedCuda.copyD2H();
+    // if (isErrorDetected) {
+    //     throw std::invalid_argument("integer under-/overflow encountered in CUDA bspline(XYZ)dir - "
+    //                                 "try squashing the input image to a narrower range or use APRConverter<float>");
+    // }
+    //
+    //
+    // runKernelGradient(cudaImage, cudaGrad, image.getDimension(), local_scale_temp.getDimension(), par.dx, par.dy, par.dz, aStream);
+    //
+    // runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
+    //
+    // if (image.y_num > 2) runInvBsplineYdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    // if (image.x_num > 2) runInvBsplineXdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+    // if (image.z_num > 2) runInvBsplineZdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
 }
 
 class CurrentTime {
@@ -361,27 +361,27 @@ public:
                          splineCudaX, splineCudaY, splineCudaZ, boundary.get(), isErrorDetected, isErrorDetectedCuda,
                         iBsplineOffset, iParameters, iStream);
         time.stop_timer();
-        time.start_timer("intensity");
-        runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), iStream);
-        time.stop_timer();
-
-
-        // Apply parameters from APRConverter:
-        time.start_timer("runs....");
-        runThreshold(local_scale_temp2.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.Ip_th + iBsplineOffset, iStream);
-        runRescaleAndThreshold(local_scale_temp.get(), iCpuLevels.mesh.size(), iParameters.sigma_th, iParameters.sigma_th_max, iStream);
-        runThreshold(gradient.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.grad_th, iStream);
-        // TODO: automatic parameters are not implemented for GPU pipeline (yet)
-        time.stop_timer();
-
-        time.start_timer("compute lev");
-        float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
-        float level_factor = pow(2, iMaxLevel) * min_dim;
-        const float mult_const = level_factor/iParameters.rel_error;
-        runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
-        time.stop_timer();
-        computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
-        computeLinearStructureCuda(y_vec.get(), pctc, iAprInfo, iParameters, lacs, iStream);
+        // time.start_timer("intensity");
+        // runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), iStream);
+        // time.stop_timer();
+        //
+        //
+        // // Apply parameters from APRConverter:
+        // time.start_timer("runs....");
+        // runThreshold(local_scale_temp2.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.Ip_th + iBsplineOffset, iStream);
+        // runRescaleAndThreshold(local_scale_temp.get(), iCpuLevels.mesh.size(), iParameters.sigma_th, iParameters.sigma_th_max, iStream);
+        // runThreshold(gradient.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.grad_th, iStream);
+        // // TODO: automatic parameters are not implemented for GPU pipeline (yet)
+        // time.stop_timer();
+        //
+        // time.start_timer("compute lev");
+        // float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
+        // float level_factor = pow(2, iMaxLevel) * min_dim;
+        // const float mult_const = level_factor/iParameters.rel_error;
+        // runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
+        // time.stop_timer();
+        // computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
+        // computeLinearStructureCuda(y_vec.get(), pctc, iAprInfo, iParameters, lacs, iStream);
     }
 
     ~GpuProcessingTaskImpl() {
@@ -446,7 +446,7 @@ void cudaFilterBsplineFull(PixelData<ImgType> &input, float lambda, float tolera
         BsplineParams p = prepareBsplineStuff((size_t)input.x_num, lambda, tolerance, maxFilterLen);
         auto cuda = transferSpline(p, aStream);
         auto splineCuda = cuda.first;
-        runBsplineXdir(cudaInput.get(), input.getDimension(), splineCuda, aStream);
+        runBsplineXdir(cudaInput.get(), input.getDimension(), splineCuda, error.get(), aStream);
     }
     if (flags & BSPLINE_Z_DIR) {
         BsplineParams p = prepareBsplineStuff((size_t)input.z_num, lambda, tolerance, maxFilterLen);

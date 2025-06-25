@@ -127,24 +127,13 @@ __global__ void bsplineXdir(T *image, PixelDataDim dim, BsplineParamsCuda p, boo
  * Function for launching a kernel
  */
 template<typename T>
-void runBsplineXdir(T *cudaImage, PixelDataDim dim, BsplineParamsCuda &p, cudaStream_t aStream) {
+void runBsplineXdir(T *cudaImage, PixelDataDim dim, BsplineParamsCuda &p, bool *error, cudaStream_t aStream) {
     constexpr int numOfWorkersYdir = 128;
     dim3 threadsPerBlockX(1, numOfWorkersYdir, 1);
     dim3 numBlocksX(1,
                     (dim.y + threadsPerBlockX.y - 1) / threadsPerBlockX.y,
                     (dim.z + threadsPerBlockX.z - 1) / threadsPerBlockX.z);
-    // In case of error this will be set to true by one of the kernels (CUDA does not guarantee which kernel will set global variable if more then one kernel
-    // access it but this is enough for us to know that somewhere in one on more kernels overflow was detected.
-    bool isErrorDetected = false;
-    {
-        ScopedCudaMemHandler<bool*, H2D | D2H> error(&isErrorDetected, 1, aStream);
-        bsplineXdir<T> <<<numBlocksX, threadsPerBlockX, 0, aStream>>>(cudaImage, dim, p, error.get());
-    }
-
-    if (isErrorDetected) {
-        throw std::invalid_argument("integer under-/overflow encountered in CUDA bsplineXdir - "
-                                    "try squashing the input image to a narrower range or use APRConverter<float>");
-    }
+    bsplineXdir<T> <<<numBlocksX, threadsPerBlockX, 0, aStream>>>(cudaImage, dim, p, error);
 }
 
 #endif

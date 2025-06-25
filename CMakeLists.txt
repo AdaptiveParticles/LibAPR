@@ -209,9 +209,10 @@ set_property(TARGET aprObjLib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
+    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
     set(CMAKE_CUDA_STANDARD 14)
     set(CMAKE_CUDA_RUNTIME_LIBRARY "Static")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --fmad=false --default-stream per-thread -Xptxas -v -DAPR_USE_CUDA")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --fmad=false --default-stream per-thread -Wno-deprecated-gpu-targets -Xptxas -v -DAPR_USE_CUDA")
     set(CMAKE_CUDA_FLAGS_RELEASE "-O3") # -lineinfo for profiling
     set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -g -G")
     if(APR_BENCHMARK)

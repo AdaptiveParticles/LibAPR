@@ -503,7 +503,7 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
     bool constant_scale = false;
 
     if (par.constant_intensity_scale || (lis.number_active_dimensions == 0)) {
-        // include the case where the local intensity scale doesn't make sense due to the image being to small.
+        // include the case where the local intensity scale doesn't make sense due to the image being too small.
         // (This is for just edge cases and sanity checking)
         constant_scale = true;
     }

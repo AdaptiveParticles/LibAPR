@@ -9,6 +9,7 @@
 #ifndef __APR_CONVERTER_HPP__
 #define __APR_CONVERTER_HPP__
 
+#include <future>
 #include <list>
 
 #include "AutoParameters.hpp"
@@ -74,6 +75,8 @@ public:
 #ifdef APR_USE_CUDA
     template <typename T>
     bool get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
+    template <typename T>
+    bool get_apr_cuda_streams(APR &aAPR, PixelData<T> &input_image);
 #endif
 
     bool verbose = true;
@@ -438,6 +441,118 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
 }
 #endif
 
+#ifdef APR_USE_CUDA
+/**
+ * Implementation of pipeline for GPU/CUDA and multiple streams
+ * NOTE: Currently only one image is processed multiple times just get an idea how fast it can be.
+ *       Finally, it should be able to process incoming stream of data (sequence of images).
+ *
+ * @param aAPR - the APR data structure
+ * @param input_image - input image
+ */
+template<typename ImageType> template<typename T>
+inline bool APRConverter<ImageType>::get_apr_cuda_streams(APR &aAPR, PixelData<T>& input_image) {
+
+    if (!initPipelineAPR(aAPR, input_image)) return false;
+
+    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
+
+    computation_timer.start_timer("init_mem");
+    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+
+    /////////////////////////////////
+    /// Pipeline
+    ////////////////////////
+    // offset image by factor (this is required if there are zero areas in the background with
+    // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+    // Warning both of these could result in over-flow!
+
+    if (std::is_same<uint16_t, ImageType>::value) {
+        bspline_offset = 100;
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+    } else if (std::is_same<uint8_t, ImageType>::value) {
+        bspline_offset = 5;
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
+    } else {
+        image_temp.copyFromMesh(input_image);
+    }
+
+
+
+    constexpr int numOfStreams = 3;
+    constexpr int repetitionsPerStream = 3; //
+    APRTimer ttt(true);
+    ttt.start_timer("-----------------------------> Whole GPU pipeline with repetitions and MEMORY");
+    {
+        std::vector<GpuProcessingTask<ImageType>> gpts;
+
+        //std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
+        for (int i = 0; i < numOfStreams; ++i) {
+            gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
+        }
+
+        APRTimer t(true);
+        t.start_timer("-----------------------------> Whole GPU pipeline with repetitions");
+        {
+
+            APRTimer tt(false);
+            // Create streams and send initial task to do
+            for (int i = 0; i < numOfStreams; ++i) {
+                // gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
+                tt.start_timer("SEND");
+                gpts[i].sendDataToGpu();
+                tt.stop_timer();
+                // std::cout << "Send " << i << std::endl;
+                // gpts.back().processOnGpu();
+                // std::cout << "Proc " << i << std::endl;
+            }
+            // Create streams and send initial task to do
+            for (int i = 0; i < numOfStreams; ++i) {
+                // gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
+                tt.start_timer("Process");
+                gpts[i].processOnGpu();
+                tt.stop_timer();
+                // std::cout << "Proc " << i << std::endl;
+            }
+            std::cout << "=========" << std::endl;
+
+            for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
+                int c = i % numOfStreams;
+
+                // get data from previous task
+                // gpts_futures[c].get();
+                auto linearAccessGpu = gpts[c].getDataFromGpu();
+                // std::cout << "Get  " << c << std::endl;
+
+                // in theory, we get new data and send them to task
+                if (i  < numOfStreams * (repetitionsPerStream - 1)) {
+                    gpts[c].sendDataToGpu();
+                    // std::cout << "Send " << c << std::endl;
+                    gpts[c].processOnGpu();
+                    // gpts_futures[c] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[c]);
+                    // std::cout << "Proc " << c << std::endl;
+                }
+
+                aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
+
+                // generateDatastructures(aAPR) for linearAcceess for CUDA
+                aAPR.linearAccess.y_vec.copy(linearAccessGpu.y_vec);
+                aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
+                aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
+                aAPR.apr_initialized = true;
+
+                // std::cout << "CUDA pipeline finished!\n";
+            }
+        }
+        auto allT = t.stop_timer();
+        std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
+    }
+    auto allT = ttt.stop_timer();
+    std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
+
+    return false; //TODO: change it back to true
+}
+#endif
 
 /**
  * Implementation of pipeline for CPU
@@ -509,7 +624,8 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_imag
 #ifndef APR_USE_CUDA
     return get_apr_cpu(aAPR, input_image);
 #else
-    return get_apr_cuda(aAPR, input_image);
+    // return get_apr_cuda(aAPR, input_image);
+    return get_apr_cuda_streams(aAPR, input_image);
 #endif
 }
 

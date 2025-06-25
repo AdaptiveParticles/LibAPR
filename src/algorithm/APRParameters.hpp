@@ -57,6 +57,7 @@ public:
         os << "sigma_th_max=" << obj.sigma_th_max << "\n";
         os << "auto_parameters=" << (obj.auto_parameters ? "true" : "false") << "\n";
         os << "neighborhood_optimization=" << (obj.neighborhood_optimization ? "true" : "false") << "\n";
+        os << "constant_intensity_scale=" << (obj.constant_intensity_scale ? "true" : "false") << "\n";
         os << "output_steps=" << (obj.output_steps ? "true" : "false") << "\n";
 
 	    return os;
