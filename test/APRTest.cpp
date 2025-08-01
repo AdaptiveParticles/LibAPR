@@ -2797,7 +2797,13 @@ bool test_pipeline_u16(TestData& test_data){
 
     aprConverter.par.output_steps = true;
 
+#ifdef APR_USE_CUDA
+    // NOTICE: CUDA implementation is not saving intermediate steps even if "par.output_steps = true" so this test is not
+    // valid for CUDA. Use explicitly CPU implementation anyway just to have all tests run even if APR_USE_CUDA=ON
+    aprConverter.get_apr_cpu(apr, test_data.img_original);
+#else
     aprConverter.get_apr(apr,test_data.img_original);
+#endif
 
     PixelData<float> scale_computed = TiffUtils::getMesh<float>(test_data.output_dir +"local_intensity_scale_step.tif");
     PixelData<uint16_t> gradient_computed = TiffUtils::getMesh<uint16_t>(test_data.output_dir + "gradient_step.tif");
@@ -3012,7 +3018,13 @@ bool test_pipeline_bound_blocked(TestData& test_data, float rel_error){
     converter.par.output_steps = true;
 
     APR apr;
+#ifdef APR_USE_CUDA
+    // NOTICE: CUDA implementation is not saving intermediate steps even if "par.output_steps = true" so this test is not
+    // valid for CUDA. Use explicitly CPU implementation anyway just to have all tests run even if APR_USE_CUDA=ON
+    converter.get_apr_cpu(apr, test_data.img_original);
+#else
     converter.get_apr(apr, test_data.img_original);
+#endif
 
     // batch APR converter for blocked conversion
     APRConverterBatch<uint16_t> converterBatch;
@@ -3022,6 +3034,7 @@ bool test_pipeline_bound_blocked(TestData& test_data, float rel_error){
 
     // Get the APR by block
     APR aprBatch;
+
     converterBatch.get_apr(aprBatch);
 
     // Sample particles by block
@@ -3835,34 +3848,25 @@ TEST_F(CreateSmallSphereTest, ITERATOR_METHODS) {
     ASSERT_TRUE(test_iterator_methods(test_data));
 }
 
+#ifndef APR_USE_CUDA
+/// auto_parameters are not supported in CUDA
+
 TEST_F(CreateSmallSphereTest, AUTO_PARAMETERS) {
-
-//test iteration
-ASSERT_TRUE(test_auto_parameters(test_data));
-
+    ASSERT_TRUE(test_auto_parameters(test_data));
 }
 
 TEST_F(CreateDiffDimsSphereTest, AUTO_PARAMETERS) {
-
-//test iteration
-ASSERT_TRUE(test_auto_parameters(test_data));
-
+    ASSERT_TRUE(test_auto_parameters(test_data));
 }
 
 TEST_F(CreateGTSmall2DTestProperties, AUTO_PARAMETERS) {
-
-//test iteration
-ASSERT_TRUE(test_auto_parameters(test_data));
-
+    ASSERT_TRUE(test_auto_parameters(test_data));
 }
 
 TEST_F(CreateGTSmall1DTestProperties, AUTO_PARAMETERS) {
-
-//test iteration
     ASSERT_TRUE(test_auto_parameters(test_data));
-
 }
-
+#endif
 
 TEST_F(CreateSmallSphereTest, APR_ITERATION) {
 

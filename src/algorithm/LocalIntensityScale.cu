@@ -486,7 +486,7 @@ void runConstantScale(S *image, PixelDataDim &dim, cudaStream_t aStream) {
 }
 
 template <typename T, typename S>
-void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream) {
+void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, S *lstPadded, S *lst2Padded, cudaStream_t aStream) {
     float var_rescale;
     std::vector<int> var_win;
     auto lis = LocalIntensityScale();
@@ -511,29 +511,18 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
     PixelDataDim imageSize = image.getDimension();
 
     if (!constant_scale) {
-        CudaMemoryUniquePtr<S> paddedImage;
-        CudaMemoryUniquePtr<S> paddedTemp;
         PixelDataDim paddSize(std::max(win_y, win_y2), std::max(win_x, win_x2), std::max(win_z, win_z2));
         PixelDataDim paddedImageSize = imageSize + paddSize + paddSize; // padding on both ends of each dimension
-
         S *ci = cudaImage;
         S *ct = cudaTemp;
         PixelDataDim dim = image.getDimension();
 
         if (par.reflect_bc_lis) {
-            // padd
-            S *mem = nullptr;
-            checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
-            paddedImage.reset(mem);
-            mem = nullptr;
-            checkCuda(cudaMalloc(&mem, sizeof(S) * paddedImageSize.size()));
-            paddedTemp.reset(mem);
+            runPaddPixels(cudaImage, lstPadded, imageSize, paddedImageSize, paddSize, aStream);
+            runPaddPixels(cudaTemp, lst2Padded, imageSize, paddedImageSize, paddSize, aStream);
 
-            runPaddPixels(cudaImage, paddedImage.get(), imageSize, paddedImageSize, paddSize, aStream);
-            runPaddPixels(cudaTemp, paddedTemp.get(), imageSize, paddedImageSize, paddSize, aStream);
-
-            ci = paddedImage.get();
-            ct = paddedTemp.get();
+            ci = lstPadded; //paddedImage.get();
+            ct = lst2Padded; //paddedTemp.get();
             dim = paddedImageSize;
         }
 
@@ -555,7 +544,7 @@ void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParamete
     }
 }
 
-template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>&, const APRParameters&, float*, float*, cudaStream_t);
+template void runLocalIntensityScalePipeline<float,float>(const PixelData<float>&, const APRParameters&, float*, float*, float*, float*, cudaStream_t);
 
 
 
@@ -582,6 +571,15 @@ void getLocalIntensityScale(PixelData<T> &image, PixelData<T> &temp, const APRPa
     ScopedCudaMemHandler<PixelData<T>, H2D | D2H> cudaImage(image, aStream);
     ScopedCudaMemHandler<PixelData<T>, D2H> cudaTemp(temp, aStream);
 
-    runLocalIntensityScalePipeline(image, par, cudaImage.get(), cudaTemp.get(), aStream);
+    // Padded memory for local_scale_temp and local_scale_temp2
+    ScopedCudaMemHandler<float*, JUST_ALLOC> lstPadded;
+    ScopedCudaMemHandler<float*, JUST_ALLOC> lst2Padded;
+
+    PixelDataDim maxPaddSize(6, 6, 6);
+    PixelDataDim paddedImageSize = image.getDimension() + maxPaddSize + maxPaddSize;
+    lstPadded.initialize(nullptr, paddedImageSize.size(), aStream);
+    lst2Padded.initialize(nullptr, paddedImageSize.size(), aStream);
+
+    runLocalIntensityScalePipeline(image, par, cudaImage.get(), cudaTemp.get(), lstPadded.get(), lst2Padded.get(), aStream);
 }
 template void getLocalIntensityScale(PixelData<float>&, PixelData<float>&, const APRParameters&);

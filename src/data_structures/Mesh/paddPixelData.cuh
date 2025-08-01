@@ -38,7 +38,7 @@ __global__ void paddPixels(const T* input, T *output, const PixelDataDim inputSi
 
 template <typename T>
 void runPaddPixels(const T* input, T *output, const PixelDataDim &inputSize, const PixelDataDim &outputSize, const PixelDataDim &padSize, cudaStream_t aStream) {
-    dim3 threadsPerBlock(1, 64, 1);
+    dim3 threadsPerBlock(1, 128, 1);
     dim3 numBlocks((outputSize.x + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (outputSize.y + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (outputSize.z + threadsPerBlock.z - 1) / threadsPerBlock.z);
@@ -70,7 +70,7 @@ __global__ void unpaddPixels(const T* input, T *output, const PixelDataDim input
 
 template <typename T>
 void runUnpaddPixels(const T* input, T *output, const PixelDataDim &inputSize, const PixelDataDim &outputSize, const PixelDataDim &padSize, cudaStream_t aStream) {
-    dim3 threadsPerBlock(1, 64, 1);
+    dim3 threadsPerBlock(1, 128, 1);
     dim3 numBlocks((outputSize.x + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (outputSize.y + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (outputSize.z + threadsPerBlock.z - 1) / threadsPerBlock.z);

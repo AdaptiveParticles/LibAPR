@@ -182,7 +182,7 @@ void APRConverter<ImageType>::get_apr_custom_grad_scale(APR& aAPR,PixelData<Imag
 
     } else {
         // To be done. The L(y) needs to be computed then max downsampled.
-        std::cerr << "Not implimented" << std::endl;
+        std::cerr << "Not implemented" << std::endl;
 
     }
 
@@ -412,17 +412,15 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
     // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow!
 
-    if (std::is_same<uint16_t, ImageType>::value) {
-        bspline_offset = 100;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else if (std::is_same<uint8_t, ImageType>::value) {
-        bspline_offset = 5;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else {
+    if (std::is_floating_point<ImageType>::value) {
         image_temp.copyFromMesh(input_image);
+    } else {
+        bspline_offset = compute_bspline_offset<ImageType>(input_image, par.lambda);
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     }
 
     GpuProcessingTask<ImageType> gpt(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max());
+    // std::cout << "after gpt \n";
     gpt.sendDataToGpu();
     gpt.processOnGpu();
     auto linearAccessGpu = gpt.getDataFromGpu();
@@ -479,76 +477,169 @@ inline bool APRConverter<ImageType>::get_apr_cuda_streams(APR &aAPR, PixelData<T
 
 
 
-    constexpr int numOfStreams = 3;
-    constexpr int repetitionsPerStream = 3; //
-    APRTimer ttt(true);
-    ttt.start_timer("-----------------------------> Whole GPU pipeline with repetitions and MEMORY");
-    {
-        std::vector<GpuProcessingTask<ImageType>> gpts;
+    constexpr int numOfStreams = 3; // number of streams to use for parallel processing
+    constexpr int repetitionsPerStream = 15; // number of repetitions per stream to simulate processing of multiple images
+    bool useThreads = true;
 
-        //std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
-        for (int i = 0; i < numOfStreams; ++i) {
-            gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
-        }
-
-        APRTimer t(true);
-        t.start_timer("-----------------------------> Whole GPU pipeline with repetitions");
+    if (useThreads) {
+        std::cout << "\n!!! USING THREADS !!!\n\n";
+        APRTimer ttt(true);
+        std::cout << ">>>>>>>>>>> START\n";
+        ttt.start_timer("-----------------------------> Whole GPU pipeline with repetitions and MEMORY");
         {
+            APRTimer t(true);
+            std::vector<GpuProcessingTask<ImageType>> gpts;
 
-            APRTimer tt(false);
-            // Create streams and send initial task to do
+            t.start_timer("Creating GPTS");
+            std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
             for (int i = 0; i < numOfStreams; ++i) {
-                // gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
-                tt.start_timer("SEND");
-                gpts[i].sendDataToGpu();
-                tt.stop_timer();
-                // std::cout << "Send " << i << std::endl;
-                // gpts.back().processOnGpu();
-                // std::cout << "Proc " << i << std::endl;
+                gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
             }
-            // Create streams and send initial task to do
-            for (int i = 0; i < numOfStreams; ++i) {
-                // gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
-                tt.start_timer("Process");
-                gpts[i].processOnGpu();
-                tt.stop_timer();
-                // std::cout << "Proc " << i << std::endl;
-            }
-            std::cout << "=========" << std::endl;
+            t.stop_timer();
 
-            for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
-                int c = i % numOfStreams;
-
-                // get data from previous task
-                // gpts_futures[c].get();
-                auto linearAccessGpu = gpts[c].getDataFromGpu();
-                // std::cout << "Get  " << c << std::endl;
-
-                // in theory, we get new data and send them to task
-                if (i  < numOfStreams * (repetitionsPerStream - 1)) {
-                    gpts[c].sendDataToGpu();
-                    // std::cout << "Send " << c << std::endl;
-                    gpts[c].processOnGpu();
-                    // gpts_futures[c] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[c]);
-                    // std::cout << "Proc " << c << std::endl;
+            t.start_timer("-----------------------------> Whole GPU pipeline with repetitions");
+            {
+                APRTimer tt(false);
+                // Create streams and send initial task to do
+                for (int i = 0; i < numOfStreams; ++i) {
+                    // gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
+                    tt.start_timer("SEND");
+                    // gpts[i].sendDataToGpu();
+                    // gpts[i].processOnGpu();
+                    tt.stop_timer();
+                    // std::cout << "Send " << i << std::endl;
+                    // gpts.back().processOnGpu();
+                    // std::cout << "Proc " << i << std::endl;
                 }
+                // Create streams and send initial task to do
+                for (int i = 0; i < numOfStreams; ++i) {
+                    gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
+                    // tt.start_timer("Process");
+                    // gpts[i].processOnGpu();
+                    // tt.stop_timer();
+                    // std::cout << "Proc " << i << std::endl;
+                }
+                std::cout << "=========" << std::endl;
 
-                aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
+                for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
+                    int c = i % numOfStreams;
 
-                // generateDatastructures(aAPR) for linearAcceess for CUDA
-                aAPR.linearAccess.y_vec.copy(linearAccessGpu.y_vec);
-                aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
-                aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
-                aAPR.apr_initialized = true;
+                    // get data from previous task
+                    gpts_futures[c].get();
+                    auto linearAccessGpu = gpts[c].getDataFromGpu();
 
-                // std::cout << "CUDA pipeline finished!\n";
+                    // in theory, we get new data and send them to task
+                    if (i  < numOfStreams * (repetitionsPerStream - 1)) {
+                        // gpts[c].sendDataToGpu();
+                        // std::cout << "Send " << c << std::endl;
+                        // gpts[c].processOnGpu();
+                        gpts_futures[c] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[c]);
+                        // std::cout << "Proc " << c << std::endl;
+                    }
+
+                    aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
+
+                    // generateDatastructures(aAPR) for linearAcceess for CUDA
+                    aAPR.linearAccess.y_vec.copy(linearAccessGpu.y_vec);
+                    aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
+                    aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
+                    aAPR.apr_initialized = true;
+
+                    // std::cout << "CUDA pipeline finished!\n";
+                }
+                // cudaDeviceSynchronize();
             }
+            auto allT = t.stop_timer();
+            std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
+            std::cout << "Bandwidth:" << (input_image.size() / (allT / (numOfStreams*repetitionsPerStream)) / 1024 / 1024) << " MB/s\n";
         }
-        auto allT = t.stop_timer();
-        std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
+        auto allT = ttt.stop_timer();
+        float tpi = allT / (numOfStreams*repetitionsPerStream);
+        std::cout << "Time per image: " << tpi << " seconds\n";
+        std::cout << "Image size: " << (input_image.size() / 1024 / 1024) << " MB\n";
+        std::cout << "Bandwidth:" << (input_image.size() / tpi / 1024 / 1024) << " MB/s\n";
+
+
+        std::cout << "<<<<<<<<<<<< STOP\n";
     }
-    auto allT = ttt.stop_timer();
-    std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
+    else {
+        APRTimer ttt(true);
+        std::cout << ">>>>>>>>>>> START\n";
+        ttt.start_timer("-----------------------------> Whole GPU pipeline with repetitions and MEMORY");
+        {
+            APRTimer t(true);
+            std::vector<GpuProcessingTask<ImageType>> gpts;
+
+            t.start_timer("Creating GPTS");
+            //std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
+            for (int i = 0; i < numOfStreams; ++i) {
+                gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
+            }
+            // cudaDeviceSynchronize();
+            t.stop_timer();
+
+            t.start_timer("-----------------------------> Whole GPU pipeline with repetitions");
+            {
+
+                APRTimer tt(false);
+                // Create streams and send initial task to do
+                for (int i = 0; i < numOfStreams; ++i) {
+                    // gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, bspline_offset, aAPR.level_max()));
+                    tt.start_timer("SEND");
+                    gpts[i].sendDataToGpu();
+                    gpts[i].processOnGpu();
+                    tt.stop_timer();
+                    // std::cout << "Send " << i << std::endl;
+                    // gpts.back().processOnGpu();
+                    // std::cout << "Proc " << i << std::endl;
+                }
+                // Create streams and send initial task to do
+                for (int i = 0; i < numOfStreams; ++i) {
+                    // gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
+                    tt.start_timer("Process");
+                    // gpts[i].processOnGpu();
+                    tt.stop_timer();
+                    // std::cout << "Proc " << i << std::endl;
+                }
+                std::cout << "=========" << std::endl;
+
+                for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
+                    int c = i % numOfStreams;
+
+                    // get data from previous task
+                    // gpts_futures[c].get();
+                    auto linearAccessGpu = gpts[c].getDataFromGpu();
+                    // std::cout << "Get  " << c << std::endl;
+
+                    // in theory, we get new data and send them to task
+                    if (i  < numOfStreams * (repetitionsPerStream - 1)) {
+                        gpts[c].sendDataToGpu();
+                        // std::cout << "Send " << c << std::endl;
+                        gpts[c].processOnGpu();
+                        // gpts_futures[c] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[c]);
+                        // std::cout << "Proc " << c << std::endl;
+                    }
+
+                    aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
+
+                    // generateDatastructures(aAPR) for linearAcceess for CUDA
+                    aAPR.linearAccess.y_vec.copy(linearAccessGpu.y_vec);
+                    aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
+                    aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
+                    aAPR.apr_initialized = true;
+
+                    // std::cout << "CUDA pipeline finished!\n";
+                }
+                // cudaDeviceSynchronize();
+            }
+            auto allT = t.stop_timer();
+            std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
+        }
+        auto allT = ttt.stop_timer();
+        std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
+        std::cout << "<<<<<<<<<<<< STOP\n";
+    }
+
 
     return false; //TODO: change it back to true
 }
@@ -624,8 +715,8 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_imag
 #ifndef APR_USE_CUDA
     return get_apr_cpu(aAPR, input_image);
 #else
-    // return get_apr_cuda(aAPR, input_image);
-    return get_apr_cuda_streams(aAPR, input_image);
+    return get_apr_cuda(aAPR, input_image);
+    // return get_apr_cuda_streams(aAPR, input_image);
 #endif
 }
 

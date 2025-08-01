@@ -358,6 +358,57 @@ namespace {
         }
     }
 
+
+        TEST(ComputeThreshold, FULL_PIPELINE_TEST_CPU_vs_GPU_via_APRConverter) {
+        APRTimer timer(true);
+
+        // Generate random mesh of two sizes very small and reasonable large to catch all possible computation errors
+        using ImageType = uint16_t;
+        std::string file_name = get_source_directory_apr() + "files/Apr/sphere_120/sphere_original.tif";
+        PixelData<ImageType> input_image_raw = TiffUtils::getMesh<uint16_t>(file_name);
+        std::cout << input_image_raw << std::endl;
+
+        // Prepare parameters
+        APRParameters par;
+        par.lambda = 2;
+        par.Ip_th = -1;
+        par.sigma_th = 234;
+        par.sigma_th_max = 0;
+        par.grad_th=10;
+        par.dx = 1;
+        par.dy = 1;
+        par.dz = 1;
+        par.neighborhood_optimization = true;
+        par.auto_parameters = false;
+        par.output_steps = false;
+        par.neighborhood_optimization = true;
+        par.sigma_th = 234;
+        std::cout << par << std::endl;
+        APR apr;
+        APRConverter<uint16_t> converter;
+        converter.par = par;
+        converter.set_generate_linear(true);
+        converter.set_sparse_pulling_scheme(false);
+        converter.get_apr_cuda(apr, input_image_raw);
+        std::cout << "APR CUDA total particles: " << apr.total_number_particles() << std::endl;
+
+        APR apr2;
+        APRConverter<uint16_t> converter2;
+        converter2.par = par;
+        converter2.set_generate_linear(true);
+        converter2.set_sparse_pulling_scheme(false);
+        converter2.get_apr_cpu(apr2, input_image_raw);
+        std::cout << "APR  CPU total particles: " << apr2.total_number_particles() << std::endl;
+
+        // Compare GPU vs CPU - expect exactly same result
+        EXPECT_EQ(compareParticles(apr.linearAccess.y_vec, apr2.linearAccess.y_vec), 0);
+        EXPECT_EQ(compareParticles(apr.linearAccess.level_xz_vec, apr2.linearAccess.level_xz_vec), 0);
+        EXPECT_EQ(compareParticles(apr.linearAccess.xz_end_vec, apr2.linearAccess.xz_end_vec), 0);
+
+        EXPECT_EQ(apr.total_number_particles(), apr2.total_number_particles());
+        EXPECT_EQ(apr.linearAccess.y_vec.size(), apr2.linearAccess.y_vec.size());
+
+    }
 #endif // APR_USE_CUDA
 }
 

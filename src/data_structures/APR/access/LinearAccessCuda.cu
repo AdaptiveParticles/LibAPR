@@ -3,93 +3,6 @@
 #include "misc/CudaTools.cuh"
 #include "algorithm/ParticleCellTreeCuda.cuh"
 
-// CUDA version of GenInfo structure
-typedef struct GenInfoCuda_t {
-    int l_min;
-    int l_max;
-
-    int *org_dims; // fixed size: [3]
-
-    uint8_t number_dimensions;
-
-    int *x_num;
-    int *y_num;
-    int *z_num;
-
-    // this differs from original GenInfo structure
-    // since we need to be able to send data back from GPU to CPU
-    uint64_t *total_number_particles;
-
-    int *level_size;
-
-    uint64_t get_total_number_particles() const { return *total_number_particles; }
-
-    __device__ int level_max() const { return l_max; }
-    __device__ int level_min() const { return l_min; }
-
-} GenInfoCuda;
-
-// -----------------------------
-
-/*
- * Class for easy transfering to/from GPU of GenInfo structure.
- */
-class GenInfoGpuAccess {
-    GenInfo &gi;
-
-    cudaStream_t iStream;
-
-    ScopedCudaMemHandler<int*, H2D | D2H> org_dims;
-    ScopedCudaMemHandler<int*, H2D | D2H> x_num;
-    ScopedCudaMemHandler<int*, H2D | D2H> y_num;
-    ScopedCudaMemHandler<int*, H2D | D2H> z_num;
-    ScopedCudaMemHandler<uint64_t*, H2D | D2H> total_number_particles;
-    ScopedCudaMemHandler<int*, H2D | D2H> level_size;
-
-
-public:
-    GenInfoGpuAccess(GenInfo &genInfo, cudaStream_t cudaStream) :
-        gi(genInfo),
-        iStream(cudaStream),
-        org_dims(gi.org_dims, 3, iStream),
-        x_num(gi.x_num.data(), gi.x_num.size(), iStream),
-        y_num(gi.y_num.data(), gi.y_num.size(), iStream),
-        z_num(gi.z_num.data(), gi.z_num.size(), iStream),
-        total_number_particles(&gi.total_number_particles, 1, iStream),
-        level_size(gi.level_size.data(), gi.level_size.size(), iStream)
-    {
-    }
-
-    GenInfoCuda getGenInfoCuda() {
-        GenInfoCuda gic;
-
-        gic.l_min = gi.l_min;
-        gic.l_max = gi.l_max;
-        gic.org_dims = org_dims.get();
-        gic.number_dimensions = gi.number_dimensions;
-        gic.x_num = x_num.get();
-        gic.y_num = y_num.get();
-        gic.z_num = z_num.get();
-        gic.total_number_particles = total_number_particles.get();
-        gic.level_size = level_size.get();
-
-        return gic;
-    }
-
-    ~GenInfoGpuAccess() {
-        copyDtoH();
-    }
-
-    void copyHtoD() {
-        // The only data that can change between CPU & GPU (the rest values are fixed based on input image dimension)
-        total_number_particles.copyH2D();
-    }
-
-    void copyDtoH() {
-        // The only data that can change between CPU & GPU (the rest values are fixed based on input image dimension)
-        total_number_particles.copyD2H();
-    }
-};
 
 // *********************************************************************************************************************
 //                       FULL RESOLUTION
@@ -155,7 +68,7 @@ void runFullResolution(const uint64_t *level_xz, uint64_t *xz_end, uint16_t *y, 
 static constexpr uint8_t seed_us = UPSAMPLING_SEED_TYPE; //deal with the equivalence optimization
 
 
-__global__ void firstStep(const uint8_t *prevLevel, uint8_t *currLevel, int level, uint8_t min_type, GenInfoCuda gic) {
+__global__ void firstStepLAC(const uint8_t *prevLevel, uint8_t *currLevel, int level, uint8_t min_type, GenInfoCuda gic) {
     const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z;
     const uint64_t xLen = gic.x_num[level];
@@ -179,15 +92,15 @@ __global__ void firstStep(const uint8_t *prevLevel, uint8_t *currLevel, int leve
 }
 
 void runFirstStep(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, cudaStream_t aStream) {
-    dim3 threadsPerBlock(32, 1, 1);
-
+    dim3 threadsPerBlock(128, 1, 1);
+    auto genInfoCuda = giga.getGenInfoCuda();
     for (int level = gi.l_min + 1; level < gi.l_max; ++level) {
         dim3 numBlocks( (gi.x_num[level] + threadsPerBlock.x - 1)/threadsPerBlock.x,
                         1,
                         (gi.z_num[level] + threadsPerBlock.z - 1)/threadsPerBlock.z);
         auto *p_mapPrev = p_map[level - 1];
         auto *p_mapCurr = p_map[level];
-        firstStep<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapPrev, p_mapCurr, level, min_type, giga.getGenInfoCuda());
+        firstStepLAC<<<numBlocks, threadsPerBlock, 0, aStream>>>(p_mapPrev, p_mapCurr, level, min_type, genInfoCuda);
     }
 
     cudaError_t err = cudaGetLastError();
@@ -309,15 +222,41 @@ __global__ void secondStepLastLevel(const uint8_t *currLevel, int level_minus_1,
     }
 }
 
-__global__ void secondStepCountParticles(GenInfoCuda gic, const uint64_t *level_xz, uint64_t *xz_end, uint64_t counter_total) {
-    // std::partial_sum on one CUDA core naive implementation
-    size_t sum = xz_end[0];
-    for (size_t i = 1; i < counter_total; i++) {
-        sum += xz_end[i];
-        xz_end[i] = sum;
+
+__global__ void secondStepCountParticles(GenInfoCuda gic, uint64_t *xz_end, uint64_t counter_total) {
+    extern __shared__ uint64_t b[];
+    const int idx = threadIdx.x;
+    // std::partial_sum on one CUDA core implementation
+    //
+    // How it works:
+    // 1. Each thread reads a value from xz_end into shared memory as coalesced memory access to speed up process
+    // 2. The first thread (idx == 0) computes the partial sum for the block (this is fast enough)
+    // 3. The partial sums are written back to xz_end in coalesced memory manner.
+    // In general sice this is multi-warp code __syncthreads() are used to be sure that all threads are at same
+    // place in code.
+
+    uint64_t sum = 0;
+    for (uint64_t i = 0; i < counter_total; i+= blockDim.x) {
+        if ((i + idx) < counter_total) b[idx] = xz_end[i + idx];
+        __syncthreads();
+
+        if (idx == 0) {
+            size_t endIdx = blockDim.x;
+            if ((i + blockDim.x - 1) >= counter_total) {
+                endIdx = counter_total - i;
+            }
+            for (size_t n = 0; n < endIdx; n++) {
+                sum += b[n];
+                b[n] = sum;
+            }
+        }
+        __syncthreads();
+
+        if ((i + idx) < counter_total) xz_end[i + idx] = b[idx];
+        __syncthreads();
     }
 
-    *gic.total_number_particles = xz_end[counter_total -1];
+    if (idx == 0) *gic.total_number_particles = xz_end[counter_total - 1];
 }
 
 void runSecondStepLastLevel(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCuda &p_map, uint8_t min_type, const uint64_t *level_xz, uint64_t *xz_end, uint64_t counter_total, cudaStream_t aStream) {
@@ -336,7 +275,8 @@ void runSecondStepLastLevel(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleC
         throw std::runtime_error("runSecondStepLastLevel #1 failed");
     }
 
-    secondStepCountParticles<<<1, 1, 0, aStream>>>(giga.getGenInfoCuda(), level_xz, xz_end, counter_total);
+    int numOfWorkers = 128;
+    secondStepCountParticles<<<1, numOfWorkers, numOfWorkers * sizeof(uint64_t), aStream>>>(giga.getGenInfoCuda(), xz_end, counter_total);
 
     err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -511,15 +451,14 @@ void runFourthStep(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCu
 
 
 /*
+ * This function is for testing purposes only.
+ *
  * This function does everything:
  * - creates CPU structures
  * - copies everything to GPU
  * - run computation of all linear-structures
  * - copy it back to CPU
  * - returns all the structure
- *
- *  In current shape it is a good function for testing implementation rather than using it in production code.
- *  Production code should use parts of it and work on pre-allocated memory - probably in GpuProcessingTask.
  */
 LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct) {
 
@@ -546,10 +485,10 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRPara
     }
     xz_end_vec.resize(counter_total, 0);
 
-//    auto prt = [&](const auto& v){ std::cout << "size=" << v.size() << " data="; for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << ", "; std::cout << std::endl; };
-//    prt(y_vec);
-//    prt(xz_end_vec);
-//    prt(level_xz_vec);
+    // auto prt = [&](const auto& v){ std::cout << "size=" << v.size() << " data="; for (size_t i = 0; i < v.size(); i++) std::cout << v[i] << ", "; std::cout << std::endl; };
+    // prt(y_vec);
+    // prt(xz_end_vec);
+    // prt(level_xz_vec);
 
     // TODO: This is temporary solution.
     //       Since in CPU code size of y_vec is calculated 'on the fly' and in CUDA code it would be much better
@@ -574,6 +513,8 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRPara
             runGetYvalues(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda.get(), aStream);
             runFourthStep(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda.get(), counter_total, aStream);
         }
+        // TODO: This is temporary solution. Fix GIGA destructor and stream handling!
+        giga.copyDtoH();
     }
 
     // TODO: Resized back to correct size, should it be initialized to this size in the first place or pre-allocation for
@@ -593,46 +534,19 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRPara
     return lac;
 }
 
-void computeLinearStructureCuda(uint16_t *y_vec_cuda, ParticleCellTreeCuda &p_map, GenInfo &gi, const APRParameters &apr_parameters, LinearAccessCudaStructs &lacs, cudaStream_t aStream) {
+void computeLinearStructureCuda(uint16_t *y_vec_cuda, uint64_t *xz_end_vec_cuda, const uint64_t *level_xz_vec_cuda, ParticleCellTreeCuda &p_map, GenInfo &gi, GenInfoGpuAccess &giga, const APRParameters &apr_parameters, uint64_t counter_total, cudaStream_t aStream) {
 
-    uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
+    const uint8_t min_type = apr_parameters.neighborhood_optimization ? 1 : 2;
 
-    VectorData<uint64_t> xz_end_vec(true);
-    VectorData<uint64_t> level_xz_vec(true);
-
-    // initialize_xz_linear() - CPU impl.
-    uint64_t counter_total = 1; //the buffer val to allow -1 calls without checking.
-    level_xz_vec.resize(gi.l_max + 2, 0); //includes a buffer for -1 calls, and therefore needs to be called with level + 1;
-    level_xz_vec[0] = 1; //allowing for the offset.
-    for (int i = 0; i <= gi.l_max; ++i) {
-        counter_total += gi.x_num[i] * gi.z_num[i];
-        level_xz_vec[i + 1] = counter_total;
+    if (gi.l_max <= 2) {
+        runFullResolution(level_xz_vec_cuda, xz_end_vec_cuda, y_vec_cuda, gi, giga, aStream);
     }
-    xz_end_vec.resize(counter_total, 0);
-
-
-    {
-        ScopedCudaMemHandler<uint64_t *, D2H> xz_end_vec_cuda(xz_end_vec.data(), xz_end_vec.size(), aStream);
-        ScopedCudaMemHandler<uint64_t *, H2D | D2H> level_xz_vec_cuda(level_xz_vec.data(), level_xz_vec.size(), aStream);
-        GenInfoGpuAccess giga(gi, aStream);
-        if (gi.l_max <= 2) {
-            runFullResolution(level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda, gi, giga, aStream);
-        }
-        else {
-            runFirstStep(gi, giga, p_map, min_type, aStream);
-            runSecondStep(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), aStream);
-            runSecondStepLastLevel(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), counter_total, aStream);
-            runGetYvalues(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda, aStream);
-            runFourthStep(gi, giga, p_map, min_type, level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda, counter_total, aStream);
-        }
+    else {
+        runFirstStep(gi, giga, p_map, min_type, aStream);
+        runSecondStep(gi, giga, p_map, min_type, level_xz_vec_cuda, xz_end_vec_cuda, aStream);
+        runSecondStepLastLevel(gi, giga, p_map, min_type, level_xz_vec_cuda, xz_end_vec_cuda, counter_total, aStream);
+        runGetYvalues(gi, giga, p_map, min_type, level_xz_vec_cuda, xz_end_vec_cuda, y_vec_cuda, aStream);
+        runFourthStep(gi, giga, p_map, min_type, level_xz_vec_cuda, xz_end_vec_cuda, y_vec_cuda, counter_total, aStream);
     }
-
-    VectorData<uint16_t> y_vec(true);
-    y_vec.resize(gi.total_number_particles);
-    checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda, gi.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, aStream));
-    checkCuda(cudaStreamSynchronize(aStream));
-
-    lacs.y_vec.swap(y_vec);
-    lacs.xz_end_vec.swap(xz_end_vec);
-    lacs.level_xz_vec.swap(level_xz_vec);
+    giga.copyDtoH();
 }

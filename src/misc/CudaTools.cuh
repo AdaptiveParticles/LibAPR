@@ -18,7 +18,7 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
 #if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
     if (code != cudaSuccess)
     {
-        fprintf(stderr,"GPUassert: (%d) %s %s %d\n", code, cudaGetErrorString(code), file, line);
+        fprintf(stderr,"GPUassert: (%d) (%s) %s %d\n", code, cudaGetErrorString(code), file, line);
         assert(code == cudaSuccess); // If debugging it helps to see call tree somehow
         if (abort) exit(code);
     }

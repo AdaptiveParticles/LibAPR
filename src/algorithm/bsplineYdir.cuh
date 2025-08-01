@@ -138,7 +138,7 @@ __global__ void bsplineYdirBoundary(T *image, PixelDataDim dim, BsplineParamsCud
 }
 
 constexpr int blockWidth = 32;
-constexpr int numOfThreads = 32;
+constexpr int numOfThreads = 64;
 extern __shared__ char sharedMemProcess[];
 template<typename T>
 __global__ void bsplineYdirProcess(T *image, const PixelDataDim dim, BsplineParamsCuda p, float *boundary, bool *error) {

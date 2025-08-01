@@ -364,7 +364,7 @@ round(float val, size_t &errCount) {
 
     if(val < std::numeric_limits<T>::min() || val > std::numeric_limits<T>::max()) {
         errCount++;
-        std::cout << val << " " << (float)std::numeric_limits<T>::min() << " " << (float)std::numeric_limits<T>::max() << std::endl;
+        // std::cout << val << " " << (float)std::numeric_limits<T>::min() << " " << (float)std::numeric_limits<T>::max() << std::endl;
     }
     return val;
 }
