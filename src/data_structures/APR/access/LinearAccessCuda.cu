@@ -548,5 +548,4 @@ void computeLinearStructureCuda(uint16_t *y_vec_cuda, uint64_t *xz_end_vec_cuda,
         runGetYvalues(gi, giga, p_map, min_type, level_xz_vec_cuda, xz_end_vec_cuda, y_vec_cuda, aStream);
         runFourthStep(gi, giga, p_map, min_type, level_xz_vec_cuda, xz_end_vec_cuda, y_vec_cuda, counter_total, aStream);
     }
-    giga.copyDtoH();
 }

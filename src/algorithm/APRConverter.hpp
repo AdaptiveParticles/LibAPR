@@ -400,10 +400,11 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
 
     if (!initPipelineAPR(aAPR, input_image)) return false;
 
+    total_timer.start_timer("full_pipeline");
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
     computation_timer.start_timer("init_mem");
-    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full sized copy of the image)
+    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full-size copy of the image)
 
     /////////////////////////////////
     /// Pipeline
@@ -435,6 +436,8 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
 
     std::cout << "CUDA pipeline finished!\n";
 
+    total_timer.stop_timer();
+
     return true;
 }
 #endif
@@ -465,14 +468,11 @@ inline bool APRConverter<ImageType>::get_apr_cuda_streams(APR &aAPR, PixelData<T
     // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
     // Warning both of these could result in over-flow!
 
-    if (std::is_same<uint16_t, ImageType>::value) {
-        bspline_offset = 100;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else if (std::is_same<uint8_t, ImageType>::value) {
-        bspline_offset = 5;
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    } else {
+    if (std::is_floating_point<ImageType>::value) {
         image_temp.copyFromMesh(input_image);
+    } else {
+        bspline_offset = compute_bspline_offset<ImageType>(input_image, par.lambda);
+        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
     }
 
 

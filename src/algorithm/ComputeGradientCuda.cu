@@ -447,48 +447,46 @@ public:
     }
 
     void processOnGpu() {
-        image.copyH2D();
-        CurrentTime ct{};
-        uint64_t start = ct.microseconds();
+        // Set it and copy first before copying the image
+        // It improves *a lot* performance even though it is needed later in computeLinearStructureCuda()
+        iAprInfo.total_number_particles = 0; // reset total_number_particles to 0
+        giga.copyHtoD();
+        level_xz_vec_cuda.copyH2D();
 
-        CudaTimer time(false, "PIPELINE");
-        time.start_timer("getgradient");
+        image.copyH2D();
+
         getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
                          splineCudaX, splineCudaY, splineCudaZ, boundary.get(), isErrorDetectedPinned[0], isErrorDetectedCuda,
                         iBsplineOffset, iParameters, iStream);
-        time.stop_timer();
-        time.start_timer("intensity");
+
         runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), lstPadded.get(), lst2Padded.get(), iStream);
-        time.stop_timer();
 
         // Apply parameters from APRConverter:
-        time.start_timer("runs....");
         runThreshold(local_scale_temp2.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.Ip_th + iBsplineOffset, iStream);
         runRescaleAndThreshold(local_scale_temp.get(), iCpuLevels.mesh.size(), iParameters.sigma_th, iParameters.sigma_th_max, iStream);
         runThresholdOpen(gradient.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.grad_th, iStream);
         // TODO: automatic parameters are not implemented for GPU pipeline (yet)
-        time.stop_timer();
 
-        time.start_timer("compute lev");
         float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
         float level_factor = pow(2, iMaxLevel) * min_dim;
         const float mult_const = level_factor/iParameters.rel_error;
         runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
-        time.stop_timer();
         computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
 
-
-        level_xz_vec_cuda.copyH2D();
-        iAprInfo.total_number_particles = 0; // reset total_number_particles to 0
-        giga.copyHtoD();
         computeLinearStructureCuda(y_vec_cuda.get(), xz_end_vec_cuda.get(), level_xz_vec_cuda.get(), pctc, iAprInfo, giga, iParameters, counter_total, iStream);
 
+        // Get data from GPU - first we need to get number of particles to resize y_vec and have idea how many particles to copy - that is why we need to synchronize first time
+        giga.copyDtoH();
+        checkCuda(cudaStreamSynchronize(iStream));
+
+        // Start copying the data from GPU to CPU
         xz_end_vec_cuda.copyD2H();
-
-        // Trim buffer to calculated size (initially it is allocated to worst case - same number of particles as pixels in input image)
+        // Trim buffer to calculated size (initially it is allocated to worst case - same number of particles as pixels in input image) and copy data from GPU
         y_vec.resize(iAprInfo.total_number_particles);
-
+        // Copy y_vec from GPU to CPU and synchronize last time - it is needed before we copy data to CPU structures
         checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda.get(), iAprInfo.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, iStream));
+
+        // Synchornize last time - at that moment all data from GPU is copied to CPU
         checkCuda(cudaStreamSynchronize(iStream));
 
         // Prepare CPU structures
