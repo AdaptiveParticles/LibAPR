@@ -46,7 +46,6 @@ public:
     ~GpuProcessingTask();
     GpuProcessingTask(GpuProcessingTask&&);
 
-    void sendDataToGpu();
     LinearAccessCudaStructs getDataFromGpu();
     void processOnGpu();
 };

@@ -294,6 +294,20 @@ public :
     }
 
     /**
+     * Move assignment operator
+     * @param aObj
+     */
+    VectorData& operator=(VectorData &&aObj) {
+        usePinnedMemory = aObj.usePinnedMemory;
+        vecMemory.swap(aObj.vecMemory);
+        vec = std::move(aObj.vec);
+#ifdef APR_USE_CUDA
+        vecMemoryPinned = std::move(aObj.vecMemoryPinned);
+#endif
+        return *this;
+    }
+
+    /**
      * Apply unary operator to each element in parallel, writing the result to VectorData 'output'.
      * @tparam S
      * @tparam UnaryOperator

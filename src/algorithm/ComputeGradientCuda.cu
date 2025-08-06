@@ -406,7 +406,7 @@ public:
         splineCudaX = cudax.first;
         splineCudaY = cuday.first;
         splineCudaZ = cudaz.first;
-        std::cout << "\n=============== GpuProcessingTaskImpl ===================" << iStream << "\n\n";
+        // std::cout << "\n=============== GpuProcessingTaskImpl ===================" << iStream << "\n\n";
 //        std::cout << iCpuImage << std::endl;
 //        std::cout << iCpuLevels << std::endl;
 
@@ -435,11 +435,6 @@ public:
 
         isErrorDetectedPinned.resize(1);
         isErrorDetectedCuda.initialize(isErrorDetectedPinned.data(), 1, iStream);
-    }
-
-    void sendDataToGpu() {
-        // sends data in processOnGpu()
-        // in multi-stream implementation it is done in threads so is not blocking current operations.
     }
 
     LinearAccessCudaStructs getDataFromGpu() {
@@ -507,9 +502,6 @@ GpuProcessingTask<ImgType>::~GpuProcessingTask() { }
 
 template <typename ImgType>
 GpuProcessingTask<ImgType>::GpuProcessingTask(GpuProcessingTask&&) = default;
-
-template <typename ImgType>
-void GpuProcessingTask<ImgType>::sendDataToGpu() {impl->sendDataToGpu();}
 
 template <typename ImgType>
 LinearAccessCudaStructs GpuProcessingTask<ImgType>::getDataFromGpu() {return impl->getDataFromGpu();}

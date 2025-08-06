@@ -340,7 +340,6 @@ namespace {
             // Calculate pipeline on GPU
             timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
             GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, bspline_offset, maxLevel);
-            gpt.sendDataToGpu();
             gpt.processOnGpu();
             auto linearAccessGpu = gpt.getDataFromGpu();
             giGpu.total_number_particles = linearAccessGpu.y_vec.size();
@@ -359,7 +358,7 @@ namespace {
     }
 
 
-        TEST(ComputeThreshold, FULL_PIPELINE_TEST_CPU_vs_GPU_via_APRConverter) {
+    TEST(ComputeThreshold, FULL_PIPELINE_TEST_CPU_vs_GPU_via_APRConverter) {
         APRTimer timer(true);
 
         // Generate random mesh of two sizes very small and reasonable large to catch all possible computation errors
