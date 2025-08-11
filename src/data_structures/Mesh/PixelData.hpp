@@ -482,6 +482,9 @@ public :
         z_num = aObj.z_num;
         mesh = std::move(aObj.mesh);
         meshMemory = std::move(aObj.meshMemory);
+#ifdef APR_USE_CUDA
+        meshMemoryPinned = std::move(aObj.meshMemoryPinned);
+#endif
     }
 
     /**
@@ -494,6 +497,9 @@ public :
         z_num = aObj.z_num;
         mesh = std::move(aObj.mesh);
         meshMemory = std::move(aObj.meshMemory);
+#ifdef APR_USE_CUDA
+        meshMemoryPinned = std::move(aObj.meshMemoryPinned);
+#endif
         return *this;
     }
 
