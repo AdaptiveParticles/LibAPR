@@ -1,5 +1,6 @@
 macro(buildTarget TARGET)
     add_executable(${TARGET} ${TARGET}.cpp)
+    set_property(TARGET ${TARGET} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${APR_BUILD_LIBRARY} Threads::Threads ${OPENMP_LINK})
 endmacro(buildTarget)
 
