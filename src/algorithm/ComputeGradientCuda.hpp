@@ -42,12 +42,14 @@ class GpuProcessingTask {
 
 public:
 
-    GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel);
+    GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, int maxLevel);
     ~GpuProcessingTask();
     GpuProcessingTask(GpuProcessingTask&&);
 
     LinearAccessCudaStructs getDataFromGpu();
     void processOnGpu();
+
+    void setBsplineOffset(float bspline_offset);
 };
 
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP

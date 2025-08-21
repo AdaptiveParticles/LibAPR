@@ -326,7 +326,7 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     PixelData<float> &iCpuLevels;
     const APRParameters &iParameters;
     GenInfo iAprInfo;
-    float iBsplineOffset;
+    float iBsplineOffset = 0;
     int iMaxLevel;
 
     // cuda stuff - memory and stream to be used
@@ -377,7 +377,7 @@ public:
     // TODO: Remove need for passing 'levels' to GpuProcessingTask
     //       It was used during development to control internal computation like filters, gradient, levels etc. but
     //       once all is done there is no need for it anymore
-    GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel) :
+    GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, PixelData<float> &levels, const APRParameters &parameters, int maxLevel) :
         iCpuImage(inputImage),
         iCpuLevels(levels),
         iStream(cudaStream.get()),
@@ -387,7 +387,6 @@ public:
         local_scale_temp2 (levels, iStream),
         iParameters(parameters),
         iAprInfo(iCpuImage.getDimension()),
-        iBsplineOffset(bspline_offset),
         iMaxLevel(maxLevel),
         cudax(transferSpline(prepareBsplineStuff(iCpuImage.x_num, iParameters.lambda, tolerance), iStream)),
         cuday(transferSpline(prepareBsplineStuff(iCpuImage.y_num, iParameters.lambda, tolerance), iStream)),
@@ -490,12 +489,14 @@ public:
         lacs.y_vec.copy(y_vec);
     }
 
+    void setBsplineOffset(float offset) {iBsplineOffset = offset;}
+
     ~GpuProcessingTaskImpl() {}
 };
 
 template <typename ImgType>
-GpuProcessingTask<ImgType>::GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel)
-: impl{new GpuProcessingTaskImpl<ImgType>(image, levels, parameters, bspline_offset, maxLevel)} { }
+GpuProcessingTask<ImgType>::GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, int maxLevel)
+: impl{new GpuProcessingTaskImpl<ImgType>(image, levels, parameters, maxLevel)} { }
 
 template <typename ImgType>
 GpuProcessingTask<ImgType>::~GpuProcessingTask() { }
@@ -508,6 +509,9 @@ LinearAccessCudaStructs GpuProcessingTask<ImgType>::getDataFromGpu() {return imp
 
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}
+
+template <typename ImgType>
+void GpuProcessingTask<ImgType>::setBsplineOffset(float offset) {impl->setBsplineOffset(offset);}
 
 // explicit instantiation of handled types
 template class GpuProcessingTask<uint8_t>;
