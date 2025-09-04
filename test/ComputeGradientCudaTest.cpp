@@ -359,6 +359,54 @@ namespace {
         EXPECT_EQ(compareMeshes(local_scale_temp, local_scale_temp_GPU, 0), 0);
     }
 
+
+
+
+    TEST(ComputeThreshold, TEST_FIND_MIN_MAX) {
+        // Sizes of input data to test
+        std::vector<std::tuple<int, int, int>> allSizes = {{2, 1, 1},
+                                                           {146, 321, 137},
+                                                           {512, 512, 512},
+                                                           {127,1, 1},
+                                                           {129, 1, 1}};
+
+        for (auto &p : allSizes) {
+            int yLen = std::get<0>(p);
+            int xLen = std::get<1>(p);
+            int zLen = std::get<2>(p);
+
+
+            // Generate input image
+            using ImageType = uint16_t;
+            PixelData<ImageType> input_image = getRandInitializedMesh<ImageType>(yLen, xLen, zLen, 15, 20, true);
+            // Set whole input_image to 1001
+            for (size_t i = 0; i < input_image.mesh.size(); ++i) {
+                input_image.mesh[i] = 1001;
+            }
+
+            const int hiValue = 5000;
+            const int lowValue = 666;
+
+            // Add two random pixels with some max and min value
+            srand((unsigned)time(0));
+            int randIndexMax = rand() % input_image.mesh.size();
+            input_image.mesh[randIndexMax] = hiValue;
+            int randIndexMin = rand() % input_image.mesh.size();
+            // Make sure min and max indices are not the same
+            if (randIndexMin == randIndexMax) {
+                randIndexMin = (randIndexMin + 1) % input_image.mesh.size();
+            }
+            input_image.mesh[randIndexMin] = lowValue;
+            // Print indices in case of debugging
+            std::cout << "Position of max and min values: " << randIndexMax << " " << randIndexMin << std::endl;
+
+            // Function under test
+            auto res = cudaRunMinMax(input_image);
+
+            EXPECT_EQ(res.first, lowValue);
+            EXPECT_EQ(res.second, hiValue);
+        }
+    }
 #endif // APR_USE_CUDA
 
 }

@@ -33,6 +33,7 @@ void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &
 template <typename ImgType>
 void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz);
+template<typename T> std::pair<T,T> cudaRunMinMax(PixelData<T> &input_image);
 
 template <typename ImgType>
 class GpuProcessingTask {

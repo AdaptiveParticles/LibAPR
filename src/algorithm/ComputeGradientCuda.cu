@@ -26,6 +26,7 @@
 #include "bsplineXdir.cuh"
 #include "bsplineYdir.cuh"
 #include "bsplineZdir.cuh"
+#include "findMinMax.cuh"
 
 #include "data_structures/APR/access/GenInfoGpuAccess.cuh"
 
@@ -653,3 +654,46 @@ void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, co
 
     runKernelGradient(cudaInput.get(), cudaGrad.get(), input.getDimension(), grad.getDimension(), hx, hy, hz, aStream);
 }
+
+
+template<typename T>
+std::pair<T,T> cudaRunMinMax(PixelData<T> &input_image) {
+    cudaStream_t  aStream = nullptr;
+
+    // Copy CPU image to CUDA mem
+    ScopedCudaMemHandler<PixelData<T>, H2D> cudaImage(input_image, aStream);
+
+    // In nvidia GPUs maximum number of threads per SM is multiplication of 512 (usually 1536 or 2048)
+    // Calculate number of blocks to saturate whole SMs
+    // Multiply it by 8 to have more smaller blocks to have better load balancing in case GPU is busy with other tasks
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, 0);
+    const int smCount = deviceProp.multiProcessorCount;
+    const int numOfThreadsPerSM = deviceProp.maxThreadsPerMultiProcessor;
+    constexpr int numOfThreads = 512;
+    const int numOfBlocksPerSM = numOfThreadsPerSM / 512;
+    const int maxNumberOfBlocks = smCount * numOfBlocksPerSM * 8;
+    const size_t numOfElements = input_image.getDimension().size();
+    int numOfBlocks = std::min(maxNumberOfBlocks, static_cast<int>((numOfElements + numOfThreads -1) / numOfThreads) );
+
+    // Allocate memory for results both for CPU and GPU
+    VectorData<T> minVector(true);
+    VectorData<T> maxVector(true);
+    minVector.resize(numOfBlocks);
+    maxVector.resize(numOfBlocks);
+    ScopedCudaMemHandler<T*, JUST_ALLOC> resultsMin(minVector.data(), numOfBlocks, aStream);
+    ScopedCudaMemHandler<T*, JUST_ALLOC> resultsMax(maxVector.data(), numOfBlocks, aStream);
+
+    // Run kernel and copy data back to CPU
+    runFindMinMax(cudaImage.get(), input_image.getDimension(), aStream, resultsMin.get(), resultsMax.get(), numOfBlocks, numOfThreads);
+    resultsMin.copyD2H();
+    resultsMax.copyD2H();
+    waitForCuda();
+
+    // First values of minVector and maxVector contain min and max of all data
+    return std::pair<T, T>(minVector[0], maxVector[0]);
+}
+
+template std::pair<uint16_t, uint16_t> cudaRunMinMax(PixelData<uint16_t> &);
+template std::pair<int, int> cudaRunMinMax(PixelData<int> &);
+
