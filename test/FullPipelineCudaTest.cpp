@@ -340,7 +340,6 @@ namespace {
             // Calculate pipeline on GPU
             timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
             GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, maxLevel);
-            gpt.setBsplineOffset(bspline_offset);
             gpt.processOnGpu();
             auto linearAccessGpu = gpt.getDataFromGpu();
             giGpu.total_number_particles = linearAccessGpu.y_vec.size();

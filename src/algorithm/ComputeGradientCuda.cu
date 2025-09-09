@@ -289,6 +289,55 @@ void runRescaleAndThreshold(T *data, size_t len, float sigma, float sigmaMax, cu
     rescaleAndThreshold <<< numBlocks, threadsPerBlock, 0, aStream >>> (data, len, sigma, sigmaMax);
 }
 
+/**
+ * Compute bspline offset for APRConverter of integer type ImageType
+ */
+template<typename T>
+float computeBsplineOffset(T *cudaImage, PixelDataDim dim, float lambda, int numOfBlocks, ScopedCudaMemHandler<T*, JUST_ALLOC>  &resultsMin, ScopedCudaMemHandler<T*, JUST_ALLOC> &resultsMax, VectorData<T> &minVector, VectorData<T> &maxVector, cudaStream_t aStream) {
+
+    // if bspline smoothing is disabled, there is no need for an offset
+    if(lambda <= 0) return 0;
+
+    // Run kernel and copy data back to CPU
+    runFindMinMax(cudaImage, dim, aStream, resultsMin.get(), resultsMax.get(), numOfBlocks, numOfThreads);
+    resultsMin.copyD2H();
+    resultsMax.copyD2H();
+    checkCuda(cudaStreamSynchronize(aStream));
+
+    // compute offset to center the intensities in the ImageType range (can be negative)
+    float offset = (std::numeric_limits<T>::max() - (maxVector[0] - minVector[0])) / 2 - minVector[0];
+
+    // clamp the offset to [-100, 100]
+    return std::max(std::min(offset, 100.f), -100.f);
+}
+
+
+/**
+ * Thresholds output basing on input values. When input is <= thresholdLevel then output is set to 0 and is not changed otherwise.
+ * @param input
+ * @param output
+ * @param length - len of input/output arrays
+ * @param thresholdLevel
+ */
+template <typename T>
+__global__ void bsplineOffsetAndCopyOriginal(T *input, T *copy, size_t length, float bspline_offset) {
+    size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx < length) {
+        auto v = input[idx];
+        copy[idx] = v;
+        input[idx] = v + bspline_offset;
+    }
+}
+
+template <typename ImgType>
+void runBsplineOffsetAndCopyOriginal(ImgType *cudaImage, ImgType *cudaCopy, float bspline_offset, const PixelDataDim &dim, cudaStream_t aStream) {
+    dim3 threadsPerBlock(128);
+    dim3 numBlocks((dim.size() + threadsPerBlock.x - 1)/threadsPerBlock.x);
+    bsplineOffsetAndCopyOriginal<<<numBlocks,threadsPerBlock, 0, aStream>>>(cudaImage, cudaCopy, dim.size(), bspline_offset);
+};
+
+
 class CudaStream {
     cudaStream_t iStream;
 
@@ -332,6 +381,7 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
     // cuda stuff - memory and stream to be used
     ScopedCudaMemHandler<const PixelData<ImgType>, JUST_ALLOC> image;
+    ScopedCudaMemHandler<const PixelData<ImgType>, JUST_ALLOC> imageSampling;
     ScopedCudaMemHandler<PixelData<ImgType>, JUST_ALLOC> gradient;
     ScopedCudaMemHandler<PixelData<float>, JUST_ALLOC> local_scale_temp;
     ScopedCudaMemHandler<PixelData<float>, JUST_ALLOC> local_scale_temp2;
@@ -373,6 +423,13 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     GenInfoGpuAccess giga;
     uint64_t counter_total = 1;
 
+    // Preallocated memory for bspline shift computation
+    VectorData<ImgType> minVector{true};
+    VectorData<ImgType> maxVector{true};
+    ScopedCudaMemHandler<ImgType*, JUST_ALLOC> resultsMin;
+    ScopedCudaMemHandler<ImgType*, JUST_ALLOC> resultsMax;
+    int numOfBlocks;
+
 public:
 
     // TODO: Remove need for passing 'levels' to GpuProcessingTask
@@ -383,6 +440,7 @@ public:
         iCpuLevels(levels),
         iStream(cudaStream.get()),
         image (inputImage, iStream),
+        imageSampling (inputImage, iStream),
         gradient (levels, iStream),
         local_scale_temp (levels, iStream),
         local_scale_temp2 (levels, iStream),
@@ -435,6 +493,26 @@ public:
 
         isErrorDetectedPinned.resize(1);
         isErrorDetectedCuda.initialize(isErrorDetectedPinned.data(), 1, iStream);
+
+
+
+        // In nvidia GPUs maximum number of threads per SM is multiplication of 512 (usually 1536 or 2048)
+        // Calculate number of blocks to saturate whole SMs
+        // Multiply it by 8 to have more smaller blocks to have better load balancing in case GPU is busy with other tasks
+        cudaDeviceProp deviceProp;
+        cudaGetDeviceProperties(&deviceProp, 0);
+        const int smCount = deviceProp.multiProcessorCount;
+        const int numOfThreadsPerSM = deviceProp.maxThreadsPerMultiProcessor;
+        constexpr int numOfThreads = 512;
+        const int numOfBlocksPerSM = numOfThreadsPerSM / 512;
+        const int maxNumberOfBlocks = smCount * numOfBlocksPerSM * 8;
+        const size_t numOfElements = inputImage.getDimension().size();
+        numOfBlocks = std::min(maxNumberOfBlocks, static_cast<int>((numOfElements + numOfThreads -1) / numOfThreads) );
+
+        minVector.resize(numOfBlocks);
+        maxVector.resize(numOfBlocks);
+        resultsMin.initialize(minVector.data(), numOfBlocks, iStream);
+        resultsMax.initialize(maxVector.data(), numOfBlocks, iStream);
     }
 
     LinearAccessCudaStructs getDataFromGpu() {
@@ -442,6 +520,8 @@ public:
     }
 
     void processOnGpu() {
+
+
         // Set it and copy first before copying the image
         // It improves *a lot* performance even though it is needed later in computeLinearStructureCuda()
         iAprInfo.total_number_particles = 0; // reset total_number_particles to 0
@@ -449,6 +529,17 @@ public:
         level_xz_vec_cuda.copyH2D();
 
         image.copyH2D();
+
+        // offset image by factor (this is required if there are zero areas in the background with
+        // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
+        // Warning both of these could result in over-flow!
+        if (std::is_floating_point<ImgType>::value) {
+            iBsplineOffset = 0;
+        } else {
+            iBsplineOffset = computeBsplineOffset(image.get(), iCpuImage.getDimension(), iParameters.lambda, numOfBlocks, resultsMin, resultsMax, minVector, maxVector, iStream);
+        }
+        runBsplineOffsetAndCopyOriginal(image.get(), imageSampling.get(), iBsplineOffset /*bspline_offset*/, iCpuImage.getDimension(), iStream);
+
 
         getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
                          splineCudaX, splineCudaY, splineCudaZ, boundary.get(), isErrorDetectedPinned[0], isErrorDetectedCuda,
@@ -490,8 +581,6 @@ public:
         lacs.y_vec.copy(y_vec);
     }
 
-    void setBsplineOffset(float offset) {iBsplineOffset = offset;}
-
     ~GpuProcessingTaskImpl() {}
 };
 
@@ -510,9 +599,6 @@ LinearAccessCudaStructs GpuProcessingTask<ImgType>::getDataFromGpu() {return imp
 
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}
-
-template <typename ImgType>
-void GpuProcessingTask<ImgType>::setBsplineOffset(float offset) {impl->setBsplineOffset(offset);}
 
 // explicit instantiation of handled types
 template class GpuProcessingTask<uint8_t>;

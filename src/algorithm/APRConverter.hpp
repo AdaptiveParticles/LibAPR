@@ -76,8 +76,6 @@ public:
     template <typename T>
     bool get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
     template <typename T>
-    bool get_apr_cuda_streams(APR &aAPR, PixelData<T> &input_image);
-    template <typename T>
     bool get_apr_cuda_multistreams(APR &aAPR, const std::vector<PixelData<T> *> &input_images, int numOfStreams = 3);
 #endif
 
@@ -406,25 +404,13 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
     initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
 
     computation_timer.start_timer("init_mem");
-    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full-size copy of the image)
+    PixelData<ImageType> image_temp(input_image, true /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full-size copy of the image)
 
     /////////////////////////////////
     /// Pipeline
     ////////////////////////
-    // offset image by factor (this is required if there are zero areas in the background with
-    // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow!
-
-    if (std::is_floating_point<ImageType>::value) {
-        image_temp.copyFromMesh(input_image);
-    } else {
-        bspline_offset = compute_bspline_offset<ImageType>(input_image, par.lambda);
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    }
 
     GpuProcessingTask<ImageType> gpt(image_temp, local_scale_temp, par, aAPR.level_max());
-    // std::cout << "after gpt \n";
-    gpt.setBsplineOffset(bspline_offset);
     gpt.processOnGpu();
     auto linearAccessGpu = gpt.getDataFromGpu();
 
@@ -462,7 +448,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
         return false;
     }
 
-    // Reduce number of streams to number of images if there are less images than streams
+    // Reduce number of streams to number of images if there are fewer images than streams
     if (numOfImages < numOfStreams) numOfStreams = numOfImages;
 
     // Use first image to initialize the APR - all other images should have the same dimensions
@@ -476,7 +462,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
     std::vector<PixelData<ImageType>> tempImages;
     std::cout << "allocating PixelData for " << numOfStreams << " streams" << std::endl;
     for (int i = 0; i < numOfStreams; ++i) {
-        tempImages.emplace_back(PixelData<T>(*input_image, false /* don't copy */, true /* pinned memory */));
+        tempImages.emplace_back(PixelData<T>(*input_image, true /* copy */, true /* pinned memory */));
     }
 
      /////////////////////////////////
@@ -497,21 +483,9 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
     t.start_timer("GPU processing...");
     // Saturate all the streams with first images
     for (int i = 0; i < numOfStreams; ++i) {
-
-        // offset image by factor (this is required if there are zero areas in the background with
-        // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-        // Warning both of these could result in over-flow!
-        if (std::is_floating_point<ImageType>::value) {
-            tempImages[i].copyFromMesh(*input_images[i]);
-        } else {
-            bspline_offset = compute_bspline_offset<ImageType>(*input_images[i], par.lambda);
-            tempImages[i].copyFromMeshWithUnaryOp(*input_images[i], [=](const auto &a) { return (a + bspline_offset); });
-        }
         std::cout << "Processing image " << i << " on stream " << i  << std::endl;
-        gpts[i].setBsplineOffset(bspline_offset);
         gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
     }
-
 
     // Main loop - get results from GPU and send new images to the streams (if any left)
     for (int s = 0; s < numOfImages; ++s) {
@@ -525,14 +499,8 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
         // We have 'numOfImages - numOfStreams' left to process after saturating the streams with first images
         if (s  < numOfImages - numOfStreams) {
             int imageToProcess = s + numOfStreams;
-            if (std::is_floating_point<ImageType>::value) {
-                tempImages[streamNum].copyFromMesh(*input_images[imageToProcess]);
-            } else {
-                bspline_offset = compute_bspline_offset<ImageType>(*input_images[imageToProcess], par.lambda);
-                tempImages[streamNum].copyFromMeshWithUnaryOp(*input_images[imageToProcess], [=](const auto &a) { return (a + bspline_offset); });
-            }
+            tempImages[streamNum].copyFromMesh(*input_images[imageToProcess]);
             std::cout << "Processing image " << imageToProcess << " on stream " << streamNum << std::endl;
-            gpts[streamNum].setBsplineOffset(bspline_offset);
             gpts_futures[streamNum] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[streamNum]);
         }
 
@@ -552,97 +520,6 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
     std::cout << "Image size: " << (input_images[0]->size() / 1024 / 1024) << " MB\n";
     std::cout << "Bandwidth:" << (input_images[0]->size() / tpi / 1024 / 1024) << " MB/s\n";
     std::cout << "CUDA multistream pipeline finished!\n";
-    return true;
-}
-
-/**
- * Implementation of pipeline for GPU/CUDA and multiple streams
- * NOTE: Currently only one image is processed multiple times just get an idea how fast it can be.
- *       Finally, it should be able to process incoming stream of data (sequence of images).
- *
- * @param aAPR - the APR data structure
- * @param input_image - input image
- */
-template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_cuda_streams(APR &aAPR, PixelData<T>& input_image) {
-    // Initialize APR and memory for the pipeline
-    if (!initPipelineAPR(aAPR, input_image)) return false;
-    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
-    PixelData<ImageType> image_temp(input_image, false /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full size copy of the image)
-
-    /////////////////////////////////
-    /// Pipeline
-    /////////////////////////////////
-
-    // offset image by factor (this is required if there are zero areas in the background with
-    // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
-    // Warning both of these could result in over-flow!
-    if (std::is_floating_point<ImageType>::value) {
-        image_temp.copyFromMesh(input_image);
-    } else {
-        bspline_offset = compute_bspline_offset<ImageType>(input_image, par.lambda);
-        image_temp.copyFromMeshWithUnaryOp(input_image, [=](const auto &a) { return (a + bspline_offset); });
-    }
-
-    // Run input on the GPU streams
-    constexpr int numOfStreams = 3; // number of streams to use for parallel processing
-    constexpr int repetitionsPerStream = 3; // number of repetitions per stream to simulate processing of multiple images
-
-    APRTimer ttt(true);
-
-    ttt.start_timer("-----------------------------> Whole GPU pipeline with repetitions and MEMORY");
-    {
-        APRTimer t(true);
-        std::vector<GpuProcessingTask<ImageType>> gpts;
-
-        t.start_timer("Creating GPTS");
-        std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
-        for (int i = 0; i < numOfStreams; ++i) {
-            gpts.emplace_back(GpuProcessingTask<ImageType>(image_temp, local_scale_temp, par, aAPR.level_max()));
-        }
-        t.stop_timer();
-
-        t.start_timer("-----------------------------> Whole GPU pipeline with repetitions");
-        {
-            APRTimer tt(false);
-            // Run processOnGpu() asynchronously - it will handle transfering data from CPU to GPU and run whole pipeline
-            for (int i = 0; i < numOfStreams; ++i) {
-                gpts[i].setBsplineOffset(bspline_offset);
-                gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
-            }
-
-            for (int i = 0; i < numOfStreams * repetitionsPerStream; ++i) {
-                int c = i % numOfStreams;
-
-                // Get data from GpuProcessingTask - get() will block until the task is finished
-                gpts_futures[c].get();
-                auto linearAccessGpu = gpts[c].getDataFromGpu();
-
-                // in theory, we get new data and send them to task
-                if (i  < numOfStreams * (repetitionsPerStream - 1)) {
-                    gpts[c].setBsplineOffset(bspline_offset);
-                    gpts_futures[c] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[c]);
-                }
-
-                // Fill APR data structure with data from GPU
-                aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
-                aAPR.linearAccess.y_vec = std::move(linearAccessGpu.y_vec);
-                aAPR.linearAccess.xz_end_vec = std::move(linearAccessGpu.xz_end_vec);
-                aAPR.linearAccess.level_xz_vec = std::move(linearAccessGpu.level_xz_vec);
-
-                aAPR.apr_initialized = true;
-            }
-        }
-        auto allT = t.stop_timer();
-        std::cout << "Time per image: " << allT / (numOfStreams*repetitionsPerStream) << " seconds\n";
-        std::cout << "Bandwidth:" << (input_image.size() / (allT / (numOfStreams*repetitionsPerStream)) / 1024 / 1024) << " MB/s\n";
-    }
-    auto allT = ttt.stop_timer();
-    float tpi = allT / (numOfStreams*repetitionsPerStream);
-    std::cout << "Time per image: " << tpi << " seconds\n";
-    std::cout << "Image size: " << (input_image.size() / 1024 / 1024) << " MB\n";
-    std::cout << "Bandwidth:" << (input_image.size() / tpi / 1024 / 1024) << " MB/s\n";
-
     return true;
 }
 #endif
@@ -719,8 +596,7 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_imag
     return get_apr_cpu(aAPR, input_image);
 #else
     // return get_apr_cuda(aAPR, input_image);
-    // return get_apr_cuda_streams(aAPR, input_image);
-    std::vector<PixelData<T> *> input_images(3*66, &input_image);
+    std::vector<PixelData<T> *> input_images(1, &input_image);
     return get_apr_cuda_multistreams(aAPR, input_images, 3);
 #endif
 }
