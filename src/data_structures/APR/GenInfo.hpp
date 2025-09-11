@@ -37,7 +37,14 @@ public:
     GenInfo() {}
     GenInfo(const PixelDataDim &dim) { init(dim); }
 
-    size_t getSize() const { return (size_t)y_num[l_max] * x_num[l_max] * z_num[l_max]; }
+    /* Returns the size of the original image at a given level */
+    size_t getSize(int level) const { return (size_t)y_num[level] * x_num[level] * z_num[level]; }
+    /* Returns the size of the original image at max level*/
+    size_t getSize() const { return getSize(l_max); }
+    /* Returns the dimensions of the original image at a given level */
+    PixelDataDim getDimension(int level) const { return PixelDataDim(y_num[level], x_num[level], z_num[level]); }
+    /* Returns the dimensions of the original image at max level */
+    PixelDataDim getDimension() const { return getDimension(l_max); }
 
     //initialize the information given the original dimensions
     void init(const PixelDataDim &dim) {
