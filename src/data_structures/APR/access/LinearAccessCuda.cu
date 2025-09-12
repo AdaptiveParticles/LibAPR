@@ -460,7 +460,8 @@ void runFourthStep(const GenInfo &gi, GenInfoGpuAccess &giga, ParticleCellTreeCu
  * - copy it back to CPU
  * - returns all the structure
  */
-LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct) {
+template <typename ImgType>
+LinearAccessCudaStructs<ImgType> initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct) {
 
     cudaStream_t aStream = nullptr;
 
@@ -526,13 +527,20 @@ LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRPara
     p_map.downloadPCTfromGPU(pct);
 
 
-    LinearAccessCudaStructs lac;
+    LinearAccessCudaStructs<ImgType> lac;
     lac.y_vec.swap(y_vec);
     lac.xz_end_vec.swap(xz_end_vec);
     lac.level_xz_vec.swap(level_xz_vec);
 
     return lac;
 }
+
+// explicit instantiation of handled types
+template LinearAccessCudaStructs<float> initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
+template LinearAccessCudaStructs<uint16_t> initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
+template LinearAccessCudaStructs<int> initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
+template LinearAccessCudaStructs<uint8_t> initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
+
 
 void computeLinearStructureCuda(uint16_t *y_vec_cuda, uint64_t *xz_end_vec_cuda, const uint64_t *level_xz_vec_cuda, ParticleCellTreeCuda &p_map, GenInfo &gi, GenInfoGpuAccess &giga, const APRParameters &apr_parameters, uint64_t counter_total, cudaStream_t aStream) {
 

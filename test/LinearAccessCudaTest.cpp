@@ -272,7 +272,7 @@ TEST(LinearAccessCudaTest, optimizationForSmallLevels) {
     par.neighborhood_optimization = true;
 
     // --- Method under test
-    auto linearAccess = initializeLinearStructureCuda(gi, par, pct);
+    auto linearAccess = initializeLinearStructureCuda<uint16_t>(gi, par, pct);
 
     // ---- Verify output
     std::vector<uint16_t> expected_y_vec = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3}; // all 'y' particles for each xz
@@ -312,7 +312,7 @@ TEST(LinearAccessCudaTest, optimizationForSmallLevelsVScpu) {
 
                 // --- Method under test
                 linearAccess.initialize_linear_structure(par, pct);
-                auto linearAccessGpu = initializeLinearStructureCuda(giGpu, par, pctGpu);
+                auto linearAccessGpu = initializeLinearStructureCuda<uint16_t>(giGpu, par, pctGpu);
 
                 EXPECT_EQ(compareParticles(linearAccessGpu.y_vec, linearAccess.y_vec), 0);
                 EXPECT_EQ(compareParticles(linearAccessGpu.xz_end_vec, linearAccess.xz_end_vec), 0);
@@ -359,7 +359,7 @@ TEST(LinearAccessCudaTest, testGPUvsCPUforDifferentSizes) {
                 t.stop_timer();
 
                 t.start_timer("_________________________ GPU");
-                auto linearAccessGpu = initializeLinearStructureCuda(giGpu, par, pctGpu);
+                auto linearAccessGpu = initializeLinearStructureCuda<uint16_t>(giGpu, par, pctGpu);
                 t.stop_timer();
 
 

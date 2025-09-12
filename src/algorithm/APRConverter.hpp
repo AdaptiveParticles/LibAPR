@@ -66,6 +66,10 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
+    // TODO: this is temporary place to put particle intensity data. It shoud be think over how to move it from GPU
+    //       but for now and tests this is the best place.
+    VectorData<ImageType> parts;
+
     template <typename T>
     bool get_apr(APR &aAPR, PixelData<T> &input_image);
 
@@ -420,6 +424,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
     aAPR.linearAccess.y_vec.copy(linearAccessGpu.y_vec);
     aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
     aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
+    parts.copy(linearAccessGpu.parts);
     aAPR.apr_initialized = true;
 
     std::cout << "CUDA pipeline finished!\n";
@@ -509,6 +514,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
         aAPR.linearAccess.y_vec = std::move(linearAccessGpu.y_vec);
         aAPR.linearAccess.xz_end_vec = std::move(linearAccessGpu.xz_end_vec);
         aAPR.linearAccess.level_xz_vec = std::move(linearAccessGpu.level_xz_vec);
+        parts = std::move(linearAccessGpu.parts);
 
         aAPR.apr_initialized = true;
     }
@@ -596,7 +602,7 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_imag
     return get_apr_cpu(aAPR, input_image);
 #else
     // return get_apr_cuda(aAPR, input_image);
-    std::vector<PixelData<T> *> input_images(1, &input_image);
+    std::vector<PixelData<T> *> input_images(3*11, &input_image);
     return get_apr_cuda_multistreams(aAPR, input_images, 3);
 #endif
 }

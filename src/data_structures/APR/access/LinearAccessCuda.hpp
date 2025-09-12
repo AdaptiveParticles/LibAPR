@@ -6,16 +6,27 @@
 #include "data_structures/APR/GenInfo.hpp"
 #include "algorithm/ParticleCellTreeCuda.cuh"
 
-typedef struct {
+template <typename ImgType>
+struct LinearAccessCudaStructs {
     VectorData<uint16_t> y_vec;
     VectorData<uint64_t> xz_end_vec;
     VectorData<uint64_t> level_xz_vec;
-} LinearAccessCudaStructs;
+
+    // temporarily added
+    VectorData<ImgType> parts;
+};
+
+// explicit instantiation of handled types
+template class LinearAccessCudaStructs<uint8_t>;
+template class LinearAccessCudaStructs<int>;
+template class LinearAccessCudaStructs<uint16_t>;
+template class LinearAccessCudaStructs<float>;
 
 #include "data_structures/APR/access/GenInfoGpuAccess.cuh"
 
 // This is for testing purposes only
-LinearAccessCudaStructs initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
+template <typename ImgType>
+LinearAccessCudaStructs<ImgType> initializeLinearStructureCuda(GenInfo &gi, const APRParameters &apr_parameters, std::vector<PixelData<uint8_t>> &pct);
 
 void computeLinearStructureCuda(uint16_t *y_vec_cuda, uint64_t *xz_end_vec_cuda, const uint64_t *level_xz_vec_cuda, ParticleCellTreeCuda &p_map, GenInfo &gi, GenInfoGpuAccess &giga, const APRParameters &apr_parameters, uint64_t counter_total, cudaStream_t aStream);
 

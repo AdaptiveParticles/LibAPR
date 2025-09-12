@@ -47,7 +47,7 @@ public:
     ~GpuProcessingTask();
     GpuProcessingTask(GpuProcessingTask&&);
 
-    LinearAccessCudaStructs getDataFromGpu();
+    LinearAccessCudaStructs<ImgType> getDataFromGpu();
     void processOnGpu();
 
     void setBsplineOffset(float bspline_offset);

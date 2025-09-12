@@ -263,7 +263,7 @@ namespace {
             getLocalIntensityScale(local_scale_temp_GPU, local_scale_temp2_GPU, par);
             computeLevelsCuda(grad_temp_GPU, local_scale_temp_GPU, maxLevel, par.rel_error, par.dx, par.dy, par.dz);
             auto pct = computeOvpcCuda(local_scale_temp_GPU, giGpu);
-            auto linearAccessGpu = initializeLinearStructureCuda(giGpu, par, pct);
+            auto linearAccessGpu = initializeLinearStructureCuda<ImageType>(giGpu, par, pct);
             timer.stop_timer();
 
             // Compare GPU vs CPU - expect exactly same result

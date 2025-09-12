@@ -338,6 +338,62 @@ void runBsplineOffsetAndCopyOriginal(ImgType *cudaImage, ImgType *cudaCopy, floa
 };
 
 
+template <typename T>
+__global__ void printKernel(T *input, size_t length) {
+    printf("DOWNSAMPLED: ");
+    for (int i = 0; i < length; i++) printf("%d ", input[i]);
+    printf("\n");
+}
+
+template <typename ImgType>
+void runPrint(ImgType *cudaImage, size_t length, cudaStream_t aStream) {
+    printKernel<<<1,1, 0, aStream>>>(cudaImage, length);
+};
+
+
+template <typename T>
+__global__ void sampleKernel(T *downsampledLevel,  T *parts_cuda, int level, int xLen, int yLen, int zLen, uint64_t *level_xz_vec_cuda, uint64_t *xz_end_vec_cuda, uint16_t *y_vec) {
+    const int xi = (blockIdx.x * blockDim.x) + threadIdx.x;
+    const int zi = (blockIdx.z * blockDim.z) + threadIdx.z;
+    if (xi >= xLen || zi >= zLen) return;
+    uint64_t level_start = level_xz_vec_cuda[level];
+    uint64_t offset = xi + zi * xLen;
+    auto xz_start = level_start + offset;
+
+    auto begin_index = xz_end_vec_cuda[xz_start - 1];
+    auto end_index = xz_end_vec_cuda[xz_start];
+
+    for (size_t idx = begin_index; idx < end_index; ++idx) {
+        int y = y_vec[idx];
+        size_t imageIdx = zi * xLen * yLen + xi * yLen + y;
+        parts_cuda[idx] = downsampledLevel[imageIdx];
+    }
+}
+
+template <typename ImgType>
+void runSampleParts(ImgType** downsampled, GenInfo &aprInfo, ImgType *parts_cuda, uint64_t *level_xz_vec_cuda, uint64_t *xz_end_vec_cuda, uint16_t *y_vec, cudaStream_t aStream) {
+     // std::cout << aprInfo << std::endl;
+    // Run kernels for each level
+    for (int level = aprInfo.l_min; level <= aprInfo.l_max; level++) {
+        // std::cout << "Processing level " << level << std::endl;
+        dim3 threadsPerBlock(128, 1, 8);
+        dim3 numBlocks((aprInfo.x_num[level] + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                       1,
+                       (aprInfo.z_num[level] + threadsPerBlock.z - 1) / threadsPerBlock.z);
+        // std::cout << downsampled[level] << std::endl;
+        // std::cout << parts_cuda << std::endl;
+        // std::cout << aprInfo.x_num[level] << std::endl;
+        // std::cout << aprInfo.y_num[level] << std::endl;
+        // std::cout << aprInfo.z_num[level] << std::endl;
+        // std::cout << level_xz_vec_cuda << std::endl;
+        // std::cout << xz_end_vec_cuda << std::endl;
+        // std::cout << y_vec << std::endl;
+        sampleKernel<<<numBlocks, threadsPerBlock, 0, aStream>>>(downsampled[level], parts_cuda, level, aprInfo.x_num[level], aprInfo.y_num[level], aprInfo.z_num[level], level_xz_vec_cuda, xz_end_vec_cuda, y_vec);
+    }
+
+};
+
+
 class CudaStream {
     cudaStream_t iStream;
 
@@ -407,7 +463,7 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     ParticleCellTreeCuda pctc;
 
     ScopedCudaMemHandler<uint16_t*, JUST_ALLOC> y_vec_cuda; // for LinearAccess
-    LinearAccessCudaStructs lacs;
+    LinearAccessCudaStructs<ImgType> lacs;
 
     // Padded memory for local_scale_temp and local_scale_temp2
     ScopedCudaMemHandler<float*, JUST_ALLOC> lstPadded;
@@ -422,6 +478,8 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     ScopedCudaMemHandler<uint64_t *, JUST_ALLOC> level_xz_vec_cuda; //(level_xz_vec.data(), level_xz_vec.size(), aStream);
     GenInfoGpuAccess giga;
     uint64_t counter_total = 1;
+    VectorData<ImgType> parts;
+    ScopedCudaMemHandler<ImgType *, JUST_ALLOC> parts_cuda;
 
     // Preallocated memory for bspline shift computation
     VectorData<ImgType> minVector{true};
@@ -455,11 +513,13 @@ public:
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)inputImage.x_num * (size_t)inputImage.z_num},
         boundary{nullptr, boundaryLen, iStream},
         pctc(iAprInfo, iStream),
-        y_vec_cuda(nullptr, iAprInfo.getSize(), iStream),
+        y_vec_cuda(nullptr, iAprInfo.getSize()/2, iStream), // TODO: only half capacity
         xz_end_vec(true),
         level_xz_vec(true),
         y_vec(true),
-        giga(iAprInfo, iStream)
+        giga(iAprInfo, iStream),
+        parts(true),
+        parts_cuda(nullptr, iAprInfo.getSize()/2, iStream) // TODO: only half capacity
     {
         splineCudaX = cudax.first;
         splineCudaY = cuday.first;
@@ -491,6 +551,9 @@ public:
         xz_end_vec_cuda.initialize(xz_end_vec.data(), xz_end_vec.size(), iStream);
         level_xz_vec_cuda.initialize(level_xz_vec.data(), level_xz_vec.size(), iStream);
 
+        parts.resize(iAprInfo.getSize()); // resize it to  worst case -> same number particles as pixels in input image
+
+
         isErrorDetectedPinned.resize(1);
         isErrorDetectedCuda.initialize(isErrorDetectedPinned.data(), 1, iStream);
 
@@ -515,7 +578,34 @@ public:
         resultsMax.initialize(maxVector.data(), numOfBlocks, iStream);
     }
 
-    LinearAccessCudaStructs getDataFromGpu() {
+    void sample() {
+        // Prepare memory for downsampled pyramid
+        // Use 'image' as a memory for all levels (but max one)
+        // since data there is 'destroyed' anyway
+        // via bspline filtering and gradient computation
+        // and as the highest level of pyramid use imageSampling which is
+        // a copy of original image at full resolution
+        int l_max = iAprInfo.l_max;
+        int l_min = iAprInfo.l_min;
+        ImgType* downsampled[l_max + 1];
+        downsampled[l_max] = imageSampling.get();
+        size_t levelOffset = 0;
+        for (int l = l_max-1; l >= l_min; --l) {
+            size_t level_size = iAprInfo.x_num[l] * iAprInfo.y_num[l] * iAprInfo.z_num[l];
+            // std::cout << l << " dim: " << iAprInfo.getDimension(l) << " " << iAprInfo.getSize(l) << " " << level_size << std::endl;
+            downsampled[l] = image.get() + levelOffset;
+            levelOffset += iAprInfo.getSize(l);
+
+            runDownsampleMean(downsampled[l+1], downsampled[l], iAprInfo.x_num[l+1], iAprInfo.y_num[l+1], iAprInfo.z_num[l+1], iStream);
+        }
+
+        // VectorData<uint64_t> xz_end_vec;
+        // VectorData<uint64_t> level_xz_vec;
+        // VectorData<uint16_t> y_vec;
+        runSampleParts(downsampled, iAprInfo, parts_cuda.get(), level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda.get(), iStream);
+    }
+
+    LinearAccessCudaStructs<ImgType> getDataFromGpu() {
         return std::move(lacs);
     }
 
@@ -572,6 +662,16 @@ public:
         // Copy y_vec from GPU to CPU and synchronize last time - it is needed before we copy data to CPU structures
         checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda.get(), iAprInfo.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, iStream));
 
+
+        // SAMPLE under development
+        sample();
+        parts.resize(iAprInfo.total_number_particles);
+        // Copy y_vec from GPU to CPU and synchronize last time - it is needed before we copy data to CPU structures
+        checkCuda(cudaMemcpyAsync(parts.begin(), parts_cuda.get(), iAprInfo.total_number_particles * sizeof(ImgType), cudaMemcpyDeviceToHost, iStream));
+
+
+
+
         // Synchornize last time - at that moment all data from GPU is copied to CPU
         checkCuda(cudaStreamSynchronize(iStream));
 
@@ -579,6 +679,7 @@ public:
         lacs.xz_end_vec.copy(xz_end_vec);
         lacs.level_xz_vec.copy(level_xz_vec);
         lacs.y_vec.copy(y_vec);
+        lacs.parts.copy(parts);
     }
 
     ~GpuProcessingTaskImpl() {}
@@ -595,7 +696,7 @@ template <typename ImgType>
 GpuProcessingTask<ImgType>::GpuProcessingTask(GpuProcessingTask&&) = default;
 
 template <typename ImgType>
-LinearAccessCudaStructs GpuProcessingTask<ImgType>::getDataFromGpu() {return impl->getDataFromGpu();}
+LinearAccessCudaStructs<ImgType> GpuProcessingTask<ImgType>::getDataFromGpu() {return impl->getDataFromGpu();}
 
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}
@@ -605,6 +706,7 @@ template class GpuProcessingTask<uint8_t>;
 template class GpuProcessingTask<int>;
 template class GpuProcessingTask<uint16_t>;
 template class GpuProcessingTask<float>;
+
 
 // ================================== TEST helpers ==============
 // TODO: should be moved somewhere
