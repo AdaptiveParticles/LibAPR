@@ -81,15 +81,6 @@ int runAPR(cmdLineOptions options) {
         ParticleData<uint16_t> particle_intensities;
         particle_intensities.sample_image(apr, input_img); // sample your particles from your image
         //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
-        std::cout << apr.linearAccess.y_vec.size() << " particles in APR" << std::endl;
-        std::cout << particle_intensities.size() << " intensities in CPU in APR" << std::endl;
-        std::cout << aprConverter.parts.size() << " intensities in GPU in APR" << std::endl;
-
-        for (int i = 0 ; i < particle_intensities.size(); ++i) {
-            if (particle_intensities[i]  != aprConverter.parts[i]) {
-                std::cout << "Mismatch at " << i << " CPU: " << particle_intensities[i] << " GPU: " << aprConverter.parts[i] << std::endl;
-            }
-        }
 
         //output
         std::string save_loc = options.output_dir;
