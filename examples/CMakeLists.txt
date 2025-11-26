@@ -15,7 +15,11 @@ buildTarget(Example_apr_filter)
 buildTarget(Example_apr_deconvolution)
 buildTarget(Example_random_access)
 buildTarget(Example_lazy_access)
-buildTarget(Example_get_multiapr)
+
+#APR GPU Tests
+if(APR_USE_CUDA)
+    buildTarget(Example_get_multiapr)
+endif()
 
 #buildTarget(Example_reconstruct_patch)  #The way this is working is going to be re-designed.
 buildTarget(Example_apr_tree)

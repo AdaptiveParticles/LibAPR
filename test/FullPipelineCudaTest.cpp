@@ -285,6 +285,7 @@ namespace {
         constexpr PixelDataDim dim1{4, 4, 3};
         constexpr PixelDataDim dim2{1024,512,512};
         for (int d = 0; d <= 3; d++) {
+            std::cout << "#TEST: " << d << "\n";
             auto &dim = (d % 2 == 0) ? dim1 : dim2;
             PixelData<ImageType> input_image = (d / 2 == 0) ? getRandInitializedMesh<ImageType>(dim, 13) :
                                                getMeshWithBlobInMiddle<ImageType>(dim);

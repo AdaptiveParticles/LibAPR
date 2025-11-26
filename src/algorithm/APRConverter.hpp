@@ -66,9 +66,6 @@ public:
     APRTimer computation_timer;
     APRParameters par;
 
-    // TODO: this is temporary place to put particle intensity data. It shoud be think over how to move it from GPU
-    //       but for now and tests this is the best place.
-    VectorData<ImageType> parts;
 
     template <typename T>
     bool get_apr(APR &aAPR, PixelData<T> &input_image);
@@ -80,7 +77,7 @@ public:
     template <typename T>
     bool get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
     template <typename T>
-    bool get_apr_cuda_multistreams(APR &aAPR, const std::vector<PixelData<T> *> &input_images, int numOfStreams = 3);
+    bool get_apr_cuda_multistreams(std::vector<APR*> &aAPRs, std::vector<PixelData<T> *> &input_images, std::vector<VectorData<T> *> intensities, int numOfStreams = 3);
 #endif
 
     bool verbose = true;
@@ -401,37 +398,11 @@ inline bool APRConverter<ImageType>::get_ds(APR &aAPR) {
  */
 template<typename ImageType> template<typename T>
 inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input_image) {
-
-    if (!initPipelineAPR(aAPR, input_image)) return false;
-
-    total_timer.start_timer("full_pipeline");
-    initPipelineMemory(input_image.y_num, input_image.x_num, input_image.z_num);
-
-    computation_timer.start_timer("init_mem");
-    PixelData<ImageType> image_temp(input_image, true /* don't copy */, true /* pinned memory */); // global image variable useful for passing between methods, or re-using memory (should be the only full-size copy of the image)
-
-    /////////////////////////////////
-    /// Pipeline
-    ////////////////////////
-
-    GpuProcessingTask<ImageType> gpt(image_temp, local_scale_temp, par, aAPR.level_max());
-    gpt.processOnGpu();
-    auto linearAccessGpu = gpt.getDataFromGpu();
-
-    aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
-
-    // generateDatastructures(aAPR) for linearAcceess for CUDA
-    aAPR.linearAccess.y_vec.copy(linearAccessGpu.y_vec);
-    aAPR.linearAccess.xz_end_vec.copy(linearAccessGpu.xz_end_vec);
-    aAPR.linearAccess.level_xz_vec.copy(linearAccessGpu.level_xz_vec);
-    parts.copy(linearAccessGpu.parts);
-    aAPR.apr_initialized = true;
-
-    std::cout << "CUDA pipeline finished!\n";
-
-    total_timer.stop_timer();
-
-    return true;
+    // Use CUDA version for multistreams, feed it with just one pixel
+    std::vector<APR *> APRs(1, &aAPR);
+    std::vector<PixelData<T> *> input_images(1, &input_image);
+    std::vector<VectorData<T> *> intensisties(1, nullptr);
+    return get_apr_cuda_multistreams(APRs, input_images, intensisties, 1);
 }
 #endif
 
@@ -446,7 +417,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
  * @param numOfStreams - number of streams to use for parallel processing on GPU
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const std::vector<PixelData<T>*> &input_images, int numOfStreams) {
+inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*> &aAPRs, std::vector<PixelData<T>*> &input_images, std::vector<VectorData<T> *> intensities, int numOfStreams) {
     int numOfImages = input_images.size();
     if (numOfImages == 0) {
         std::cerr << "No input images provided for APR conversion." << std::endl;
@@ -459,13 +430,15 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
     // Use first image to initialize the APR - all other images should have the same dimensions
     auto input_image = input_images[0];
 
-    // Initialize APR and memory for the pipeline
-    if (!initPipelineAPR(aAPR, *input_image)) return false;
+    // Initialize APRs and memory for the pipeline
+    for (auto apr : aAPRs) {
+        if (!initPipelineAPR(*apr, *input_image)) return false;
+    }
     initPipelineMemory(input_image->y_num, input_image->x_num, input_image->z_num);
 
     // Create a temporary image for each stream
     std::vector<PixelData<ImageType>> tempImages;
-    std::cout << "allocating PixelData for " << numOfStreams << " streams" << std::endl;
+    std::cout << "Allocating memory for " << numOfStreams << " streams." << std::endl;
     for (int i = 0; i < numOfStreams; ++i) {
         tempImages.emplace_back(PixelData<T>(*input_image, true /* copy */, true /* pinned memory */));
     }
@@ -480,7 +453,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
     t.start_timer("Creating GPTS");
     std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
     for (int i = 0; i < numOfStreams; ++i) {
-        gpts.emplace_back(GpuProcessingTask<ImageType>(tempImages[i], local_scale_temp, par, aAPR.level_max()));
+        gpts.emplace_back(GpuProcessingTask<ImageType>(tempImages[i], local_scale_temp, par, aAPRs[0]->level_max()));
     }
     t.stop_timer();
 
@@ -510,13 +483,12 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(APR &aAPR, const 
         }
 
         // Fill APR data structure with data from GPU
-        aAPR.aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
-        aAPR.linearAccess.y_vec = std::move(linearAccessGpu.y_vec);
-        aAPR.linearAccess.xz_end_vec = std::move(linearAccessGpu.xz_end_vec);
-        aAPR.linearAccess.level_xz_vec = std::move(linearAccessGpu.level_xz_vec);
-        parts = std::move(linearAccessGpu.parts);
-
-        aAPR.apr_initialized = true;
+        aAPRs[s]->aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
+        aAPRs[s]->linearAccess.y_vec = std::move(linearAccessGpu.y_vec);
+        aAPRs[s]->linearAccess.xz_end_vec = std::move(linearAccessGpu.xz_end_vec);
+        aAPRs[s]->linearAccess.level_xz_vec = std::move(linearAccessGpu.level_xz_vec);
+        aAPRs[s]->apr_initialized = true;
+        if (intensities[s] != nullptr) *intensities[s] = std::move(linearAccessGpu.parts);
     }
 
     auto allT = t.stop_timer();
@@ -601,9 +573,7 @@ inline bool APRConverter<ImageType>::get_apr(APR &aAPR, PixelData<T> &input_imag
 #ifndef APR_USE_CUDA
     return get_apr_cpu(aAPR, input_image);
 #else
-    // return get_apr_cuda(aAPR, input_image);
-    std::vector<PixelData<T> *> input_images(3*11, &input_image);
-    return get_apr_cuda_multistreams(aAPR, input_images, 3);
+    return get_apr_cuda(aAPR, input_image);
 #endif
 }
 

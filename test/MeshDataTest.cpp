@@ -92,6 +92,20 @@ namespace {
             ASSERT_EQ(z.numOfDimensions(), 1);
             ASSERT_EQ(w.numOfDimensions(), 0);
         }
+        { // size provided - test downsampled size
+            PixelData<int> md(10, 20, 30);
+            auto ds = md.getDimensionDS();
+            ASSERT_EQ(ds.y, 5);
+            ASSERT_EQ(ds.x, 10);
+            ASSERT_EQ(ds.z, 15);
+        }
+        { // size provided not even numbers - test downsampled size
+            PixelData<int> md(11, 23, 29);
+            auto ds = md.getDimensionDS();
+            ASSERT_EQ(ds.y, 6);
+            ASSERT_EQ(ds.x, 12);
+            ASSERT_EQ(ds.z, 15);
+        }
     }
 
     TEST_F(VectorDataTest, InitTest) {

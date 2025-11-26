@@ -34,7 +34,7 @@ struct PixelDataDim {
     size_t x;
     size_t z;
 
-    constexpr PixelDataDim(size_t y, size_t x, size_t z) : y(y), x(x), z(z) {}
+    constexpr PixelDataDim(size_t y = 0, size_t x = 0, size_t z = 0) : y(y), x(x), z(z) {}
 
     size_t size() const { return y * x * z; }
     size_t maxDimSize() const { return std::max(x, std::max(y, z)); }
@@ -518,6 +518,17 @@ public :
      */
     PixelDataDim getDimension() const {
         return {static_cast<size_t>(y_num), static_cast<size_t>(x_num), static_cast<size_t>(z_num)};
+    }
+
+    /**
+     * Returns downampled dimensions of PixelData
+     */
+    PixelDataDim getDimensionDS() const {
+        const int z_num_ds = ceil(1.0*z_num/2.0);
+        const int x_num_ds = ceil(1.0*x_num/2.0);
+        const int y_num_ds = ceil(1.0*y_num/2.0);
+
+        return {static_cast<size_t>(y_num_ds), static_cast<size_t>(x_num_ds), static_cast<size_t>(z_num_ds)};
     }
 
     /**

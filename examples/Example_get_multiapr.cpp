@@ -1,10 +1,10 @@
 const char* usage = R"(
-Form the APR form images: Takes an uint16_t input tiff images and forms the APRs and saves it as hdf5.
+Converts images to APR format: Takes input directory with uint16_t input tiff images and generates the APRs and saves it as hdf5.
 The hdf5 output of this program can be used with the other apr examples, and also viewed with HDFView.
 
 Usage:
 ======
-Example_get_multiapr -d input_directory [-od output_direcotry]
+Example_get_multiapr -d input_directory [-od output_directory]
 
 Additional settings (High Level):
 =================================
@@ -19,8 +19,12 @@ Advanced (Direct) Settings:
 -neighborhood_optimization_off turns off the neighborhood optimization (This results in boundary Particle Cells also being increased in resolution after the Pulling Scheme step)
 )";
 
-#include <algorithm>
+
 #include <iostream>
+#include <filesystem>
+#include <vector>
+#include <string>
+#include <algorithm>
 #include "ConfigAPR.h"
 #include "io/APRFile.hpp"
 #include "data_structures/APR/particles/ParticleData.hpp"
@@ -29,8 +33,8 @@ Advanced (Direct) Settings:
 
 
 struct cmdLineOptions {
-    std::string directory = "";
-    std::string output_dir = "";
+    std::string directory;
+    std::string output_dir;
 
     float lambda = 3.0;
     float Ip_th = 0;
@@ -55,7 +59,7 @@ const char* get_command_option(const char **begin, const char **end, const std::
 }
 
 void printUsage() {
-    std::cerr << "APR version " << ConfigAPR::APR_VERSION << std::endl <<std::endl;
+    std::cerr << "APR version " << ConfigAPR::APR_VERSION << std::endl;
     std::cerr << usage << std::endl;
     exit(1);
 }
@@ -112,9 +116,34 @@ cmdLineOptions read_command_line_options(const int argc, const char **argv) {
 }
 
 
+auto getTiffFilesFromDir(const std::string &directory_path) {
+    namespace fs = std::filesystem;
+
+    std::vector<fs::path> tif_files;
+
+    try {
+        for (const auto& entry : fs::directory_iterator(directory_path)) {
+            if (entry.is_regular_file()) {
+                auto ext = entry.path().extension().string();
+                if (ext == ".tif" || ext == ".tiff" || ext == ".TIF" || ext == ".TIFF") {
+                    tif_files.push_back(entry.path());
+                }
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << '\n';
+        exit(2);
+    }
+
+    return tif_files;
+}
+
 int runAPR(const cmdLineOptions &options) {
 
-    APRConverter<uint16_t> aprConverter;
+    using ImgType = uint16_t;
+    using ImgContainer = PixelData<ImgType>;
+
+    APRConverter<ImgType> aprConverter;
 
     // read in the command line options into the parameters file
     aprConverter.par.input_dir = options.directory;
@@ -128,69 +157,100 @@ int runAPR(const cmdLineOptions &options) {
 
     aprConverter.par.neighborhood_optimization = options.neighborhood_optimization;
 
-
-
     // TODO: read here all input files instead of options.input
-    PixelData<uint16_t> input_img = TiffUtils::getMesh<uint16_t>(options.directory + "TODO");
+    auto tifFiles = getTiffFilesFromDir(options.directory);
+    std::vector<std::unique_ptr<ImgContainer>> input_images;
+    std::vector<ImgContainer *> input_images_raw;
+    std::vector<std::unique_ptr<APR>> APRs;
+    std::vector<APR*> APRs_raw;
+    std::vector<std::unique_ptr<VectorData<ImgType>>> partIntensities;
+    std::vector<VectorData<ImgType> *> partIntensities_raw;
 
-    //Gets the APR
-    if(APR apr; aprConverter.get_apr(apr, input_img)){
-
-        ParticleData<uint16_t> particle_intensities;
-        particle_intensities.sample_image(apr, input_img); // sample your particles from your image
-
-#ifdef APR_USE_CUDA
-        //Below is IO and outputting of the Implied Resolution Function through the Particle Cell level.
-        std::cout << apr.linearAccess.y_vec.size() << " particles in APR" << std::endl;
-        std::cout << particle_intensities.size() << " intensities in CPU in APR" << std::endl;
-        std::cout << aprConverter.parts.size() << " intensities in GPU in APR" << std::endl;
-
-        for (int i = 0 ; i < particle_intensities.size(); ++i) {
-            if (particle_intensities[i]  != aprConverter.parts[i]) {
-                std::cout << "Mismatch at " << i << " CPU: " << particle_intensities[i] << " GPU: " << aprConverter.parts[i] << std::endl;
-            }
+    // Load all images from input directory, check if they have same resolution
+    // Also create APR and intensities objects to be filled by pipeline later
+    int firstOne = true;
+    PixelDataDim sizeOfInput;
+    for (const auto &file : tifFiles) {
+        // Read a file and store it, also keep a vector of raw pointers to read images since this is needed by APRConverter
+        input_images.push_back(std::make_unique<ImgContainer>(TiffUtils::getMesh<ImgType>(file)));
+        input_images_raw.push_back(input_images.back().get());
+        if (firstOne) {
+            firstOne = false;
+            sizeOfInput = input_images.back().get()->getDimension();
         }
-#endif
+        else if (input_images.back().get()->getDimension() != sizeOfInput) {
+                std::cerr << "Input images must have the same dimension." << std::endl;
+                exit(2);
+        }
 
+        // We need as many APR objects as input images, and also raw pointer for APRConverter
+        APRs.push_back(std::make_unique<APR>(APR{}));
+        APRs_raw.push_back(APRs.back().get());
 
-        //output
-        std::string save_loc = options.output_dir;
-        // TODO Change file_name to currently processed input file and add ".apr"
-        std::string file_name = "TODO_fileName";
-
-        APRTimer timer;
-
-        timer.verbose_flag = true;
-
-        std::cout << std::endl;
-        float original_pixel_image_size = 2.0f * apr.org_dims(0) * apr.org_dims(1) * apr.org_dims(2) / 1000000.0f;
-        std::cout << "Original image size: " << original_pixel_image_size << " MB" << std::endl;
-
-        timer.start_timer("writing output");
-
-        std::cout << "Writing the APR to hdf5..." << std::endl;
-
-        //write the APR to hdf5 file
-        APRFile aprFile;
-
-        aprFile.open(save_loc + file_name + ".apr");
-
-        aprFile.write_apr(apr, 0, "t", false);
-        aprFile.write_particles("particles",particle_intensities);
-
-        float apr_file_size = aprFile.current_file_size_MB();
-
-        timer.stop_timer();
-
-        float computational_ratio = 1.0f * apr.org_dims(0) * apr.org_dims(1) * apr.org_dims(2) / (1.0f * apr.total_number_particles());
-
-        std::cout << std::endl;
-        std::cout << "Computational Ratio (Pixels/Particles): " << computational_ratio << std::endl;
-        std::cout << "Lossy Compression Ratio: " << original_pixel_image_size/apr_file_size << std::endl;
-        std::cout << std::endl;
-    } else {
-        std::cout << "Oops, something went wrong. APR not computed :(." << std::endl;
+        // And same for particle intensities...
+        partIntensities.push_back(std::make_unique<VectorData<ImgType>>(VectorData<ImgType>{}));
+        partIntensities_raw.push_back(partIntensities.back().get());
     }
+
+    std::cout << std::endl;
+
+    APRTimer timer(true);
+    timer.start_timer("GPU pipeline (mem allocation, processing, sampling) ");
+    if (aprConverter.get_apr_cuda_multistreams(APRs_raw, input_images_raw, partIntensities_raw)) {
+        timer.stop_timer();
+        size_t numOfImages = input_images_raw.size();
+        std::cout << std::endl;
+
+        for (size_t i = 0; i < numOfImages; i++) {
+            std::cout << "Postprocessing " << i+1 << "/" << numOfImages << " image...\n";
+            auto &apr = *APRs[i].get(); // currently process APR
+            auto &particle_intensities = *partIntensities[i].get(); // intensities sampled for current APR
+
+
+            // ------------ TODO: remove me later, this is quick test for Cpu vs Gpu before real test is written
+            // std::cout << apr.linearAccess.y_vec.size() << " particles in APR" << std::endl;
+            // std::cout << particle_intensities.size() << " intensities in CPU in APR" << std::endl;
+            // if (apr.linearAccess.y_vec.size() != particle_intensities.size()) {std::cerr << "CPU vs GPU number of particles differ!" << std::endl;}
+            ParticleData<ImgType> particle_intensities_cpu;
+            particle_intensities_cpu.sample_image(apr, *input_images[i].get()); // sample your particles from your image
+            for (size_t j = 0 ; j < particle_intensities.size(); ++j) {
+                if (particle_intensities_cpu[j]  != particle_intensities[j]) {
+                    std::cout << "Mismatch at " << j << " CPU: " << particle_intensities_cpu[j] << " GPU: " << particle_intensities[j] << std::endl;
+                }
+            }
+            // ---------------------------------------------------------------------------------------------------
+
+            // Output name is like base of input filename + extension ".apr"
+            auto outputDir = std::filesystem::path(options.output_dir);
+            const std::filesystem::path& p(tifFiles[i]);
+            std::string outpuFileName = p.stem().string() + ".apr";
+
+            //write the APR to hdf5 file
+            timer.start_timer("writing output");
+            APRFile aprFile;
+            aprFile.open(outputDir / outpuFileName);
+            aprFile.write_apr(apr, 0, "t", false);
+            ParticleData<ImgType> pd;
+            pd.data = std::move(particle_intensities);
+            aprFile.write_particles("particles",pd);
+            timer.stop_timer();
+
+            // Print some output statistics
+            float aprImageSizeInMB = aprFile.current_file_size_MB();
+            double originalImageSizeInMB = sizeof(ImgType) * static_cast<double>(apr.org_dims(0) * apr.org_dims(1) * apr.org_dims(2)) / 1'000'000.0;
+
+            std::cout << "Computational Ratio (Pixels/Particles): " << apr.computational_ratio() << std::endl;
+            std::cout << "Original / APR image size:              " << originalImageSizeInMB << " / " << aprImageSizeInMB <<" MB" << std::endl;
+            std::cout << "Lossy Compression Ratio:                " << originalImageSizeInMB/aprImageSizeInMB << std::endl;
+            std::cout << std::endl;
+        }
+    }
+    else {
+        std::cout << "Oops, something went wrong. APR not computed :(" << std::endl;
+    }
+
+    std::cout << "DONE!\n";
+
     return 0;
 }
 

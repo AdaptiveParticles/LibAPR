@@ -513,13 +513,13 @@ public:
         boundaryLen{(2 /*two first elements*/ + 2 /* two last elements */) * (size_t)inputImage.x_num * (size_t)inputImage.z_num},
         boundary{nullptr, boundaryLen, iStream},
         pctc(iAprInfo, iStream),
-        y_vec_cuda(nullptr, iAprInfo.getSize()/2, iStream), // TODO: only half capacity
+        y_vec_cuda(nullptr, iAprInfo.getSize() < 64 ? 64 : iAprInfo.getSize()/2, iStream), // TODO: only half capacity (64: since for levels <= 2 we compute all particles so we have in worst case at least (2^2)^3(dim) particles)
         xz_end_vec(true),
         level_xz_vec(true),
         y_vec(true),
         giga(iAprInfo, iStream),
         parts(true),
-        parts_cuda(nullptr, iAprInfo.getSize()/2, iStream) // TODO: only half capacity
+        parts_cuda(nullptr, iAprInfo.getSize() < 64 ? 64 : iAprInfo.getSize()/2, iStream) // TODO: only half capacity (64: since for levels <= 2 we compute all particles so we have in worst case at least (2^2)^3(dim) particles)
     {
         splineCudaX = cudax.first;
         splineCudaY = cuday.first;
@@ -660,6 +660,11 @@ public:
         // Trim buffer to calculated size (initially it is allocated to worst case - same number of particles as pixels in input image) and copy data from GPU
         y_vec.resize(iAprInfo.total_number_particles);
         // Copy y_vec from GPU to CPU and synchronize last time - it is needed before we copy data to CPU structures
+        std::cout << y_vec.size() << "\n";
+        std::cout << iAprInfo.total_number_particles << "\n";
+        std::cout << iStream << "\n";
+        std::cout << y_vec_cuda.getSize() << std::endl;
+        std::cout << "----------" << std::endl;
         checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda.get(), iAprInfo.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, iStream));
 
 
