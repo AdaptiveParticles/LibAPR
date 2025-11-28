@@ -172,7 +172,7 @@ namespace {
 }
 
 template <typename ImgType>
-void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_scale_temp,
+void getGradientCuda(const PixelData<ImgType> &image,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
                      BsplineParamsCuda &px, BsplineParamsCuda &py, BsplineParamsCuda &pz, float *boundary,
                      bool &isErrorDetected, ScopedCudaMemHandler<bool *, JUST_ALLOC>& isErrorDetectedCuda,
@@ -196,13 +196,14 @@ void getGradientCuda(const PixelData<ImgType> &image, PixelData<float> &local_sc
                                         "try squashing the input image to a narrower range or use APRConverter<float>");
         }
     }
-    runKernelGradient(cudaImage, cudaGrad, image.getDimension(), local_scale_temp.getDimension(), par.dx, par.dy, par.dz, aStream);
+    auto localScaleTempDim = image.getDimensionDS(); // size of downsampled input image
+    runKernelGradient(cudaImage, cudaGrad, image.getDimension(), localScaleTempDim, par.dx, par.dy, par.dz, aStream);
     runDownsampleMean(cudaImage, cudalocal_scale_temp, image.x_num, image.y_num, image.z_num, aStream);
 
     if (par.lambda > 0) {
-        if (image.y_num > 2) runInvBsplineYdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
-        if (image.x_num > 2) runInvBsplineXdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
-        if (image.z_num > 2) runInvBsplineZdir(cudalocal_scale_temp, local_scale_temp.x_num, local_scale_temp.y_num, local_scale_temp.z_num, aStream);
+        if (image.y_num > 2) runInvBsplineYdir(cudalocal_scale_temp, localScaleTempDim.x, localScaleTempDim.y, localScaleTempDim.z, aStream);
+        if (image.x_num > 2) runInvBsplineXdir(cudalocal_scale_temp, localScaleTempDim.x, localScaleTempDim.y, localScaleTempDim.z, aStream);
+        if (image.z_num > 2) runInvBsplineZdir(cudalocal_scale_temp, localScaleTempDim.x, localScaleTempDim.y, localScaleTempDim.z, aStream);
     }
 }
 
@@ -429,7 +430,7 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
     // input data
     const PixelData<ImgType> &iCpuImage;
-    PixelData<float> &iCpuLevels;
+    // PixelData<float> &iCpuLevels;
     const APRParameters &iParameters;
     GenInfo iAprInfo;
     float iBsplineOffset = 0;
@@ -438,9 +439,9 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     // cuda stuff - memory and stream to be used
     ScopedCudaMemHandler<const PixelData<ImgType>, JUST_ALLOC> image;
     ScopedCudaMemHandler<const PixelData<ImgType>, JUST_ALLOC> imageSampling;
-    ScopedCudaMemHandler<PixelData<ImgType>, JUST_ALLOC> gradient;
-    ScopedCudaMemHandler<PixelData<float>, JUST_ALLOC> local_scale_temp;
-    ScopedCudaMemHandler<PixelData<float>, JUST_ALLOC> local_scale_temp2;
+    ScopedCudaMemHandler<ImgType*, JUST_ALLOC> gradient;
+    ScopedCudaMemHandler<float*, JUST_ALLOC> local_scale_temp;
+    ScopedCudaMemHandler<float*, JUST_ALLOC> local_scale_temp2;
 
 
     // bspline stuff
@@ -490,18 +491,14 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
 public:
 
-    // TODO: Remove need for passing 'levels' to GpuProcessingTask
-    //       It was used during development to control internal computation like filters, gradient, levels etc. but
-    //       once all is done there is no need for it anymore
-    GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, PixelData<float> &levels, const APRParameters &parameters, int maxLevel) :
+    GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, const APRParameters &parameters, int maxLevel) :
         iCpuImage(inputImage),
-        iCpuLevels(levels),
         iStream(cudaStream.get()),
         image (inputImage, iStream),
         imageSampling (inputImage, iStream),
-        gradient (levels, iStream),
-        local_scale_temp (levels, iStream),
-        local_scale_temp2 (levels, iStream),
+        gradient (nullptr, inputImage.getDimensionDS().size(), iStream),
+        local_scale_temp (nullptr, inputImage.getDimensionDS().size(), iStream),
+        local_scale_temp2 (nullptr, inputImage.getDimensionDS().size(), iStream),
         iParameters(parameters),
         iAprInfo(iCpuImage.getDimension()),
         iMaxLevel(maxLevel),
@@ -531,7 +528,7 @@ public:
         // In LIS we have: var_win[0,1,2] = maximum 3 var_win[3,4,5] = maximum 6
         // so maximum paddSize is 6 6 6
         PixelDataDim maxPaddSize(6, 6, 6);
-        PixelDataDim paddedImageSize = levels.getDimension() + maxPaddSize + maxPaddSize;
+        PixelDataDim paddedImageSize = inputImage.getDimensionDS() + maxPaddSize + maxPaddSize;
         lstPadded.initialize(nullptr, paddedImageSize.size(), iStream);
         lst2Padded.initialize(nullptr, paddedImageSize.size(), iStream);
 
@@ -631,22 +628,23 @@ public:
         runBsplineOffsetAndCopyOriginal(image.get(), imageSampling.get(), iBsplineOffset /*bspline_offset*/, iCpuImage.getDimension(), iStream);
 
 
-        getGradientCuda(iCpuImage, iCpuLevels, image.get(), gradient.get(), local_scale_temp.get(),
+        getGradientCuda(iCpuImage, image.get(), gradient.get(), local_scale_temp.get(),
                          splineCudaX, splineCudaY, splineCudaZ, boundary.get(), isErrorDetectedPinned[0], isErrorDetectedCuda,
                         iBsplineOffset, iParameters, iStream);
 
-        runLocalIntensityScalePipeline(iCpuLevels, iParameters, local_scale_temp.get(), local_scale_temp2.get(), lstPadded.get(), lst2Padded.get(), iStream);
+        runLocalIntensityScalePipeline(iCpuImage.getDimensionDS(), iParameters, local_scale_temp.get(), local_scale_temp2.get(), lstPadded.get(), lst2Padded.get(), iStream);
 
         // Apply parameters from APRConverter:
-        runThreshold(local_scale_temp2.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.Ip_th + iBsplineOffset, iStream);
-        runRescaleAndThreshold(local_scale_temp.get(), iCpuLevels.mesh.size(), iParameters.sigma_th, iParameters.sigma_th_max, iStream);
-        runThresholdOpen(gradient.get(), gradient.get(), iCpuLevels.x_num, iCpuLevels.y_num, iCpuLevels.z_num, iParameters.grad_th, iStream);
+        auto dimOfLevels = iCpuImage.getDimensionDS(); // size of downsampled input image
+        runThreshold(local_scale_temp2.get(), gradient.get(), dimOfLevels.x, dimOfLevels.y, dimOfLevels.z, iParameters.Ip_th + iBsplineOffset, iStream);
+        runRescaleAndThreshold(local_scale_temp.get(), dimOfLevels.size(), iParameters.sigma_th, iParameters.sigma_th_max, iStream);
+        runThresholdOpen(gradient.get(), gradient.get(), dimOfLevels.x, dimOfLevels.y, dimOfLevels.z, iParameters.grad_th, iStream);
         // TODO: automatic parameters are not implemented for GPU pipeline (yet)
 
         float min_dim = std::min(iParameters.dy, std::min(iParameters.dx, iParameters.dz));
         float level_factor = pow(2, iMaxLevel) * min_dim;
         const float mult_const = level_factor/iParameters.rel_error;
-        runComputeLevels(gradient.get(), local_scale_temp.get(), iCpuLevels.mesh.size(), mult_const, iStream);
+        runComputeLevels(gradient.get(), local_scale_temp.get(), dimOfLevels.size(), mult_const, iStream);
         computeOvpcCuda(local_scale_temp.get(), pctc, iAprInfo, iStream);
 
         computeLinearStructureCuda(y_vec_cuda.get(), xz_end_vec_cuda.get(), level_xz_vec_cuda.get(), pctc, iAprInfo, giga, iParameters, counter_total, iStream);
@@ -660,11 +658,6 @@ public:
         // Trim buffer to calculated size (initially it is allocated to worst case - same number of particles as pixels in input image) and copy data from GPU
         y_vec.resize(iAprInfo.total_number_particles);
         // Copy y_vec from GPU to CPU and synchronize last time - it is needed before we copy data to CPU structures
-        std::cout << y_vec.size() << "\n";
-        std::cout << iAprInfo.total_number_particles << "\n";
-        std::cout << iStream << "\n";
-        std::cout << y_vec_cuda.getSize() << std::endl;
-        std::cout << "----------" << std::endl;
         checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda.get(), iAprInfo.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, iStream));
 
 
@@ -691,8 +684,8 @@ public:
 };
 
 template <typename ImgType>
-GpuProcessingTask<ImgType>::GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, int maxLevel)
-: impl{new GpuProcessingTaskImpl<ImgType>(image, levels, parameters, maxLevel)} { }
+GpuProcessingTask<ImgType>::GpuProcessingTask(const PixelData<ImgType> &image, const APRParameters &parameters, int maxLevel)
+: impl{new GpuProcessingTaskImpl<ImgType>(image, parameters, maxLevel)} { }
 
 template <typename ImgType>
 GpuProcessingTask<ImgType>::~GpuProcessingTask() { }
@@ -834,7 +827,7 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
     bool isErrorDetected = false;
     {
         ScopedCudaMemHandler<bool*, JUST_ALLOC> isErrorDetectedCuda(&isErrorDetected, 1, aStream);
-        getGradientCuda(image, local_scale_temp, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(),
+        getGradientCuda(image, cudaImage.get(), cudaGrad.get(), cudalocal_scale_temp.get(),
                         splineCudaX, splineCudaY, splineCudaZ, boundary.get(), isErrorDetected, isErrorDetectedCuda, bspline_offset, par, aStream);
     }
 }

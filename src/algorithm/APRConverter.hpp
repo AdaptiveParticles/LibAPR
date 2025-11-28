@@ -152,7 +152,7 @@ void APRConverter<ImageType>::initPipelineMemory(int y_num,int x_num,int z_num){
 
     float not_needed;
     std::vector<int> var_win;
-    iLocalIntensityScale.get_window_alt(not_needed, var_win, par, grad_temp);
+    iLocalIntensityScale.get_window_alt(not_needed, var_win, par, grad_temp.getDimension());
 
     int padding_y = 2*std::max(var_win[0],var_win[3]);
     int padding_x = 2*std::max(var_win[1],var_win[4]);
@@ -434,7 +434,6 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
     for (auto apr : aAPRs) {
         if (!initPipelineAPR(*apr, *input_image)) return false;
     }
-    initPipelineMemory(input_image->y_num, input_image->x_num, input_image->z_num);
 
     // Create a temporary image for each stream
     std::vector<PixelData<ImageType>> tempImages;
@@ -453,7 +452,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
     t.start_timer("Creating GPTS");
     std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
     for (int i = 0; i < numOfStreams; ++i) {
-        gpts.emplace_back(GpuProcessingTask<ImageType>(tempImages[i], local_scale_temp, par, aAPRs[0]->level_max()));
+        gpts.emplace_back(GpuProcessingTask<ImageType>(tempImages[i], par, aAPRs[0]->level_max()));
     }
     t.stop_timer();
 

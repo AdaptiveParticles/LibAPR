@@ -303,7 +303,6 @@ namespace {
 
             // Initialize GPU data structures to same values as CPU
             PixelData<ImageType> mGpuImage(input_image, true);
-            PixelData<float> local_scale_temp_GPU(local_scale_temp, false);
 
             // Prepare parameters
             APRParameters par;
@@ -340,7 +339,7 @@ namespace {
 
             // Calculate pipeline on GPU
             timer.start_timer(">>>>>>>>>>>>>>>>> GPU PIPELINE");
-            GpuProcessingTask<ImageType> gpt(mGpuImage, local_scale_temp_GPU, par, maxLevel);
+            GpuProcessingTask<ImageType> gpt(mGpuImage, par, maxLevel);
             gpt.processOnGpu();
             auto linearAccessGpu = gpt.getDataFromGpu();
             giGpu.total_number_particles = linearAccessGpu.y_vec.size();

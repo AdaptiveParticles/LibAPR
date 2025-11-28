@@ -43,7 +43,7 @@ class GpuProcessingTask {
 
 public:
 
-    GpuProcessingTask(const PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, int maxLevel);
+    GpuProcessingTask(const PixelData<ImgType> &image, const APRParameters &parameters, int maxLevel);
     ~GpuProcessingTask();
     GpuProcessingTask(GpuProcessingTask&&);
 

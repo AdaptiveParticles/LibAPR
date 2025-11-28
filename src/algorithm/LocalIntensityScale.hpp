@@ -36,7 +36,7 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
 
     float var_rescale;
     std::vector<int> var_win;
-    get_window_alt(var_rescale, var_win, par, local_scale_temp);
+    get_window_alt(var_rescale, var_win, par, local_scale_temp.getDimension());
 
     int win_y = var_win[0];
     int win_x = var_win[1];
@@ -165,8 +165,7 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
 
     void get_window(float &var_rescale, std::vector<int> &var_win, const APRParameters &par);
 
-    template<typename T>
-    void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, const PixelData<T>& img);
+    void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, const PixelDataDim &img);
 
     template<typename T>
     void rescale_var(PixelData<T>& var,const float var_rescale);
@@ -249,8 +248,7 @@ inline void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>
  * @param par
  * @param temp_img (image already allocated to correct size to compute the local intensity scale)
  */
-template<typename T>
-inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par,const PixelData<T>& temp_img){
+inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par,const PixelDataDim &temp_img){
 
     const double rescale_store_3D[6] = {12.8214, 26.1256, 40.2795, 23.3692, 36.2061, 27.0385};
     const double rescale_store_2D[6] = {13.2421, 28.7069, 52.0385, 24.4272, 34.9565, 21.1891};
@@ -267,7 +265,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
 
     var_win.resize(6,0);
 
-    if ( (int) temp_img.y_num > win_val) {
+    if ( (int) temp_img.y > win_val) {
         active_y = true;
         var_win[0] = win_1[psf_ind];
 
@@ -276,7 +274,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
         active_y = false;
     }
 
-    if ((int) temp_img.x_num > win_val) {
+    if ((int) temp_img.x > win_val) {
         active_x = true;
         var_win[1] = win_1[psf_ind];
         var_win[4] = win_2[psf_ind];
@@ -284,7 +282,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
         active_x = false;
     }
 
-    if ((int) temp_img.z_num > win_val) {
+    if ((int) temp_img.z > win_val) {
         active_z = true;
         var_win[2] = win_1[psf_ind];
         var_win[5] = win_2[psf_ind];
