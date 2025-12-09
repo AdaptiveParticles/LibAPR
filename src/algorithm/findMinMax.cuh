@@ -1,7 +1,6 @@
 #ifndef FIND_MIN_MAX_CUH
 #define FIND_MIN_MAX_CUH
 
-#include "misc/CudaTools.cuh"
 #include <cuda/std/limits>
 
 /**

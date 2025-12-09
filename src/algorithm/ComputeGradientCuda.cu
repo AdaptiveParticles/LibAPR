@@ -1,13 +1,11 @@
 #include <iostream>
 #include <chrono>
-#include <cstdint>
 #include <algorithm>
 
 #include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 
 #include "ComputeGradientCuda.hpp"
-
-#include <cuda_runtime_api.h>
 
 #include "APRParameters.hpp"
 #include "data_structures/Mesh/PixelData.hpp"
@@ -27,7 +25,6 @@
 #include "bsplineYdir.cuh"
 #include "bsplineZdir.cuh"
 #include "findMinMax.cuh"
-
 #include "data_structures/APR/access/GenInfoGpuAccess.cuh"
 
 
@@ -171,6 +168,7 @@ namespace {
     }
 }
 
+
 template <typename ImgType>
 void getGradientCuda(const PixelData<ImgType> &image,
                      ImgType *cudaImage, ImgType *cudaGrad, float *cudalocal_scale_temp,
@@ -180,7 +178,8 @@ void getGradientCuda(const PixelData<ImgType> &image,
     // TODO: Used PixelDataDim in all methods below and change input parameter from image to imageDim
 
     // TODO: (APRstreams) isErrorDetected should be handled differently, in current state it blocks streams from
-    //       running in parallel
+    //       running in parallel, for example we can skip checking of it here (in 99.9% of cases we won't get any error)
+    //       and check it at the end of computation where we need to synchronize
     if (par.lambda > 0) {
         isErrorDetected = false;
         isErrorDetectedCuda.copyH2D();
@@ -340,19 +339,6 @@ void runBsplineOffsetAndCopyOriginal(ImgType *cudaImage, ImgType *cudaCopy, floa
 
 
 template <typename T>
-__global__ void printKernel(T *input, size_t length) {
-    printf("DOWNSAMPLED: ");
-    for (int i = 0; i < length; i++) printf("%d ", input[i]);
-    printf("\n");
-}
-
-template <typename ImgType>
-void runPrint(ImgType *cudaImage, size_t length, cudaStream_t aStream) {
-    printKernel<<<1,1, 0, aStream>>>(cudaImage, length);
-};
-
-
-template <typename T>
 __global__ void sampleKernel(T *downsampledLevel,  T *parts_cuda, int level, int xLen, int yLen, int zLen, uint64_t *level_xz_vec_cuda, uint64_t *xz_end_vec_cuda, uint16_t *y_vec) {
     const int xi = (blockIdx.x * blockDim.x) + threadIdx.x;
     const int zi = (blockIdx.z * blockDim.z) + threadIdx.z;
@@ -371,27 +357,17 @@ __global__ void sampleKernel(T *downsampledLevel,  T *parts_cuda, int level, int
     }
 }
 
+
 template <typename ImgType>
 void runSampleParts(ImgType** downsampled, GenInfo &aprInfo, ImgType *parts_cuda, uint64_t *level_xz_vec_cuda, uint64_t *xz_end_vec_cuda, uint16_t *y_vec, cudaStream_t aStream) {
-     // std::cout << aprInfo << std::endl;
     // Run kernels for each level
     for (int level = aprInfo.l_min; level <= aprInfo.l_max; level++) {
-        // std::cout << "Processing level " << level << std::endl;
         dim3 threadsPerBlock(128, 1, 8);
         dim3 numBlocks((aprInfo.x_num[level] + threadsPerBlock.x - 1) / threadsPerBlock.x,
                        1,
                        (aprInfo.z_num[level] + threadsPerBlock.z - 1) / threadsPerBlock.z);
-        // std::cout << downsampled[level] << std::endl;
-        // std::cout << parts_cuda << std::endl;
-        // std::cout << aprInfo.x_num[level] << std::endl;
-        // std::cout << aprInfo.y_num[level] << std::endl;
-        // std::cout << aprInfo.z_num[level] << std::endl;
-        // std::cout << level_xz_vec_cuda << std::endl;
-        // std::cout << xz_end_vec_cuda << std::endl;
-        // std::cout << y_vec << std::endl;
         sampleKernel<<<numBlocks, threadsPerBlock, 0, aStream>>>(downsampled[level], parts_cuda, level, aprInfo.x_num[level], aprInfo.y_num[level], aprInfo.z_num[level], level_xz_vec_cuda, xz_end_vec_cuda, y_vec);
     }
-
 };
 
 
@@ -443,7 +419,6 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     ScopedCudaMemHandler<float*, JUST_ALLOC> local_scale_temp;
     ScopedCudaMemHandler<float*, JUST_ALLOC> local_scale_temp2;
 
-
     // bspline stuff
     const float tolerance = 0.0001;
     std::pair<BsplineParamsCuda, BsplineParamsCudaMemoryHandlers> cudax;
@@ -452,7 +427,6 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     BsplineParamsCuda splineCudaX;
     BsplineParamsCuda splineCudaY;
     BsplineParamsCuda splineCudaZ;
-
 
     // bool isErrorDetected;
     VectorData<bool> isErrorDetectedPinned;
@@ -469,7 +443,6 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
     // Padded memory for local_scale_temp and local_scale_temp2
     ScopedCudaMemHandler<float*, JUST_ALLOC> lstPadded;
     ScopedCudaMemHandler<float*, JUST_ALLOC> lst2Padded;
-
 
     // Structures used by computeLinearStructureCuda
     VectorData<uint64_t> xz_end_vec;
@@ -521,9 +494,6 @@ public:
         splineCudaX = cudax.first;
         splineCudaY = cuday.first;
         splineCudaZ = cudaz.first;
-        // std::cout << "\n=============== GpuProcessingTaskImpl ===================" << iStream << "\n\n";
-//        std::cout << iCpuImage << std::endl;
-//        std::cout << iCpuLevels << std::endl;
 
         // In LIS we have: var_win[0,1,2] = maximum 3 var_win[3,4,5] = maximum 6
         // so maximum paddSize is 6 6 6
@@ -531,7 +501,6 @@ public:
         PixelDataDim paddedImageSize = inputImage.getDimensionDS() + maxPaddSize + maxPaddSize;
         lstPadded.initialize(nullptr, paddedImageSize.size(), iStream);
         lst2Padded.initialize(nullptr, paddedImageSize.size(), iStream);
-
 
         // initialize_xz_linear() - CPU impl.
         counter_total = 1; //the buffer val to allow -1 calls without checking.
@@ -542,19 +511,14 @@ public:
             level_xz_vec[i + 1] = counter_total;
         }
         xz_end_vec.resize(counter_total, 0);
-    // std::cout << "----------- iAprInfo.getSize() = " << iAprInfo.getSize() << std::endl;
         y_vec.resize(iAprInfo.getSize()); // resize it to worst case -> same number particles as pixels in input image
-        // std::cout << "----------- iAprInfo.getSize() = " << iAprInfo.getSize() << std::endl;
         xz_end_vec_cuda.initialize(xz_end_vec.data(), xz_end_vec.size(), iStream);
         level_xz_vec_cuda.initialize(level_xz_vec.data(), level_xz_vec.size(), iStream);
 
         parts.resize(iAprInfo.getSize()); // resize it to  worst case -> same number particles as pixels in input image
 
-
         isErrorDetectedPinned.resize(1);
         isErrorDetectedCuda.initialize(isErrorDetectedPinned.data(), 1, iStream);
-
-
 
         // In nvidia GPUs maximum number of threads per SM is multiplication of 512 (usually 1536 or 2048)
         // Calculate number of blocks to saturate whole SMs
@@ -589,16 +553,12 @@ public:
         size_t levelOffset = 0;
         for (int l = l_max-1; l >= l_min; --l) {
             size_t level_size = iAprInfo.x_num[l] * iAprInfo.y_num[l] * iAprInfo.z_num[l];
-            // std::cout << l << " dim: " << iAprInfo.getDimension(l) << " " << iAprInfo.getSize(l) << " " << level_size << std::endl;
             downsampled[l] = image.get() + levelOffset;
             levelOffset += iAprInfo.getSize(l);
 
             runDownsampleMean(downsampled[l+1], downsampled[l], iAprInfo.x_num[l+1], iAprInfo.y_num[l+1], iAprInfo.z_num[l+1], iStream);
         }
 
-        // VectorData<uint64_t> xz_end_vec;
-        // VectorData<uint64_t> level_xz_vec;
-        // VectorData<uint16_t> y_vec;
         runSampleParts(downsampled, iAprInfo, parts_cuda.get(), level_xz_vec_cuda.get(), xz_end_vec_cuda.get(), y_vec_cuda.get(), iStream);
     }
 
@@ -607,8 +567,6 @@ public:
     }
 
     void processOnGpu() {
-
-
         // Set it and copy first before copying the image
         // It improves *a lot* performance even though it is needed later in computeLinearStructureCuda()
         iAprInfo.total_number_particles = 0; // reset total_number_particles to 0
@@ -660,15 +618,11 @@ public:
         // Copy y_vec from GPU to CPU and synchronize last time - it is needed before we copy data to CPU structures
         checkCuda(cudaMemcpyAsync(y_vec.begin(), y_vec_cuda.get(), iAprInfo.total_number_particles * sizeof(uint16_t), cudaMemcpyDeviceToHost, iStream));
 
-
-        // SAMPLE under development
+        // SAMPLE particles and transfer to CPU
         sample();
         parts.resize(iAprInfo.total_number_particles);
         // Copy y_vec from GPU to CPU and synchronize last time - it is needed before we copy data to CPU structures
         checkCuda(cudaMemcpyAsync(parts.begin(), parts_cuda.get(), iAprInfo.total_number_particles * sizeof(ImgType), cudaMemcpyDeviceToHost, iStream));
-
-
-
 
         // Synchornize last time - at that moment all data from GPU is copied to CPU
         checkCuda(cudaStreamSynchronize(iStream));
@@ -714,7 +668,6 @@ template void cudaFilterBsplineFull(PixelData<float> &, float, float, TypeOfRecB
 template void cudaFilterBsplineFull(PixelData<uint16_t> &, float, float, TypeOfRecBsplineFlags, int);
 template void cudaFilterBsplineFull(PixelData<int16_t> &, float, float, TypeOfRecBsplineFlags, int);
 template void cudaFilterBsplineFull(PixelData<uint8_t> &, float, float, TypeOfRecBsplineFlags, int);
-
 
 
 template <typename ImgType>
@@ -809,12 +762,6 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
 
     float tolerance = 0.0001;
 
-    // TODO: This is wrong and done only for compile. BsplineParams has to be computed seperately for each dimension.
-    //       Should be fixed when other parts of pipeline are ready.
-
-    // FIX BSPLINE PARAMS !!!!!!!! to get full gradient pipeline test working !!!!!!!!!!!!!!!!!!!!!!!!!1
-
-
     BsplineParams px = prepareBsplineStuff(image.x_num, par.lambda, tolerance);
     auto cudax = transferSpline(px, aStream);
     auto splineCudaX = cudax.first;
@@ -882,4 +829,3 @@ std::pair<T,T> cudaRunMinMax(PixelData<T> &input_image) {
 
 template std::pair<uint16_t, uint16_t> cudaRunMinMax(PixelData<uint16_t> &);
 template std::pair<int, int> cudaRunMinMax(PixelData<int> &);
-
