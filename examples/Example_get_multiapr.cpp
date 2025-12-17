@@ -12,6 +12,11 @@ Additional settings (High Level):
 -sigma_th   lower threshold for the local intensity scale
 -grad_th    ignore areas in the image where the gradient magnitude is lower than this value
 
+-skipOutputMessages     produce less output/debug messages
+-doNotSaveAPRs          do not save output APR files (good for benchmarking)
+-r                      number of repetitions - default value = 1 means that all input files are processed only once
+                        for higher number input files are processed multiple times (good for benchmarking)
+
 Advanced (Direct) Settings:
 ===========================
 -lambda lambda_value (directly set the value of the gradient smoothing parameter lambda (reasonable range 0.1-10, default: 3)
@@ -43,6 +48,11 @@ struct cmdLineOptions {
     float rel_error = 0.1;
 
     bool neighborhood_optimization = true;
+
+    int numOfRepetitions = 1;
+    int numOfStreams = 3;
+    bool doNotSaveAPRs = false;
+    bool skipOutputMessages = false;
 };
 
 bool command_option_exists(const char **begin, const char **end, const std::string &option)
@@ -112,10 +122,26 @@ cmdLineOptions read_command_line_options(const int argc, const char **argv) {
         options.neighborhood_optimization = false;
     }
 
+    if (command_option_exists(argv, argv + argc, "-skipOutputMessages")) {
+        options.skipOutputMessages = true;
+    }
+
+    if (command_option_exists(argv, argv + argc, "-doNotSaveAPRs")) {
+        options.doNotSaveAPRs = true;
+    }
+
+    if (command_option_exists(argv, argv + argc, "-r")) {
+        options.numOfRepetitions = std::stoi(std::string(get_command_option(argv, argv + argc, "-r")));
+    }
+
+    if (command_option_exists(argv, argv + argc, "-numOfStreams")) {
+        options.numOfStreams = std::stoi(std::string(get_command_option(argv, argv + argc, "-numOfStreams")));
+    }
+
     return options;
 }
 
-
+/* Finds all tiff files (with possible different extensions) in provided directory */
 auto getTiffFilesFromDir(const std::string &directory_path) {
     namespace fs = std::filesystem;
 
@@ -124,8 +150,7 @@ auto getTiffFilesFromDir(const std::string &directory_path) {
     try {
         for (const auto& entry : fs::directory_iterator(directory_path)) {
             if (entry.is_regular_file()) {
-                auto ext = entry.path().extension().string();
-                if (ext == ".tif" || ext == ".tiff" || ext == ".TIF" || ext == ".TIFF") {
+                if (auto ext = entry.path().extension().string(); ext == ".tif" || ext == ".tiff" || ext == ".TIF" || ext == ".TIFF") {
                     tif_files.push_back(entry.path());
                 }
             }
@@ -191,18 +216,30 @@ int runAPR(const cmdLineOptions &options) {
         partIntensities.push_back(std::make_unique<VectorData<ImgType>>(VectorData<ImgType>{}));
         partIntensities_raw.push_back(partIntensities.back().get());
     }
+    // To proces input image multiple times (for benchmarking etc.) we 'multiply input data' by adding extra APR and particle intensity objects and
+    // by copying input raw pointer to images to 'pretend' that we have a lot of input images.
+    size_t numOfInputImages = input_images_raw.size();
+    for (int m = 1; m < options.numOfRepetitions; m++) {
+        for (size_t n = 0; n < numOfInputImages; n++) {
+            input_images_raw.push_back(input_images[n].get());
+            APRs.push_back(std::make_unique<APR>(APR{}));
+            APRs_raw.push_back(APRs.back().get());
+            partIntensities.push_back(std::make_unique<VectorData<ImgType>>(VectorData<ImgType>{}));
+            partIntensities_raw.push_back(partIntensities.back().get());
+        }
+    }
 
     std::cout << std::endl;
 
-    APRTimer timer(true);
+    APRTimer timer(false);
     timer.start_timer("GPU pipeline (mem allocation, processing, sampling) ");
-    if (aprConverter.get_apr_cuda_multistreams(APRs_raw, input_images_raw, partIntensities_raw)) {
+    if (aprConverter.get_apr_cuda_multistreams(APRs_raw, input_images_raw, partIntensities_raw, options.numOfStreams)) {
         timer.stop_timer();
-        size_t numOfImages = input_images_raw.size();
-        std::cout << std::endl;
+        size_t numOfImagesToProcess = input_images_raw.size(); // might be 'processInputMultipleTimes' times bigger than num of input images
+        if (!options.skipOutputMessages) std::cout << std::endl;
 
-        for (size_t i = 0; i < numOfImages; i++) {
-            std::cout << "Postprocessing " << i+1 << "/" << numOfImages << " image...\n";
+        for (size_t i = 0; i < numOfImagesToProcess && !options.doNotSaveAPRs; i++) {
+            if (!options.skipOutputMessages) std::cout << "Postprocessing " << i+1 << "/" << numOfImagesToProcess << " image...\n";
             auto &apr = *APRs[i].get(); // currently process APR
             auto &particle_intensities = *partIntensities[i].get(); // intensities sampled for current APR
 
@@ -210,25 +247,30 @@ int runAPR(const cmdLineOptions &options) {
             // ------------ TODO: remove me later, this is quick test for Cpu vs Gpu before real test is written
             // std::cout << apr.linearAccess.y_vec.size() << " particles in APR" << std::endl;
             // std::cout << particle_intensities.size() << " intensities in CPU in APR" << std::endl;
-            // if (apr.linearAccess.y_vec.size() != particle_intensities.size()) {std::cerr << "CPU vs GPU number of particles differ!" << std::endl;}
+            if (apr.linearAccess.y_vec.size() != particle_intensities.size()) {std::cerr << "CPU vs GPU number of particles differ!" << std::endl;}
             ParticleData<ImgType> particle_intensities_cpu;
-            particle_intensities_cpu.sample_image(apr, *input_images[i].get()); // sample your particles from your image
+            particle_intensities_cpu.sample_image(apr, *input_images_raw[i]); // sample your particles from your image
+            int errorCnt = 0;
             for (size_t j = 0 ; j < particle_intensities.size(); ++j) {
                 if (particle_intensities_cpu[j]  != particle_intensities[j]) {
-                    std::cout << "Mismatch at " << j << " CPU: " << particle_intensities_cpu[j] << " GPU: " << particle_intensities[j] << std::endl;
+                    errorCnt++;
+                    // std::cout << "Mismatch at " << j << " CPU: " << particle_intensities_cpu[j] << " GPU: " << particle_intensities[j] << std::endl;
                 }
             }
+            if (errorCnt > 0) std::cout << errorCnt << " errors for index=" << i << std::endl;
             // ---------------------------------------------------------------------------------------------------
 
             // Output name is like base of input filename + extension ".apr"
+            // Extra number is added for 'multiplied' input images
             auto outputDir = std::filesystem::path(options.output_dir);
-            const std::filesystem::path& p(tifFiles[i]);
-            std::string outpuFileName = p.stem().string() + ".apr";
+            const std::filesystem::path& p(tifFiles[i % numOfInputImages]);
+            std::string num = (i >= numOfInputImages) ? std::to_string(i) : "";
+            std::string outputFileName = p.stem().string() + num + ".apr";
 
             //write the APR to hdf5 file
             timer.start_timer("writing output");
             APRFile aprFile;
-            aprFile.open(outputDir / outpuFileName);
+            aprFile.open(outputDir / outputFileName);
             aprFile.write_apr(apr, 0, "t", false);
             ParticleData<ImgType> pd;
             pd.data = std::move(particle_intensities);
@@ -239,10 +281,13 @@ int runAPR(const cmdLineOptions &options) {
             float aprImageSizeInMB = aprFile.current_file_size_MB();
             double originalImageSizeInMB = sizeof(ImgType) * static_cast<double>(apr.org_dims(0) * apr.org_dims(1) * apr.org_dims(2)) / 1'000'000.0;
 
-            std::cout << "Computational Ratio (Pixels/Particles): " << apr.computational_ratio() << std::endl;
-            std::cout << "Original / APR image size:              " << originalImageSizeInMB << " / " << aprImageSizeInMB <<" MB" << std::endl;
-            std::cout << "Lossy Compression Ratio:                " << originalImageSizeInMB/aprImageSizeInMB << std::endl;
-            std::cout << std::endl;
+            if (!options.skipOutputMessages) {
+                std::cout << "Save filename: [" << outputFileName << "]" << std::endl;
+                std::cout << "Computational Ratio (Pixels/Particles): " << apr.computational_ratio() << std::endl;
+                std::cout << "Original / APR image size:              " << originalImageSizeInMB << " / " << aprImageSizeInMB <<" MB" << std::endl;
+                std::cout << "Lossy Compression Ratio:                " << originalImageSizeInMB/aprImageSizeInMB << std::endl;
+                std::cout << std::endl;
+            }
         }
     }
     else {

@@ -401,6 +401,11 @@ template <typename U>
 template <typename ImgType>
 class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
+
+
+    int cudaDevID;
+    cudaError_t cudaerr;
+
     CudaStream cudaStream;
     const cudaStream_t iStream;
 
@@ -465,6 +470,8 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 public:
 
     GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, const APRParameters &parameters, int maxLevel) :
+        cudaDevID(0),  // used for now only in testing new ideas, ideally we should discover CPU/GPU architecture and assing corrct GPU to correct CPU which involves also correct memory allocation and thread affinity....
+        cudaerr(cudaSetDevice(cudaDevID)),
         iCpuImage(inputImage),
         iStream(cudaStream.get()),
         image (inputImage, iStream),
@@ -524,7 +531,7 @@ public:
         // Calculate number of blocks to saturate whole SMs
         // Multiply it by 8 to have more smaller blocks to have better load balancing in case GPU is busy with other tasks
         cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, 0);
+        cudaGetDeviceProperties(&deviceProp, cudaDevID);
         const int smCount = deviceProp.multiProcessorCount;
         const int numOfThreadsPerSM = deviceProp.maxThreadsPerMultiProcessor;
         constexpr int numOfThreads = 512;
@@ -563,10 +570,12 @@ public:
     }
 
     LinearAccessCudaStructs<ImgType> getDataFromGpu() {
+        cudaSetDevice(cudaDevID);
         return std::move(lacs);
     }
 
     void processOnGpu() {
+        cudaSetDevice(cudaDevID);
         // Set it and copy first before copying the image
         // It improves *a lot* performance even though it is needed later in computeLinearStructureCuda()
         iAprInfo.total_number_particles = 0; // reset total_number_particles to 0

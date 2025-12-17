@@ -427,19 +427,18 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
     // Reduce number of streams to number of images if there are fewer images than streams
     if (numOfImages < numOfStreams) numOfStreams = numOfImages;
 
-    // Use first image to initialize the APR - all other images should have the same dimensions
-    auto input_image = input_images[0];
-
     // Initialize APRs and memory for the pipeline
     for (auto apr : aAPRs) {
-        if (!initPipelineAPR(*apr, *input_image)) return false;
+        // Use first image to initialize the APR - all other images should have the same dimensions
+        if (!initPipelineAPR(*apr, *input_images[0])) return false;
     }
 
-    // Create a temporary image for each stream
-    std::vector<PixelData<ImageType>> tempImages;
+    // Create a pinned buffer which will be linked to GpuProcessingTask handling each stream
+    // These buffers are used to transmit images from CPU to GPU (first input image need to be copied there)
+    std::vector<PixelData<ImageType>> pinnedBuffers;
     std::cout << "Allocating memory for " << numOfStreams << " streams." << std::endl;
     for (int i = 0; i < numOfStreams; ++i) {
-        tempImages.emplace_back(PixelData<T>(*input_image, true /* copy */, true /* pinned memory */));
+        pinnedBuffers.emplace_back(PixelData<T>(*input_images[i], false /* copy */, true /* pinned memory */));
     }
 
      /////////////////////////////////
@@ -447,20 +446,20 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
     /////////////////////////////////
     APRTimer t(true);
 
-    // Create GpuProcessingTask for each stream
+    // Create GpuProcessingTask for each stream and link it with pinnedBuffer
     std::vector<GpuProcessingTask<ImageType>> gpts;
     t.start_timer("Creating GPTS");
     std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
     for (int i = 0; i < numOfStreams; ++i) {
-        gpts.emplace_back(GpuProcessingTask<ImageType>(tempImages[i], par, aAPRs[0]->level_max()));
+        gpts.emplace_back(GpuProcessingTask<ImageType>(pinnedBuffers[i], par, aAPRs[0]->level_max()));
     }
     t.stop_timer();
-
 
     t.start_timer("GPU processing...");
     // Saturate all the streams with first images
     for (int i = 0; i < numOfStreams; ++i) {
         std::cout << "Processing image " << i << " on stream " << i  << std::endl;
+        pinnedBuffers[i].copyFromMesh(*input_images[i]);
         gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
     }
 
@@ -476,7 +475,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
         // We have 'numOfImages - numOfStreams' left to process after saturating the streams with first images
         if (s  < numOfImages - numOfStreams) {
             int imageToProcess = s + numOfStreams;
-            tempImages[streamNum].copyFromMesh(*input_images[imageToProcess]);
+            pinnedBuffers[streamNum].copyFromMesh(*input_images[imageToProcess]);
             std::cout << "Processing image " << imageToProcess << " on stream " << streamNum << std::endl;
             gpts_futures[streamNum] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[streamNum]);
         }
@@ -489,8 +488,8 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
         aAPRs[s]->apr_initialized = true;
         if (intensities[s] != nullptr) *intensities[s] = std::move(linearAccessGpu.parts);
     }
-
     auto allT = t.stop_timer();
+
     float tpi = allT / (numOfImages);
     std::cout << "Num of images processed: " << numOfImages << "\n";
     std::cout << "Time per image: " << tpi << " seconds\n";

@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <numeric>
+#include <cstring>
 
 #include "misc/APRTimer.hpp"
 
@@ -435,8 +436,12 @@ public :
     PinnedMemoryUniquePtr<T> meshMemoryPinned;
 #endif
     ArrayWrapper<T> mesh;
-    
-    uint64_t size() { return (uint64_t) x_num * y_num * z_num * sizeof(T); }
+
+    /**
+     * @return Size in bytes of PixelData (number of elements * sizeof of element)
+     */
+    uint64_t size() const { return (uint64_t) x_num * y_num * z_num * sizeof(T); }
+
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
@@ -598,7 +603,16 @@ public :
     }
 
     /**
-     * Copies data from aInputMesh utilizing parallel copy, requires prior initialization
+     * Copies data from aInputMesh - requires prior initialization
+     * of 'this' object (size and number of elements)
+     * @param aInputMesh input mesh with data
+    */
+    void copyFromMesh(const PixelData<T> &aInputMesh) {
+        std::memcpy(mesh.begin(), aInputMesh.mesh.begin(), aInputMesh.size());
+    }
+
+    /**
+     * Copies data from aInputMesh which is of different type than 'this' utilizing parallel copy, requires prior initialization
      * of 'this' object (size and number of elements)
      * @tparam U type of data
      * @param aInputMesh input mesh with data

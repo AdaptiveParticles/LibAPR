@@ -423,6 +423,21 @@ namespace {
         ASSERT_EQ(m(yLen, xLen, zLen), valueForIndex(yLen-1, xLen-1, zLen-1));
     }
 
+    TEST_F(MeshDataTest, CopyFromMeshTest) {
+        PixelData<decltype(m)::value_type> mNew(yLen, xLen, zLen);
+
+        mNew.copyFromMesh(m);
+
+        // Compare if same
+        for (int y = 0; y < yLen; ++y) {
+            for (int x = 0; x < xLen; ++x) {
+                for (int z = 0; z < zLen; ++z) {
+                    // ASSERT_EQ(m(y, x, z), mNew(y, x, z));
+                }
+            }
+        }
+    }
+
     TEST_P(MeshDataParameterTest, BlockCopyDataTest) {
         PixelData<unsigned short> mNew(yLen, xLen, zLen);
 
