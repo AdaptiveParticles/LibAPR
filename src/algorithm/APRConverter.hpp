@@ -77,7 +77,10 @@ public:
     template <typename T>
     bool get_apr_cuda(APR &aAPR, PixelData<T> &input_image);
     template <typename T>
-    bool get_apr_cuda_multistreams(std::vector<APR*> &aAPRs, std::vector<PixelData<T> *> &input_images, std::vector<VectorData<T> *> intensities, int numOfStreams = 3);
+    bool get_apr_cuda_multistreams(std::vector<APR*> &aAPRs, std::vector<PixelData<T> *> &input_images, std::vector<VectorData<T> *> &intensities, int numOfStreams = 3);
+    template<typename T>
+    void processOnGpu(int numOfStream, int numOfStreams, int numOfImages, std::vector<PixelData<T>*> &input_images, GpuProcessingTask<ImageType> &gpt,PixelData<ImageType> &pinnedBuffer, std::vector<APR*> &aAPRs, std::vector<VectorData<T> *> &intensities);
+
 #endif
 
     bool verbose = true;
@@ -406,7 +409,41 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
 }
 #endif
 
+
 #ifdef APR_USE_CUDA
+/**
+ * Process images on GPU
+ */
+template<typename ImageType> template<typename T>
+inline void APRConverter<ImageType>::processOnGpu(int numOfStream, int numOfStreams, int numOfImages, std::vector<PixelData<T>*> &input_images, GpuProcessingTask<ImageType> &gpt,PixelData<ImageType> &pinnedBuffer, std::vector<APR*> &aAPRs, std::vector<VectorData<T> *> &intensities)
+{
+    // Copy to send buffer first image
+    pinnedBuffer.copyFromMesh(*input_images[numOfStream]);
+
+    for (int i = numOfStream; i < numOfImages; i += numOfStreams) {
+        std::cout << "Processing image " << i << " on stream " << numOfStream  << std::endl;
+
+        // ---- Send image to GPU
+        gpt.sendDataToGpu();
+
+        // ---- While processing image on GPU, copy next image to buffer
+        auto future = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpt);
+        // In the last loop we have already image copied to send buffer so skip that one
+        if (i + numOfStreams < numOfImages) pinnedBuffer.copyFromMesh(*input_images[i + numOfStreams]);
+        future.get();
+
+        // ---- Read computed data from GPU and fill APR data structure
+        auto linearAccessGpu = gpt.getDataFromGpu();
+        auto apr = aAPRs[i];
+        apr->aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
+        apr->linearAccess.y_vec = std::move(linearAccessGpu.y_vec);
+        apr->linearAccess.xz_end_vec = std::move(linearAccessGpu.xz_end_vec);
+        apr->linearAccess.level_xz_vec = std::move(linearAccessGpu.level_xz_vec);
+        apr->apr_initialized = true;
+        if (intensities[i] != nullptr) *intensities[i] = std::move(linearAccessGpu.parts);
+    }
+}
+
 /**
  * Implementation of pipeline for GPU/CUDA and multiple streams
  * NOTE: Currently only one image is processed multiple times just get an idea how fast it can be.
@@ -417,7 +454,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda(APR &aAPR, PixelData<T>& input
  * @param numOfStreams - number of streams to use for parallel processing on GPU
  */
 template<typename ImageType> template<typename T>
-inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*> &aAPRs, std::vector<PixelData<T>*> &input_images, std::vector<VectorData<T> *> intensities, int numOfStreams) {
+inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*> &aAPRs, std::vector<PixelData<T>*> &input_images, std::vector<VectorData<T> *> &intensities, int numOfStreams) {
     int numOfImages = input_images.size();
     if (numOfImages == 0) {
         std::cerr << "No input images provided for APR conversion." << std::endl;
@@ -441,53 +478,30 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
         pinnedBuffers.emplace_back(PixelData<T>(*input_images[i], false /* copy */, true /* pinned memory */));
     }
 
-     /////////////////////////////////
-    /// Pipeline
-    /////////////////////////////////
     APRTimer t(true);
 
     // Create GpuProcessingTask for each stream and link it with pinnedBuffer
     std::vector<GpuProcessingTask<ImageType>> gpts;
-    t.start_timer("Creating GPTS");
+    t.start_timer("Creating GPTs");
     std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
     for (int i = 0; i < numOfStreams; ++i) {
+        //par.noise_sd_estimate = i;
         gpts.emplace_back(GpuProcessingTask<ImageType>(pinnedBuffers[i], par, aAPRs[0]->level_max()));
     }
     t.stop_timer();
 
     t.start_timer("GPU processing...");
-    // Saturate all the streams with first images
+
+    // Start all GPTs in separate threads...
     for (int i = 0; i < numOfStreams; ++i) {
-        std::cout << "Processing image " << i << " on stream " << i  << std::endl;
-        pinnedBuffers[i].copyFromMesh(*input_images[i]);
-        gpts_futures[i] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[i]);
+        gpts_futures[i] = std::async(std::launch::async, &APRConverter<ImageType>::processOnGpu<T>, this,
+                                     i, numOfStreams, numOfImages,
+                                     std::ref(input_images), std::ref(gpts[i]), std::ref(pinnedBuffers[i]),
+                                     std::ref(aAPRs), std::ref(intensities));
     }
+    // ...and wait for all jobs to finish
+    for (int i = 0; i < numOfStreams; ++i) gpts_futures[i].get();
 
-    // Main loop - get results from GPU and send new images to the streams (if any left)
-    for (int s = 0; s < numOfImages; ++s) {
-        int streamNum = s % numOfStreams;
-
-        // Get data from GpuProcessingTask - get() will block until the task is finished
-        gpts_futures[streamNum].get();
-        auto linearAccessGpu = gpts[streamNum].getDataFromGpu();
-
-        // Send next images to the stream if there are any left
-        // We have 'numOfImages - numOfStreams' left to process after saturating the streams with first images
-        if (s  < numOfImages - numOfStreams) {
-            int imageToProcess = s + numOfStreams;
-            pinnedBuffers[streamNum].copyFromMesh(*input_images[imageToProcess]);
-            std::cout << "Processing image " << imageToProcess << " on stream " << streamNum << std::endl;
-            gpts_futures[streamNum] = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpts[streamNum]);
-        }
-
-        // Fill APR data structure with data from GPU
-        aAPRs[s]->aprInfo.total_number_particles = linearAccessGpu.y_vec.size();
-        aAPRs[s]->linearAccess.y_vec = std::move(linearAccessGpu.y_vec);
-        aAPRs[s]->linearAccess.xz_end_vec = std::move(linearAccessGpu.xz_end_vec);
-        aAPRs[s]->linearAccess.level_xz_vec = std::move(linearAccessGpu.level_xz_vec);
-        aAPRs[s]->apr_initialized = true;
-        if (intensities[s] != nullptr) *intensities[s] = std::move(linearAccessGpu.parts);
-    }
     auto allT = t.stop_timer();
 
     float tpi = allT / (numOfImages);
@@ -499,7 +513,6 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
     return true;
 }
 #endif
-
 
 /**
  * Implementation of pipeline for CPU

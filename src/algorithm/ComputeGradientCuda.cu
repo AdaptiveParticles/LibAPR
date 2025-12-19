@@ -574,7 +574,7 @@ public:
         return std::move(lacs);
     }
 
-    void processOnGpu() {
+    void sendDataToGpu() {
         cudaSetDevice(cudaDevID);
         // Set it and copy first before copying the image
         // It improves *a lot* performance even though it is needed later in computeLinearStructureCuda()
@@ -583,6 +583,11 @@ public:
         level_xz_vec_cuda.copyH2D();
 
         image.copyH2D();
+        checkCuda(cudaStreamSynchronize(iStream));
+    }
+
+    void processOnGpu() {
+        cudaSetDevice(cudaDevID);
 
         // offset image by factor (this is required if there are zero areas in the background with
         // uint16_t and uint8_t images, as the Bspline co-efficients otherwise may be negative!)
@@ -661,6 +666,9 @@ LinearAccessCudaStructs<ImgType> GpuProcessingTask<ImgType>::getDataFromGpu() {r
 
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}
+
+template <typename ImgType>
+void GpuProcessingTask<ImgType>::sendDataToGpu() {impl->sendDataToGpu();}
 
 // explicit instantiation of handled types
 template class GpuProcessingTask<uint8_t>;

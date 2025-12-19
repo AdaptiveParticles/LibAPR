@@ -49,6 +49,7 @@ public:
 
     LinearAccessCudaStructs<ImgType> getDataFromGpu();
     void processOnGpu();
+    void sendDataToGpu();
 
     void setBsplineOffset(float bspline_offset);
 };
