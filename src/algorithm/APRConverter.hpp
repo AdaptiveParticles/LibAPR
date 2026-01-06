@@ -429,7 +429,7 @@ inline void APRConverter<ImageType>::processOnGpu(int numOfStream, int numOfStre
         // ---- While processing image on GPU, copy next image to buffer
         auto future = std::async(std::launch::async, &GpuProcessingTask<ImageType>::processOnGpu, &gpt);
         // In the last loop we have already image copied to send buffer so skip that one
-        if (i + numOfStreams < numOfImages) pinnedBuffer.copyFromMesh(*input_images[i + numOfStreams]);
+        if (i + numOfStreams < numOfImages) pinnedBuffer.copyFromMesh(*input_images[i + numOfStreams], 8);
         future.get();
 
         // ---- Read computed data from GPU and fill APR data structure
