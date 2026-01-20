@@ -35,6 +35,8 @@ void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, Pixel
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz);
 template<typename T> std::pair<T,T> cudaRunMinMax(PixelData<T> &input_image);
 
+int getNumberOfGpu();
+
 template <typename ImgType>
 class GpuProcessingTask {
     // Using PIMPL to seperate GPU code from CPU (this file is to be included in regular code not compiled with nvcc)
@@ -43,7 +45,7 @@ class GpuProcessingTask {
 
 public:
 
-    GpuProcessingTask(const PixelData<ImgType> &image, const APRParameters &parameters, int maxLevel);
+    GpuProcessingTask(const PixelData<ImgType> &image, const APRParameters &parameters, int maxLevel, int gpuCudaID = 0);
     ~GpuProcessingTask();
     GpuProcessingTask(GpuProcessingTask&&);
 
@@ -51,7 +53,8 @@ public:
     void processOnGpu();
     void sendDataToGpu();
 
-    void setBsplineOffset(float bspline_offset);
+    int getCudaDeviceID() const;
+
 };
 
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP

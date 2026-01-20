@@ -370,6 +370,11 @@ void runSampleParts(ImgType** downsampled, GenInfo &aprInfo, ImgType *parts_cuda
     }
 };
 
+int getNumberOfGpu() {
+    int deviceCount = 0;
+    checkCuda(cudaGetDeviceCount(&deviceCount));
+    return deviceCount;
+}
 
 class CudaStream {
     cudaStream_t iStream;
@@ -469,8 +474,8 @@ class GpuProcessingTask<U>::GpuProcessingTaskImpl {
 
 public:
 
-    GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, const APRParameters &parameters, int maxLevel) :
-        cudaDevID(0),  // used for now only in testing new ideas, ideally we should discover CPU/GPU architecture and assing corrct GPU to correct CPU which involves also correct memory allocation and thread affinity....
+    GpuProcessingTaskImpl(const PixelData<ImgType> &inputImage, const APRParameters &parameters, int maxLevel, int gpuCudaId) :
+        cudaDevID(gpuCudaId),  // used for now only in testing new ideas, ideally we should discover CPU/GPU architecture and assing corrct GPU to correct CPU which involves also correct memory allocation and thread affinity....
         cudaerr(cudaSetDevice(cudaDevID)),
         iCpuImage(inputImage),
         iStream(cudaStream.get()),
@@ -574,6 +579,8 @@ public:
         return std::move(lacs);
     }
 
+    int getCudaDeviceID() const { return cudaDevID; }
+
     void sendDataToGpu() {
         cudaSetDevice(cudaDevID);
         // Set it and copy first before copying the image
@@ -652,8 +659,8 @@ public:
 };
 
 template <typename ImgType>
-GpuProcessingTask<ImgType>::GpuProcessingTask(const PixelData<ImgType> &image, const APRParameters &parameters, int maxLevel)
-: impl{new GpuProcessingTaskImpl<ImgType>(image, parameters, maxLevel)} { }
+GpuProcessingTask<ImgType>::GpuProcessingTask(const PixelData<ImgType> &image, const APRParameters &parameters, int maxLevel, int gpuCudaID)
+: impl{new GpuProcessingTaskImpl<ImgType>(image, parameters, maxLevel, gpuCudaID)} { }
 
 template <typename ImgType>
 GpuProcessingTask<ImgType>::~GpuProcessingTask() { }
@@ -669,6 +676,9 @@ void GpuProcessingTask<ImgType>::processOnGpu() {impl->processOnGpu();}
 
 template <typename ImgType>
 void GpuProcessingTask<ImgType>::sendDataToGpu() {impl->sendDataToGpu();}
+
+template <typename ImgType>
+int GpuProcessingTask<ImgType>::getCudaDeviceID() const { return impl->getCudaDeviceID(); }
 
 // explicit instantiation of handled types
 template class GpuProcessingTask<uint8_t>;

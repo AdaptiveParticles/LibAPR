@@ -421,7 +421,7 @@ inline void APRConverter<ImageType>::processOnGpu(int numOfStream, int numOfStre
     pinnedBuffer.copyFromMesh(*input_images[numOfStream]);
 
     for (int i = numOfStream; i < numOfImages; i += numOfStreams) {
-        std::cout << "Processing image " << i << " on stream " << numOfStream  << std::endl;
+        std::cout << "Processing image " << i << " on GPU " << gpt.getCudaDeviceID() << " on stream " << numOfStream  << std::endl;
 
         // ---- Send image to GPU
         gpt.sendDataToGpu();
@@ -480,13 +480,18 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
 
     APRTimer t(true);
 
+    // Get number of available GPUs, created GPU streams will be distributed evenly on those GPUs
+    const int numberOfGpus = getNumberOfGpu();
+    std::cout << "Number of detected GPUs: " << numberOfGpus << std::endl;
+
     // Create GpuProcessingTask for each stream and link it with pinnedBuffer
     std::vector<GpuProcessingTask<ImageType>> gpts;
     t.start_timer("Creating GPTs");
     std::vector<std::future<void>> gpts_futures; gpts_futures.resize(numOfStreams);
     for (int i = 0; i < numOfStreams; ++i) {
-        //par.noise_sd_estimate = i;
-        gpts.emplace_back(GpuProcessingTask<ImageType>(pinnedBuffers[i], par, aAPRs[0]->level_max()));
+        // Create GpuProcessingTask on provided GPU (via provided Cuda ID) and bind it with pinned memory buffer used
+        // later for transfering images to GPU
+        gpts.emplace_back(GpuProcessingTask<ImageType>(pinnedBuffers[i], par, aAPRs[0]->level_max(), i % numberOfGpus));
     }
     t.stop_timer();
 
@@ -499,6 +504,7 @@ inline bool APRConverter<ImageType>::get_apr_cuda_multistreams(std::vector<APR*>
                                      std::ref(input_images), std::ref(gpts[i]), std::ref(pinnedBuffers[i]),
                                      std::ref(aAPRs), std::ref(intensities));
     }
+
     // ...and wait for all jobs to finish
     for (int i = 0; i < numOfStreams; ++i) gpts_futures[i].get();
 
