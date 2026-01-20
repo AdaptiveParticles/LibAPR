@@ -4,7 +4,7 @@
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/APRParameters.hpp"
 
-template <typename T, typename S>
-void runLocalIntensityScalePipeline(const PixelData<T> &image, const APRParameters &par, S *cudaImage, S *cudaTemp, cudaStream_t aStream);
+template <typename S>
+void runLocalIntensityScalePipeline(const PixelDataDim &image, const APRParameters &par, S *cudaImage, S *cudaTemp, S *lstPadded, S *lst2Padded, cudaStream_t aStream);
 
 #endif

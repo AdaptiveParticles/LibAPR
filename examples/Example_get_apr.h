@@ -30,7 +30,7 @@ struct cmdLineOptions{
     bool auto_parameters = false;
 
     float Ip_th = 0;
-    float lambda = -1;
+    float lambda = 3.0;
     float sigma_th = 0;
     float rel_error = 0.1;
     float grad_th = 1;

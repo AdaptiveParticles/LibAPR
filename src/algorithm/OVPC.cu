@@ -1,44 +1,34 @@
 #include "PullingSchemeCuda.hpp"
 
 #include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-//#include <device_functions.h>
-#include <cuda_runtime_api.h>
 
 #include "misc/CudaTools.cuh"
 #include "data_structures/Mesh/downsample.cuh"
+#include "algorithm/OVPC.h"
+#include "algorithm/ParticleCellTreeCuda.cuh"
 
-namespace {
-    using ElementType = uint8_t;
-    static constexpr int BIT_SHIFT = 6;
-    static constexpr ElementType OVPC_SEED = 1;
-    static constexpr ElementType OVPC_BOUNDARY = 2;
-    static constexpr ElementType OVPC_FILLER = 3;
-
-    static constexpr ElementType  SEED_MASK = OVPC_SEED << BIT_SHIFT;
-    static constexpr ElementType  BOUNDARY_MASK = OVPC_BOUNDARY << BIT_SHIFT;
-    static constexpr ElementType  FILLER_MASK = OVPC_FILLER << BIT_SHIFT;
-    static constexpr ElementType  MASK = 0x03 << BIT_SHIFT;
-}
 
 template <typename T, typename S>
-__global__ void copy1D(const T *input, S *output, size_t length) {
+__global__ void copyAndClampLevels(const T *input, S *output, size_t length, int levelMin, int levelMax) {
     size_t idx = (size_t)blockDim.x * blockIdx.x + threadIdx.x;
     if (idx < length) {
-        output[idx] = input[idx];
+        T v = input[idx];
+        if (v > levelMax) v = levelMax;
+        if (v < levelMin) v = levelMin;
+        output[idx] = v;
     }
 }
 
 template <typename T, typename S>
-void runCopy1D(T *inputData, S *outputData, size_t lenght, cudaStream_t aStream) {
+void runCopyAndClampLevels(T *inputData, S *outputData, size_t lenght, int levelMin, int levelMax, cudaStream_t aStream) {
     dim3 threadsPerBlock(128);
     dim3 numBlocks((lenght + threadsPerBlock.x - 1)/threadsPerBlock.x);
-    copy1D<<<numBlocks,threadsPerBlock, 0, aStream>>>(inputData, outputData, lenght);
+    copyAndClampLevels<<<numBlocks,threadsPerBlock, 0, aStream>>>(inputData, outputData, lenght, levelMin, levelMax);
 };
 
 
 template <typename T>
-__global__ void oneLevel(T *data, size_t xLen, size_t yLen, size_t zLen, int level) {
+__global__ void firstStep(T *data, size_t xLen, size_t yLen, size_t zLen, int level) {
     const int xi = (blockIdx.x * blockDim.x) + threadIdx.x;
     const int yi = (blockIdx.y * blockDim.y) + threadIdx.y;
     const int zi = (blockIdx.z * blockDim.z) + threadIdx.z;
@@ -51,39 +41,38 @@ __global__ void oneLevel(T *data, size_t xLen, size_t yLen, size_t zLen, int lev
     int zmin = zi > 0 ? zi - 1 : 0;
     int zmax = zi < zLen - 1 ? zi + 1 : zLen - 1;
 
-    bool ok = true;
-    bool neig = false;
+    bool hasNeighHigherLevel = false;
+    bool hasNeighSameLevel = false;
     for (int z = zmin; z <= zmax; ++z) {
         for (int x = xmin; x <= xmax; ++x) {
             for (int y = ymin; y <= ymax; ++y) {
                 const size_t idx = z * xLen * yLen + x * yLen + y;
-                T currentLevel = ~MASK & data[idx];
-                if (currentLevel > level) { ok = false; break; }
-                else if (currentLevel == level) neig = true;
+                T currentLevel = ~OVPC::MASK & data[idx];
+                if (currentLevel > level) { hasNeighHigherLevel = true; break; }
+                else if (currentLevel == level) hasNeighSameLevel = true;
             }
         }
     }
-    if (ok) {
+    if (!hasNeighHigherLevel) {
         const size_t idx = zi * xLen * yLen + xi * yLen + yi;
         T status = data[idx];
-        if (status == level) data[idx] |= SEED_MASK;
-        else if (neig) data[idx] |= BOUNDARY_MASK;
-        else data[idx] |= FILLER_MASK;
+        if (status == level) data[idx] |= OVPC::SEED;
+        else if (hasNeighSameLevel) data[idx] |= OVPC::BOUNDARY;
+        else data[idx] |= OVPC::FILLER;
     }
 }
 
 template <typename T>
-void runOneLevel(T *data, size_t xLen, size_t yLen, size_t zLen, int level, cudaStream_t aStream) {
+void runFirstStep(T *data, size_t xLen, size_t yLen, size_t zLen, int level, cudaStream_t aStream) {
     dim3 threadsPerBlock(1, 128, 1);
     dim3 numBlocks((xLen + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (yLen + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (zLen + threadsPerBlock.z - 1) / threadsPerBlock.z);
-//    dim3 numBlocks((xLen * yLen * zLen + threadsPerBlock.x - 1)/threadsPerBlock.x);
-    oneLevel<<<numBlocks,threadsPerBlock, 0, aStream>>>(data, xLen, yLen, zLen, level);
+    firstStep<<<numBlocks,threadsPerBlock, 0, aStream>>>(data, xLen, yLen, zLen, level);
 };
 
 template <typename T>
-__global__ void secondPhase(T *data, T *child, size_t xLen, size_t yLen, size_t zLen, size_t xLenc, size_t yLenc, size_t zLenc, bool isLevelMax) {
+__global__ void secondStep(T *data, T *child, size_t xLen, size_t yLen, size_t zLen, size_t xLenc, size_t yLenc, size_t zLenc, bool isLevelMin) {
     const int xi = (blockIdx.x * blockDim.x) + threadIdx.x;
     const int yi = (blockIdx.y * blockDim.y) + threadIdx.y;
     const int zi = (blockIdx.z * blockDim.z) + threadIdx.z;
@@ -103,73 +92,94 @@ __global__ void secondPhase(T *data, T *child, size_t xLen, size_t yLen, size_t 
         for (int x = xmin; x <= xmax; ++x) {
             for (int y = ymin; y <= ymax; ++y) {
                 size_t children_index = z * xLenc * yLenc + x * yLenc + y;
-                child[children_index] = status >= (OVPC_SEED << BIT_SHIFT) ? 0 : child[children_index] >> BIT_SHIFT;
+                child[children_index] = status >= (OVPC::OVPC_SEED << OVPC::BIT_SHIFT) ? 0 : child[children_index] >> OVPC::BIT_SHIFT;
             }
         }
     }
-    if (isLevelMax) data[zi * xLen * yLen + xi * yLen + yi] = status >> BIT_SHIFT;
+    if (isLevelMin) data[zi * xLen * yLen + xi * yLen + yi] = status >> OVPC::BIT_SHIFT;
 }
 
 template <typename T>
-void runSecondPhase(T *data, T *child, size_t xLen, size_t yLen, size_t zLen, size_t xLenc, size_t yLenc, size_t zLenc, bool isLevelMax, cudaStream_t aStream) {
+void runSecondStep(T *data, T *child, size_t xLen, size_t yLen, size_t zLen, size_t xLenc, size_t yLenc, size_t zLenc, bool isLevelMax, cudaStream_t aStream) {
     dim3 threadsPerBlock(1, 128, 1);
     dim3 numBlocks((xLen + threadsPerBlock.x - 1) / threadsPerBlock.x,
                    (yLen + threadsPerBlock.y - 1) / threadsPerBlock.y,
                    (zLen + threadsPerBlock.z - 1) / threadsPerBlock.z);
-    secondPhase<<<numBlocks,threadsPerBlock, 0, aStream>>>(data, child, xLen, yLen, zLen, xLenc, yLenc, zLenc, isLevelMax);
+    secondStep<<<numBlocks,threadsPerBlock, 0, aStream>>>(data, child, xLen, yLen, zLen, xLenc, yLenc, zLenc, isLevelMax);
 };
 
+
 // explicit instantiation of handled types
-template void computeOVPC(const PixelData<float>&, PixelData<TreeElementType>&, int, int);
+template std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<float>&, const GenInfo&);
+template std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<int>&, const GenInfo&);
 
-template <typename T, typename S>
-void computeOVPC(const PixelData<T> &input, PixelData<S> &output, int levelMin, int levelMax) {
-    ScopedCudaMemHandler<const PixelData<T>, H2D> in(input);
-    ScopedCudaMemHandler<PixelData<S>, D2H> mem(output);
+/**
+ * CUDA implementation of Pullin Scheme (OVPC - Optimal Valid Particle Cell set).
+ * @tparam T - type of input levels
+ * @param input - input levels computed in earlier stages
+ * @param gi - GenInfo for given APR
+ *
+ * @return - PCT for CPU (copied from GPU)
+ */
+template <typename T>
+std::vector<PixelData<uint8_t>> computeOvpcCuda(const PixelData<T> &input, const GenInfo &gi) {
+    // Copy input to CUDA mem and prepare CUDA representation of particle cell tree which will be filled after computing
+    // all steps
 
-    // TODO: This is not needed later - just for having clear debug
-    //cudaMemset(mem.get(), 0, mem.getNumOfBytes());
+    cudaStream_t stream = nullptr;
 
-    // =============== Create pyramid
-    std::vector<S*> levels(levelMax + 1, nullptr);
-    std::vector<size_t> xSize(levelMax + 1);
-    std::vector<size_t> ySize(levelMax + 1);
-    std::vector<size_t> zSize(levelMax + 1);
+    ScopedCudaMemHandler<const PixelData<T>, H2D> in(input, stream);
 
-    int xDS = input.x_num;
-    int yDS = input.y_num;
-    int zDS = input.z_num;
+    ParticleCellTreeCuda pct(gi, stream);
+    int levelMin = gi.l_min;
+    int levelMax = gi.l_max - 1;
 
-    size_t offset = 0;
-    for (int l = levelMax; l >= levelMin; --l) {
-        levels[l] = reinterpret_cast<TreeElementType *>(mem.get()) + offset;
-        xSize[l] = xDS;
-        ySize[l] = yDS;
-        zSize[l] = zDS;
 
-        offset += xDS * yDS * zDS * sizeof(TreeElementType);
-        // round up to 16-bytes
-        const size_t alignemet = 16;
-        offset = ((offset + alignemet - 1) / alignemet ) * alignemet;
+    // feel the highes level of PCT with provided levels and clamp values to be within [levelMin, levelMax] range
+    runCopyAndClampLevels(in.get(), pct[levelMax], in.getSize(), levelMin, levelMax, stream);
 
-        xDS = ceil(xDS/2.0);
-        yDS = ceil(yDS/2.0);
-        zDS = ceil(zDS/2.0);
-    }
-
-    runCopy1D(in.get(), levels[levelMax], in.getSize(), 0);
-
+    // Downsample with max reduction to levelMin to fill rest of the tree
     for (int l = levelMax - 1; l >= levelMin; --l) {
-        runDownsampleMax(levels[l + 1], levels[l], xSize[l + 1], ySize[l + 1], zSize[l + 1], 0);
+        runDownsampleMax(pct[l + 1], pct[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], stream);
     }
-
 
     // ================== Phase 1 - top to down
     for (int l = levelMin; l <= levelMax; ++l) {
-        runOneLevel(levels[l], xSize[l], ySize[l], zSize[l], l, 0);
+        runFirstStep(pct[l], gi.x_num[l], gi.y_num[l], gi.z_num[l], l, stream);
     }
     // ================== Phase 1 - down to top
     for (int l = levelMax - 1; l >= levelMin; --l) {
-        runSecondPhase(levels[l], levels[l+1], xSize[l], ySize[l], zSize[l], xSize[l+1], ySize[l+1], zSize[l+1], l == levelMin, 0);
+        runSecondStep(pct[l], pct[l+1], gi.x_num[l], gi.y_num[l], gi.z_num[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], l == levelMin, stream);
     }
-};
+
+    return pct.getPCTcpu();
+}
+
+// explicit instantiation of handled types
+template void computeOvpcCuda(float *in, ParticleCellTreeCuda &pct, const GenInfo &gi, cudaStream_t stream);
+template void computeOvpcCuda(int *in, ParticleCellTreeCuda &pct, const GenInfo &gi, cudaStream_t stream);
+
+
+template <typename ImgType>
+void computeOvpcCuda(ImgType *in, ParticleCellTreeCuda &pct, const GenInfo &gi, cudaStream_t stream) {
+    int levelMin = gi.l_min;
+    int levelMax = gi.l_max - 1;
+
+
+    // feel the highes level of PCT with provided levels and clamp values to be within [levelMin, levelMax] range
+    runCopyAndClampLevels(in, pct[levelMax], gi.y_num[levelMax]*gi.x_num[levelMax]*gi.z_num[levelMax], levelMin, levelMax, stream);
+
+    // Downsample with max reduction to levelMin to fill rest of the tree
+    for (int l = levelMax - 1; l >= levelMin; --l) {
+        runDownsampleMax(pct[l + 1], pct[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], stream);
+    }
+
+    // ================== Phase 1 - top to down
+    for (int l = levelMin; l <= levelMax; ++l) {
+        runFirstStep(pct[l], gi.x_num[l], gi.y_num[l], gi.z_num[l], l, stream);
+    }
+    // ================== Phase 1 - down to top
+    for (int l = levelMax - 1; l >= levelMin; --l) {
+        runSecondStep(pct[l], pct[l+1], gi.x_num[l], gi.y_num[l], gi.z_num[l], gi.x_num[l + 1], gi.y_num[l + 1], gi.z_num[l + 1], l == levelMin, stream);
+    }
+}

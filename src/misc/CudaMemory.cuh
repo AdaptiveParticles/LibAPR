@@ -9,17 +9,8 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-#include <cassert>
+#include "misc/CudaTools.cuh"
 
-inline cudaError_t checkCuda(cudaError_t result) {
-#if defined(DEBUG) || defined(_DEBUG)
-    if (result != cudaSuccess) {
-        fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
-        assert(result == cudaSuccess);
-    }
-#endif
-    return result;
-}
 
 inline void* getPinnedMemory(size_t aNumOfBytes) {
     void *memory = nullptr;

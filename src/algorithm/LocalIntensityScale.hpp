@@ -16,6 +16,8 @@ protected:
     bool active_x = true;
     bool active_z = true;
 
+public:
+
     int number_active_dimensions = 3;
 
 
@@ -34,7 +36,7 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
 
     float var_rescale;
     std::vector<int> var_win;
-    get_window_alt(var_rescale, var_win, par, local_scale_temp);
+    get_window_alt(var_rescale, var_win, par, local_scale_temp.getDimension());
 
     int win_y = var_win[0];
     int win_x = var_win[1];
@@ -153,18 +155,17 @@ void get_local_intensity_scale(PixelData<float> &local_scale_temp, PixelData<flo
     void calc_abs_diff(const PixelData<T> &input_image, PixelData<T> &var);
 
     template<typename T>
-    void calc_sat_mean_z(PixelData<T> &input, const size_t offset);
+    void calc_sat_mean_z(PixelData<T> &input, const size_t offset, bool boundaryReflect = false);
 
     template<typename T>
-    void calc_sat_mean_x(PixelData<T> &input, const size_t offset);
+    void calc_sat_mean_x(PixelData<T> &input, const size_t offset, bool boundaryReflect = false);
 
     template<typename T>
-    void calc_sat_mean_y(PixelData<T> &input, const size_t offset);
+    void calc_sat_mean_y(PixelData<T> &input, const size_t offset, bool boundaryReflect = false);
 
     void get_window(float &var_rescale, std::vector<int> &var_win, const APRParameters &par);
 
-    template<typename T>
-    void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, const PixelData<T>& img);
+    void get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par, const PixelDataDim &img);
 
     template<typename T>
     void rescale_var(PixelData<T>& var,const float var_rescale);
@@ -247,8 +248,7 @@ inline void LocalIntensityScale::get_window(float& var_rescale, std::vector<int>
  * @param par
  * @param temp_img (image already allocated to correct size to compute the local intensity scale)
  */
-template<typename T>
-inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par,const PixelData<T>& temp_img){
+inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<int>& var_win, const APRParameters& par,const PixelDataDim &temp_img){
 
     const double rescale_store_3D[6] = {12.8214, 26.1256, 40.2795, 23.3692, 36.2061, 27.0385};
     const double rescale_store_2D[6] = {13.2421, 28.7069, 52.0385, 24.4272, 34.9565, 21.1891};
@@ -265,7 +265,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
 
     var_win.resize(6,0);
 
-    if ( (int) temp_img.y_num > win_val) {
+    if ( (int) temp_img.y > win_val) {
         active_y = true;
         var_win[0] = win_1[psf_ind];
 
@@ -274,7 +274,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
         active_y = false;
     }
 
-    if ((int) temp_img.x_num > win_val) {
+    if ((int) temp_img.x > win_val) {
         active_x = true;
         var_win[1] = win_1[psf_ind];
         var_win[4] = win_2[psf_ind];
@@ -282,7 +282,7 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
         active_x = false;
     }
 
-    if ((int) temp_img.z_num > win_val) {
+    if ((int) temp_img.z > win_val) {
         active_z = true;
         var_win[2] = win_1[psf_ind];
         var_win[5] = win_2[psf_ind];
@@ -302,195 +302,337 @@ inline void LocalIntensityScale::get_window_alt(float& var_rescale, std::vector<
     }
 }
 
-/**
- * Calculates a O(1) recursive mean using SAT.
- * @tparam T
- * @param input
- * @param offset
- */
 template<typename T>
-inline void LocalIntensityScale::calc_sat_mean_y(PixelData<T>& input, const size_t offset){
+inline void LocalIntensityScale::calc_sat_mean_y(PixelData<T>& input, const size_t offset, bool boundaryReflect) {
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
 
-    std::vector<T> temp_vec(y_num);
-    float divisor = 2 * offset + 1;
+    const size_t divisor = offset + 1 + offset;
+
+    auto &mesh = input.mesh;
+    const size_t dimLen = y_num;
 
     #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec)
+    #pragma omp parallel for default(shared)
     #endif
-    for(size_t j = 0; j < z_num; ++j) {
-        for(size_t i = 0; i < x_num; ++i){
-            size_t index = j * x_num*y_num + i * y_num;
+    for (size_t j = 0; j < z_num; ++j) {
+        for (size_t i = 0; i < x_num; ++i) {
+            size_t index = j * x_num * y_num + i * y_num;
 
-            //first pass over and calculate cumsum
-            float temp = 0;
-            for (size_t k = 0; k < y_num; ++k) {
-                temp += input.mesh[index + k];
-                temp_vec[k] = temp;
+            size_t count = 0;
+            size_t currElementOffset = 0;
+            size_t nextElementOffset = 1;
+            size_t saveElementOffset = 0;
+
+            std::vector<T> circularBuffer(divisor, 0);
+            T sum = 0;
+
+            while (count <= offset) {
+                auto v = mesh[index + currElementOffset];
+                sum += v;
+                circularBuffer[count] = v;
+                if (boundaryReflect && count > 0) { circularBuffer[2 * offset - count + 1] = v; sum += v;}
+
+                currElementOffset += nextElementOffset;
+                count++;
             }
 
-            //handling boundary conditions (LHS)
-            for (size_t k = 0; k <= offset; ++k) {
-                input.mesh[index + k] = 0;
+            if (boundaryReflect) count += offset;
+
+            int beginPtr = (offset + 1) % divisor;
+
+            const int lastElement = dimLen - 1 - offset;
+            for (int i = 0; i <= lastElement; ++i) {
+                mesh[index + saveElementOffset] = sum / count;
+                saveElementOffset += nextElementOffset;
+
+                if (i == lastElement) break;
+
+                auto v = mesh[index + currElementOffset];
+
+                sum -= circularBuffer[beginPtr];
+                sum += v;
+
+                circularBuffer[beginPtr] = v;
+
+                count = std::min(count + 1, divisor);
+                beginPtr = (beginPtr + 1) % divisor;
+                currElementOffset += nextElementOffset;
             }
 
-            //second pass calculate mean
-            for (size_t k = offset + 1; k < y_num; ++k) {
-                input.mesh[index + k] = -temp_vec[k - offset - 1]/divisor;
+            int boundaryPtr = (beginPtr - 1 - 1 + divisor) % divisor;
+            while(saveElementOffset < currElementOffset) {
+                // If filter length is too big in comparison to processed dimension
+                // do not decrease 'count' since 'sum' of filter elements contains all elements from
+                // processed dimension:
+                // dim elements:        xxxxxx
+                // filter elements:   oooooo^ooooo   (o - offset elements, ^ - middle of the filter
+                bool removeElementFromFilter = dimLen - (currElementOffset - saveElementOffset) / nextElementOffset > offset;
+
+                if (removeElementFromFilter) {
+                    if (!boundaryReflect) count = count - 1;
+                }
+                if (removeElementFromFilter || boundaryReflect) {
+                    sum -= circularBuffer[beginPtr];
+                }
+                if (boundaryReflect) {
+                    sum += circularBuffer[boundaryPtr];
+                }
+
+                mesh[index + saveElementOffset] = sum / count;
+
+                boundaryPtr = (boundaryPtr - 1 + divisor) % divisor;
+                beginPtr = (beginPtr + 1) % divisor;
+                saveElementOffset += nextElementOffset;
             }
 
-            //second pass calculate mean
-            for (size_t k = 0; k < (y_num-offset); ++k) {
-                input.mesh[index + k] += temp_vec[k + offset]/divisor;
-            }
-
-            float counter = 0;
-            //handling boundary conditions (RHS)
-            for (size_t k = (y_num - offset); k < (y_num); ++k) {
-                counter++;
-                input.mesh[index + k]*= divisor;
-                input.mesh[index + k]+= temp_vec[y_num-1];
-                input.mesh[index + k]*= 1.0/(divisor - counter);
-            }
-
-            //handling boundary conditions (LHS), need to rehandle the boundary
-            for (size_t k = 1; k <= offset; ++k) {
-                input.mesh[index + k] *= divisor/(k + offset + 1.0);
-            }
-
-            //end point boundary condition
-            input.mesh[index] *= divisor/(offset + 1.0);
         }
     }
 }
 
 template<typename T>
-inline void LocalIntensityScale::calc_sat_mean_x(PixelData<T>& input, const size_t offset) {
+inline void LocalIntensityScale::calc_sat_mean_x(PixelData<T>& input, const size_t offset, bool boundaryReflect) {
+
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
 
-    std::vector<T> temp_vec(y_num*(2*offset + 1),0);
+    const size_t divisor = offset + 1 + offset;
+    std::vector<T> circularBuffer(y_num * divisor, 0);
+    std::vector<T> sum(y_num, 0);
 
-    #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec)
-    #endif
-    for(size_t j = 0; j < z_num; j++) {
+    auto &mesh = input.mesh;
+    const size_t dimLen = x_num;
+
+    if (dimLen < offset) {
+        throw std::runtime_error("offset cannot be bigger than processed dimension length!");
+    }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) firstprivate(circularBuffer, sum)
+#endif
+    for (size_t j = 0; j < z_num; j++) {
         size_t jxnumynum = j * x_num * y_num;
 
-        for(size_t k = 0; k < y_num ; k++){
-            temp_vec[k] = input.mesh[jxnumynum + k];
-        }
+        size_t count = 0; // counts number of active elements in filter
+        size_t currElementOffset = 0; // offset of element in processed dimension
+        size_t nextElementOffset = 1;
+        size_t saveElementOffset = 0; // offset used to finish RHS boundary
 
-        for(size_t i = 1; i < 2 * offset + 1; i++) {
-            for(size_t k = 0; k < y_num; k++) {
-                temp_vec[i*y_num + k] = input.mesh[jxnumynum + i*y_num + k] + temp_vec[(i-1)*y_num + k];
-            }
-        }
+        // Clear buffers so they can be reused in next 'z_num' loop
+        std::fill(sum.begin(), sum.end(), 0); // Clear 'sum; vector before next loop
+        std::fill(circularBuffer.begin(), circularBuffer.end(), 0);
 
-        // LHS boundary
-        for(size_t i = 0; i < offset + 1; i++){
-            for(size_t k = 0; k < y_num; k++) {
-                input.mesh[jxnumynum + i * y_num + k] = (temp_vec[(i + offset) * y_num + k]) / (i + offset + 1);
-            }
-        }
-
-        // middle
-        size_t current_index = offset + 1;
-        size_t index_modulo = 0;
-        for(size_t i = offset + 1; i < x_num - offset; i++){
-            // the current cumsum
-            index_modulo = (current_index + offset) % (2*offset + 1); // current_index - offset - 1
-            size_t previous_modulo = (current_index + offset - 1) % (2*offset + 1); // the index of previous cumsum
-
-            for(size_t k = 0; k < y_num; k++) {
-                float temp = input.mesh[jxnumynum + (i + offset)*y_num + k] + temp_vec[previous_modulo*y_num + k];
-                input.mesh[jxnumynum + i*y_num + k] = (temp - temp_vec[index_modulo*y_num + k]) /
-                                                      (2*offset + 1);
-                temp_vec[index_modulo*y_num + k] = temp;
+        // saturate circular buffer with #offset elements since it will allow to calculate first element value on LHS
+        while (count <= offset) {
+            for (size_t k = 0; k < y_num; ++k) {
+                auto v = mesh[jxnumynum + currElementOffset * y_num + k];
+                sum[k] += v;
+                circularBuffer[count * y_num + k] = v;
+                if (boundaryReflect && count > 0) { circularBuffer[(2 * offset - count + 1) * y_num + k] = v; sum[k] += v;}
             }
 
-            current_index = (current_index + 1) % (2*offset + 1);
+            currElementOffset += nextElementOffset;
+            ++count;
         }
 
-        // RHS boundary
-        current_index = (current_index + offset) % (2*offset + 1);
-        for(size_t i = x_num - offset; i < x_num; i++){
-            for(size_t k = 0; k < y_num; k++){
-                input.mesh[jxnumynum + i*y_num + k] = (temp_vec[index_modulo*y_num + k] -
-                                                       temp_vec[current_index*y_num + k]) / (x_num - i + offset);
+        if (boundaryReflect) {
+            count += offset; // elements in above loop in range [1, offset] were summed twice
+        }
+
+        // Pointer in circular buffer
+        int beginPtr = (offset + 1) % divisor;
+
+        // main loop going through all elements in range [0, x_num - 1 - offset], so till last element that
+        // does not need handling RHS for offset '^'
+        // x x x x ... x x x x x x x
+        //                 o o ^ o o
+        //
+        const size_t lastElement = x_num - 1 - offset;
+        for (size_t x = 0; x <= lastElement; ++x) {
+            // Calculate and save currently processed element and move to the new one
+            for (size_t k = 0; k < y_num; ++k) {
+                mesh[jxnumynum + saveElementOffset * y_num + k] = sum[k] / count;
             }
-            current_index = (current_index + 1) % (2*offset + 1);
+            saveElementOffset += nextElementOffset;
+
+            // There is no more elements to process in that loop, all stuff left to be processed is already in 'circularBuffer' buffer
+            if (x == lastElement) break;
+
+            for (size_t k = 0; k < y_num; ++k) {
+                // Read new element
+                T v = mesh[jxnumynum + currElementOffset * y_num + k];
+
+                // Update sum to cover [-offset, offset] of currently processed element
+                sum[k] -= circularBuffer[beginPtr * y_num + k];
+                sum[k] += v;
+
+                // Store new element in circularBuffer
+                circularBuffer[beginPtr * y_num + k] = v;
+            }
+
+            // Move to next elements to read and in circular buffer
+            count  = std::min(count + 1, divisor);
+            beginPtr = (beginPtr + 1) % divisor;
+            currElementOffset += nextElementOffset;
+        }
+
+        // boundaryPtr is used only in boundaryReflect mode, adding divisor makes it always non-negative value
+        int boundaryPtr = (beginPtr - 1 - 1 + divisor) % divisor;
+
+        // Handle last #offset elements on RHS
+        while(saveElementOffset < currElementOffset) {
+            // If filter length is too big in comparison to processed dimension
+            // do not decrease 'count' since 'sum' of filter elements contains all elements from
+            // processed dimension:
+            // dim elements:        xxxxxx
+            // filter elements:   oooooo^ooooo   (o - offset elements, ^ - middle of the filter)
+            bool removeElementFromFilter = dimLen - (currElementOffset - saveElementOffset)/nextElementOffset > offset;
+
+            if (removeElementFromFilter) {
+                if (!boundaryReflect) count = count - 1;
+            }
+
+            for (size_t k = 0; k < y_num; ++k) {
+                if (removeElementFromFilter || boundaryReflect) {
+                    sum[k] -= circularBuffer[beginPtr * y_num + k];
+                }
+
+                if (boundaryReflect) {
+                    sum[k] += circularBuffer[boundaryPtr * y_num + k];
+                }
+
+                mesh[jxnumynum + saveElementOffset * y_num + k] = sum[k] / count;
+            }
+
+            boundaryPtr = (boundaryPtr - 1 + (2*offset+1)) % divisor;
+            beginPtr = (beginPtr + 1) % divisor;
+            saveElementOffset += nextElementOffset;
         }
     }
 }
 
 template<typename T>
-inline void LocalIntensityScale::calc_sat_mean_z(PixelData<T>& input,const size_t offset) {
+inline void LocalIntensityScale::calc_sat_mean_z(PixelData<T>& input, const size_t offset, bool boundaryReflect) {
+
     const size_t z_num = input.z_num;
     const size_t x_num = input.x_num;
     const size_t y_num = input.y_num;
 
-    std::vector<T> temp_vec(y_num*(2*offset + 1),0);
-    size_t xnumynum = x_num * y_num;
+    const size_t divisor = offset + 1 + offset;
+    std::vector<T> circularBuffer(y_num * divisor, 0);
+    std::vector<T> sum(y_num, 0);
 
-    #ifdef HAVE_OPENMP
-	#pragma omp parallel for default(shared) firstprivate(temp_vec)
-    #endif
-    for(size_t i = 0; i < x_num; i++) {
+    auto &mesh = input.mesh;
+    size_t dimLen = z_num;
 
-        size_t iynum = i * y_num;
+    if (dimLen < offset) {
+        throw std::runtime_error("offset cannot be bigger than processed dimension length!");
+    }
 
-        //prefetching
-        for(size_t k = 0; k < y_num ; k++){
-            temp_vec[k] = input.mesh[iynum + k];
-        }
+#ifdef HAVE_OPENMP
+#pragma omp parallel for default(shared) firstprivate(circularBuffer, sum)
+#endif
+    for (size_t j = 0; j < x_num; j++) {
+        size_t jxnumynum = j * y_num;
 
-        for(size_t j = 1; j < 2 * offset + 1; j++) {
-            for(size_t k = 0; k < y_num; k++) {
-                temp_vec[j*y_num + k] = input.mesh[j * xnumynum + iynum + k] + temp_vec[(j-1)*y_num + k];
-            }
-        }
+        size_t count = 0; // counts number of active elements in filter
+        size_t currElementOffset = 0; // offset of element in processed dimension
+        size_t nextElementOffset = x_num;
+        size_t saveElementOffset = 0; // offset used to finish RHS boundary
 
-        // LHS boundary
-        for(size_t j = 0; j < offset + 1; j++){
-            for(size_t k = 0; k < y_num; k++) {
-                input.mesh[j * xnumynum + iynum + k] = (temp_vec[(j + offset)*y_num + k]) / (j + offset + 1);
-            }
-        }
+        // Clear buffers so they can be reused in next 'x_num' loop
+        std::fill(sum.begin(), sum.end(), 0); // Clear 'sum; vector before next loop
+        std::fill(circularBuffer.begin(), circularBuffer.end(), 0);
 
-        // middle
-        size_t current_index = offset + 1;
-        size_t index_modulo = 0;
-        for(size_t j = offset + 1; j < z_num - offset; j++){
-
-            index_modulo = (current_index + offset) % (2*offset + 1); // current_index - offset - 1
-            size_t previous_modulo = (current_index + offset - 1) % (2*offset + 1); // the index of previous cumsum
-
-            for(size_t k = 0; k < y_num; k++) {
-                // the current cumsum
-                float temp = input.mesh[(j + offset) * xnumynum + iynum + k] + temp_vec[previous_modulo*y_num + k];
-                input.mesh[j * xnumynum + iynum + k] = (temp - temp_vec[index_modulo*y_num + k]) /
-                                                       (2*offset + 1);
-                temp_vec[index_modulo*y_num + k] = temp;
+        // saturate circular buffer with #offset elements since it will allow to calculate first element value on LHS
+        while(count <= offset) {
+            for (size_t k = 0; k < y_num; ++k) {
+                auto v = mesh[jxnumynum + currElementOffset * y_num + k];
+                sum[k] += v;
+                circularBuffer[count * y_num + k] = v;
+                if (boundaryReflect && count > 0) { circularBuffer[(2 * offset - count + 1) * y_num + k] = v; sum[k] += v;}
             }
 
-            current_index = (current_index + 1) % (2*offset + 1);
+            currElementOffset += nextElementOffset;
+            ++count;
         }
 
-        // RHS boundary
-        current_index = (current_index + offset) % (2*offset + 1);
-        for(size_t j = z_num - offset; j < z_num; j++){
-            for(size_t k = 0; k < y_num; k++){
-                input.mesh[j * xnumynum + iynum + k] = (temp_vec[index_modulo*y_num + k] -
-                                                        temp_vec[current_index*y_num + k]) / (z_num - j + offset);
+        if (boundaryReflect) {
+            count += offset; // elements in above loop in range [1, offset] were summed twice
+        }
+
+        // Pointer in circular buffer
+        int beginPtr = (offset + 1) % divisor;
+
+        // main loop going through all elements in range [0, z_num - 1 - offset], so till last element that
+        // does not need handling RHS for offset '^'
+        // x x x x ... x x x x x x x
+        //                 o o ^ o o
+        //
+        const size_t lastElement = z_num - 1 - offset;
+        for (size_t z = 0; z <= lastElement; ++z) {
+            // Calculate and save currently processed element and move to the new one
+            for (size_t k = 0; k < y_num; ++k) {
+                mesh[jxnumynum + saveElementOffset * y_num + k] = sum[k] / count;
+            }
+            saveElementOffset += nextElementOffset;
+
+            // There is no more elements to process in that loop, all stuff left to be processed is already in 'circularBuffer' buffer
+            if (z == lastElement) break;
+
+            for (size_t k = 0; k < y_num; ++k) {
+                // Read new element
+                T v = mesh[jxnumynum + currElementOffset * y_num + k];
+
+                // Update sum to cover [-offset, offset] of currently processed element
+                sum[k] -= circularBuffer[beginPtr * y_num + k];
+                sum[k] += v;
+
+                // Save new element
+                circularBuffer[beginPtr * y_num + k] = v;
             }
 
-            current_index = (current_index + 1) % (2*offset + 1);
+            // Move to next elements to read and in circular buffer
+            count  = std::min(count + 1, divisor);
+            beginPtr = (beginPtr + 1) % divisor;
+            currElementOffset += nextElementOffset;
+        }
+
+        // boundaryPtr is used only in boundaryReflect mode, adding divisor makes it always non-negative value
+        int boundaryPtr = (beginPtr - 1 - 1 + divisor) % divisor;
+
+        // Handle last #offset elements on RHS
+        while(saveElementOffset < currElementOffset) {
+            // If filter length is too big in comparison to processed dimension
+            // do not decrease 'count' since 'sum' of filter elements contains all elements from
+            // processed dimension:
+            // dim elements:        xxxxxx
+            // filter elements:   oooooo^ooooo   (o - offset elements, ^ - middle of the filter)
+            bool removeElementFromFilter = dimLen - (currElementOffset - saveElementOffset)/nextElementOffset > offset;
+
+            if (removeElementFromFilter) {
+                if (!boundaryReflect) count = count - 1;
+            }
+
+            for (size_t k = 0; k < y_num; ++k) {
+                if (removeElementFromFilter || boundaryReflect) {
+                    sum[k] -= circularBuffer[beginPtr * y_num + k];
+                }
+
+                if (boundaryReflect) {
+                    sum[k] += circularBuffer[boundaryPtr * y_num + k];
+                }
+
+                mesh[jxnumynum + saveElementOffset * y_num + k] = sum[k] / count;
+            }
+
+            boundaryPtr = (boundaryPtr - 1 + (2*offset+1)) % divisor;
+            beginPtr = (beginPtr + 1) % divisor;
+            saveElementOffset += nextElementOffset;
         }
     }
 }
 
-#endif //PARTPLAY_LOCAL_INTENSITY_SCALE_HPP
+#endif

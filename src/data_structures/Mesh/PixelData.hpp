@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <numeric>
+#include <cstring>
 
 #include "misc/APRTimer.hpp"
 
@@ -34,9 +35,11 @@ struct PixelDataDim {
     size_t x;
     size_t z;
 
-    PixelDataDim(size_t y, size_t x, size_t z) : y(y), x(x), z(z) {}
+    constexpr PixelDataDim(size_t y = 0, size_t x = 0, size_t z = 0) : y(y), x(x), z(z) {}
 
     size_t size() const { return y * x * z; }
+    size_t maxDimSize() const { return std::max(x, std::max(y, z)); }
+    int numOfDimensions() const { return (int)(x > 1) + (int)(y > 1) + (int)(z > 1); }
 
     PixelDataDim operator+(const PixelDataDim &rhs) const { return {y + rhs.y, x + rhs.x, z + rhs.z}; }
     PixelDataDim operator-(const PixelDataDim &rhs) const { return {y - rhs.y, x - rhs.x, z - rhs.z}; }
@@ -144,10 +147,6 @@ public :
      * @param aSizeOfZ
      */
     VectorData(bool usePinned){
-        usePinnedMemory = usePinned;
-    }
-
-    void setUsePinnedMemory(bool usePinned){
         usePinnedMemory = usePinned;
     }
 
@@ -281,8 +280,33 @@ public :
         std::swap(usePinnedMemory, aObj.usePinnedMemory);
         std::swap(vecMemory, aObj.vecMemory);
         vec.swap(aObj.vec);
+#ifdef APR_USE_CUDA
+        std::swap(vecMemoryPinned, aObj.vecMemoryPinned);
+#endif
     }
 
+    VectorData(VectorData &&aObj) {
+        usePinnedMemory = aObj.usePinnedMemory;
+        vecMemory.swap(aObj.vecMemory);
+        vec = std::move(aObj.vec);
+#ifdef APR_USE_CUDA
+        vecMemoryPinned =std::move(aObj.vecMemoryPinned);
+#endif
+    }
+
+    /**
+     * Move assignment operator
+     * @param aObj
+     */
+    VectorData& operator=(VectorData &&aObj) {
+        usePinnedMemory = aObj.usePinnedMemory;
+        vecMemory.swap(aObj.vecMemory);
+        vec = std::move(aObj.vec);
+#ifdef APR_USE_CUDA
+        vecMemoryPinned = std::move(aObj.vecMemoryPinned);
+#endif
+        return *this;
+    }
 
     /**
      * Apply unary operator to each element in parallel, writing the result to VectorData 'output'.
@@ -412,8 +436,12 @@ public :
     PinnedMemoryUniquePtr<T> meshMemoryPinned;
 #endif
     ArrayWrapper<T> mesh;
-    
-    uint64_t size() { return (uint64_t) x_num * y_num * z_num * sizeof(T); }
+
+    /**
+     * @return Size in bytes of PixelData (number of elements * sizeof of element)
+     */
+    uint64_t size() const { return (uint64_t) x_num * y_num * z_num * sizeof(T); }
+
     /**
      * Constructor - initialize mesh with size of 0,0,0
      */
@@ -437,6 +465,19 @@ public :
     PixelData(int aSizeOfY, int aSizeOfX, int aSizeOfZ, T aInitVal) { initWithValue(aSizeOfY, aSizeOfX, aSizeOfZ, aInitVal); }
 
     /**
+     * Constructor - initialize initial size of mesh to provided values
+     * @param aDims - PixelDataDim with length of each dimension
+     */
+    PixelData(PixelDataDim aDims) { init(aDims.y, aDims.x, aDims.z); }
+
+    /**
+     * Constructor - creates mesh with provided dimentions initialized to aInitVal
+     * @param aDims - PixelDataDim with length of each dimension
+     * @param aInitVal - initial value of all elements
+     */
+    PixelData(PixelDataDim aDims, T aInitVal) { initWithValue(aDims.y, aDims.x, aDims.z, aInitVal); }
+
+    /**
      * Move constructor
      * @param aObj mesh to be moved
      */
@@ -446,6 +487,9 @@ public :
         z_num = aObj.z_num;
         mesh = std::move(aObj.mesh);
         meshMemory = std::move(aObj.meshMemory);
+#ifdef APR_USE_CUDA
+        meshMemoryPinned = std::move(aObj.meshMemoryPinned);
+#endif
     }
 
     /**
@@ -458,6 +502,9 @@ public :
         z_num = aObj.z_num;
         mesh = std::move(aObj.mesh);
         meshMemory = std::move(aObj.meshMemory);
+#ifdef APR_USE_CUDA
+        meshMemoryPinned = std::move(aObj.meshMemoryPinned);
+#endif
         return *this;
     }
 
@@ -476,6 +523,17 @@ public :
      */
     PixelDataDim getDimension() const {
         return {static_cast<size_t>(y_num), static_cast<size_t>(x_num), static_cast<size_t>(z_num)};
+    }
+
+    /**
+     * Returns downampled dimensions of PixelData
+     */
+    PixelDataDim getDimensionDS() const {
+        const int z_num_ds = ceil(1.0*z_num/2.0);
+        const int x_num_ds = ceil(1.0*x_num/2.0);
+        const int y_num_ds = ceil(1.0*y_num/2.0);
+
+        return {static_cast<size_t>(y_num_ds), static_cast<size_t>(x_num_ds), static_cast<size_t>(z_num_ds)};
     }
 
     /**
@@ -498,6 +556,16 @@ public :
      * @return element @(y, x, z)
      */
     T& operator()(int y, int x, int z) {
+        // TODO: In number of places during running tests below check shows problems.
+        //       Investigate and try to fix. Such check in future probably should be permanent
+        //       to discover all problems rather than hiding them.
+#ifndef NDEBUG  // with Cmake we need to use double neg. condition since there is not ifdef DEBUG defined :(
+        if ((y < 0 || y >= y_num) || (x < 0 || x >= x_num) || (z < 0 || z >= z_num)) {
+//            std::cerr << "Provided coordinates=(" << y << ", " << x << ", " << z;
+//            std::cerr << ") while PixelData size=(" << y_num << ", " << x_num << ", " << z_num << ")" << std::endl;
+//            throw std::runtime_error("Provided (y,x,z) coordinates are out of range!");
+        }
+#endif
         y = std::min(y, y_num-1);
         x = std::min(x, x_num-1);
         z = std::min(z, z_num-1);
@@ -535,7 +603,16 @@ public :
     }
 
     /**
-     * Copies data from aInputMesh utilizing parallel copy, requires prior initialization
+     * Copies data from aInputMesh - requires prior initialization
+     * of 'this' object (size and number of elements)
+     * @param aInputMesh input mesh with data
+    */
+    void copyFromMesh(const PixelData<T> &aInputMesh) {
+        std::memcpy(mesh.begin(), aInputMesh.mesh.begin(), aInputMesh.size());
+    }
+
+    /**
+     * Copies data from aInputMesh which is of different type than 'this' utilizing parallel copy, requires prior initialization
      * of 'this' object (size and number of elements)
      * @tparam U type of data
      * @param aInputMesh input mesh with data
@@ -710,6 +787,10 @@ public :
         init(y_num_ds, x_num_ds, z_num_ds, aUsePinnedMemory);
     }
 
+    void initDownsampled(const PixelDataDim &dim, bool aUsePinnedMemory) {
+        initDownsampled(dim.y, dim.x, dim.z, aUsePinnedMemory);
+    }
+
     /**
      * Initializes mesh with size of half of provided dimensions (rounding up if not divisible by 2) and initialize values
      * @param aSizeOfY
@@ -723,6 +804,10 @@ public :
         const int y_num_ds = ceil(1.0*aSizeOfY/2.0);
 
         initWithValue(y_num_ds, x_num_ds, z_num_ds, aInitVal, aUsePinnedMemory);
+    }
+
+    void initDownsampled(const PixelDataDim &dim, T aInitVal, bool aUsePinnedMemory) {
+        initDownsampled(dim.y, dim.x, dim.z, aInitVal, aUsePinnedMemory);
     }
 
     /**
@@ -950,15 +1035,16 @@ void downsample(const PixelData<T> &aInput, PixelData<S> &aOutput, R reduce, C c
                 const size_t shy = std::min(2*y + 1, y_num - 1);
                 const size_t idx = z * x_num_ds * y_num_ds + x * y_num_ds + y;
                 outMesh[idx] =  constant_operator(
-                        reduce(reduce(reduce(reduce(reduce(reduce(reduce(        // inMesh coordinates
+                        reduce(reduce(reduce(reduce(                             // inMesh coordinates
                                inMesh[2*z * x_num * y_num + 2*x * y_num + 2*y],  // z,   x,   y
-                               inMesh[2*z * x_num * y_num + 2*x * y_num + shy]), // z,   x,   y+1
                                inMesh[2*z * x_num * y_num + shx * y_num + 2*y]), // z,   x+1, y
-                               inMesh[2*z * x_num * y_num + shx * y_num + shy]), // z,   x+1, y+1
                                inMesh[shz * x_num * y_num + 2*x * y_num + 2*y]), // z+1, x,   y
-                               inMesh[shz * x_num * y_num + 2*x * y_num + shy]), // z+1, x,   y+1
                                inMesh[shz * x_num * y_num + shx * y_num + 2*y]), // z+1, x+1, y
-                               inMesh[shz * x_num * y_num + shx * y_num + shy])  // z+1, x+1, y+1
+                               reduce(reduce(reduce(
+                               inMesh[2*z * x_num * y_num + 2*x * y_num + shy],  // z,   x,   y+1
+                               inMesh[2*z * x_num * y_num + shx * y_num + shy]), // z,   x+1, y+1
+                               inMesh[shz * x_num * y_num + 2*x * y_num + shy]), // z+1, x,   y+1
+                               inMesh[shz * x_num * y_num + shx * y_num + shy])) // z+1, x+1, y+1
                 );
             }
         }

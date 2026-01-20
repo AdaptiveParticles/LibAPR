@@ -7,7 +7,7 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include "algorithm/APRParameters.hpp"
-
+#include "data_structures/APR/access/LinearAccessCuda.hpp"
 
 // Test helpers and definitions
 using TypeOfRecBsplineFlags = uint16_t;
@@ -32,11 +32,10 @@ template <typename ImageType>
 void computeLevelsCuda(const PixelData<ImageType> &grad_temp, PixelData<float> &local_scale_temp, int maxLevel, float relError,  float dx = 1, float dy = 1, float dz = 1);
 template <typename ImgType>
 void getGradient(PixelData<ImgType> &image, PixelData<ImgType> &grad_temp, PixelData<float> &local_scale_temp, PixelData<float> &local_scale_temp2, float bspline_offset, const APRParameters &par);
-template <typename T>
-void thresholdImg(PixelData<T> &image, const float threshold);
-template <typename T>
-void thresholdGradient(PixelData<float> &output, const PixelData<T> &input, const float Ip_th);
 void cudaDownsampledGradient(PixelData<float> &input, PixelData<float> &grad, const float hx, const float hy, const float hz);
+template<typename T> std::pair<T,T> cudaRunMinMax(PixelData<T> &input_image);
+
+int getNumberOfGpu();
 
 template <typename ImgType>
 class GpuProcessingTask {
@@ -46,14 +45,16 @@ class GpuProcessingTask {
 
 public:
 
-    GpuProcessingTask(PixelData<ImgType> &image, PixelData<float> &levels, const APRParameters &parameters, float bspline_offset, int maxLevel);
+    GpuProcessingTask(const PixelData<ImgType> &image, const APRParameters &parameters, int maxLevel, int gpuCudaID = 0);
     ~GpuProcessingTask();
     GpuProcessingTask(GpuProcessingTask&&);
 
-    void sendDataToGpu();
-    void getDataFromGpu();
+    LinearAccessCudaStructs<ImgType> getDataFromGpu();
     void processOnGpu();
-    void doAll();
+    void sendDataToGpu();
+
+    int getCudaDeviceID() const;
+
 };
 
 #endif //LIBAPR_COMPUTEGRADIENTCUDA_HPP

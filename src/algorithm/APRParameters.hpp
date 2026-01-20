@@ -55,10 +55,16 @@ public:
         os << "rel_error=" << obj.rel_error << "\n";
         os << "sigma_th=" << obj.sigma_th << "\n";
         os << "sigma_th_max=" << obj.sigma_th_max << "\n";
+        os << "grad_th=" << obj.grad_th << "\n";
         os << "auto_parameters=" << (obj.auto_parameters ? "true" : "false") << "\n";
+        os << "reflect_bc_lis=" << (obj.reflect_bc_lis ? "true" : "false") << "\n";
+        os << "check_input=" << (obj.check_input ? "true" : "false") << "\n";
+        os << "swap_dimensions=" << (obj.swap_dimensions ? "true" : "false") << "\n";
         os << "neighborhood_optimization=" << (obj.neighborhood_optimization ? "true" : "false") << "\n";
+        os << "constant_intensity_scale=" << (obj.constant_intensity_scale ? "true" : "false") << "\n";
         os << "output_steps=" << (obj.output_steps ? "true" : "false") << "\n";
-
+        os << "dx/dy/dz=" << obj.dx << "/" << obj.dy << "/" << obj.dz << "\n";
+        os << "psfx/psfy/psfz=" << obj.psfx << "/" << obj.psfy << "/" << obj.psfz << "\n";
 	    return os;
     }
 

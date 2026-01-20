@@ -8,6 +8,8 @@
 
 #include "data_structures/Mesh/PixelData.hpp"
 #include <random>
+#include "data_structures/APR/particles/ParticleData.hpp"
+
 
 std::string get_source_directory_apr(){
   // returns path to the directory where utils.cpp is stored
@@ -44,7 +46,7 @@ inline bool compare(PixelData<T> &mesh, const float *data, const float epsilon) 
 }
 
 template<typename T>
-inline bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
+inline bool initFromZYXarray(PixelData<T> &mesh, const T *data) {
     size_t dataIdx = 0;
     for (int z = 0; z < mesh.z_num; ++z) {
         for (int y = 0; y < mesh.y_num; ++y) {
@@ -65,17 +67,42 @@ inline bool initFromZYXarray(PixelData<T> &mesh, const float *data) {
  * @return number of errors detected
  */
 template <typename T>
-inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 3) {
+inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &tested, double maxError = 0, int maxNumOfErrPrinted = 3) {
+    if (expected.getDimension() != tested.getDimension()) {
+        std::stringstream errMsg;
+        errMsg << "Dimensions of expected and tested meshes differ! " << expected.getDimension() << " vs " << tested.getDimension();
+        throw std::runtime_error(errMsg.str());
+    }
+
     int cnt = 0;
+    double maxErrorFound = 0;
+    T maxErrorExpectedValue = 0;
+    T maxErrorTestedValue = 0;
+    std::string maxErrorIdx = "";
+
     for (size_t i = 0; i < expected.mesh.size(); ++i) {
-        if (std::abs(expected.mesh[i] - tested.mesh[i]) > maxError) {
+        auto diff = std::abs(expected.mesh[i] - tested.mesh[i]);
+        if (diff > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
-                std::cout << "ERROR expected vs tested mesh: " << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i] << " IDX:" << tested.getStrIndex(i) << std::endl;
+                std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested mesh: "
+                          << (float)expected.mesh[i] << " vs " << (float)tested.mesh[i]
+                          << " error = " << (float)expected.mesh[i] - (float)tested.mesh[i] << " IDX:" << i << "=" << tested.getStrIndex(i) << std::endl;
             }
             cnt++;
         }
+        if (diff > maxErrorFound) {
+            maxErrorFound = diff;
+            maxErrorExpectedValue = expected.mesh[i];
+            maxErrorTestedValue = tested.mesh[i];
+            maxErrorIdx = tested.getStrIndex(i);
+        }
     }
-    std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size() << std::endl;
+    if (cnt != 0) {
+        std::cout << "Number of errors / all points: " << cnt << " / " << expected.mesh.size()
+                  << ", maxErrorFound = " << maxErrorFound << " at IDX: " << maxErrorIdx << " "
+                  << maxErrorExpectedValue << " vs " << maxErrorTestedValue
+                  << "(" << (100*(long double)maxErrorFound/(long double)maxErrorExpectedValue) << "%)"<<std::endl;
+    }
     return cnt;
 }
 
@@ -93,46 +120,135 @@ inline int compareMeshes(const PixelData<T> &expected, const PixelData<T> &teste
 template <typename ParticleTypeA, typename ParticleTypeB>
 inline int64_t compareParticles(const ParticleTypeA &expected, const ParticleTypeB &tested, double maxError = 0.0001, int maxNumOfErrPrinted = 10) {
     int64_t cnt = 0;
-    if(expected.size() != tested.size()) {
-        std::cerr << "ERROR compareParticles: sizes differ!" << std::endl;
-        cnt++;
+    if (expected.size() != tested.size()) {
+        std::cerr << "ERROR compareParticles: sizes differs! " << expected.size() << " vs. " << tested.size() << std::endl;
+        return 1; // Return any number > 0 to indicate an error
     }
 
     for (size_t i = 0; i < expected.size(); ++i) {
-        if (std::abs(expected[i] - tested[i]) > maxError) {
+        if (std::abs((double)(expected[i] - tested[i])) > maxError) {
             if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
-                std::cout << "ERROR expected vs tested particle: " << (float)expected[i] << " vs " << (float)tested[i] << " IDX:" << i << std::endl;
+                std::cout << std::fixed << std::setprecision(9) << "ERROR expected vs tested particle: " << (float)expected[i] << " vs " << (float)tested[i] << " IDX:" << i << std::endl;
             }
             cnt++;
         }
     }
-    std::cout << "Number of errors / all points: " << cnt << " / " << expected.size() << std::endl;
+    if (cnt != 0) {
+        std::cout << "Number of errors / all points: " << cnt << " / " << expected.size() << std::endl;
+    }
     return cnt;
 }
 
+/**
+ * Compares two Particle Cell Trees
+ * @param expected - expected levels
+ * @param tested - levels to verify
+ * @param maxError
+ * @param maxNumOfErrPrinted - how many error outputs should be printed
+ * @param maxTypeCompared - maximum type to be compared
+ * @return
+ */
+template <typename T, typename W>
+int compareParticleCellTrees(const std::vector<PixelData<T>> &expected, const std::vector<PixelData<W>> &tested, bool printErrors = true, int maxNumOfErrPrinted = 3, uint8_t maxTypeCompared = FILLER_TYPE) {
+    int cntGlobal = 0;
+    for (size_t level = 0; level < expected.size(); level++) {
+        int cnt = 0;
+        int numOfParticles = 0;
+        for (size_t i = 0; i < expected[level].mesh.size(); ++i) {
+            if (expected[level].mesh[i] < 8 && tested[level].mesh[i] <= maxTypeCompared) {
+                if (std::abs(expected[level].mesh[i] - tested[level].mesh[i]) > 0 || std::isnan(expected[level].mesh[i]) ||
+                    std::isnan(tested[level].mesh[i])) {
+                    if (cnt < maxNumOfErrPrinted || maxNumOfErrPrinted == -1) {
+                        std::cout << "Level: " << level <<" ERROR expected vs tested mesh: " << (float) expected[level].mesh[i] << " vs "
+                                  << (float) tested[level].mesh[i] << " IDX:" << tested[level].getStrIndex(i) << std::endl;
+                    }
+                    cnt++;
+                }
+                if (expected[level].mesh[i] > 0) numOfParticles++;
+            }
+        }
+        cntGlobal += cnt;
+        if (cnt > 0 && printErrors) std::cout << "Level: " << level << ", Number of errors / all points: " << cnt << " / " << expected[level].mesh.size() << " Particles:" << numOfParticles << std::endl;
+    }
+    return cntGlobal;
+}
 
 /**
- * Generates mesh with provided dims with random values in range [0, 1] * multiplier
+ * Generates mesh with provided dims with random values in range [0, 1] * multiplier + offset
  * @param y
  * @param x
  * @param z
  * @param multiplier
+ * @param offset
+ * @param useIdxNumbers - instead of random values put values from 0..sizeof(mesh)-1
  * @return
  */
 template <typename T>
-inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, bool useIdxNumbers = false) {
+inline PixelData<T> getRandInitializedMesh(int y, int x, int z, float multiplier = 2.0f, float offset=0.0, bool useIdxNumbers = false) {
     PixelData<T> m(y, x, z);
-    std::cout << "Mesh info: " << m << std::endl;
+//    std::cout << "Mesh info: " << m << std::endl;
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for default(shared)
 #endif
     for (size_t i = 0; i < m.mesh.size(); ++i) {
-        m.mesh[i] = useIdxNumbers ? i : dist(mt) * multiplier;
+        m.mesh[i] = useIdxNumbers ? i + 1 : dist(mt) * multiplier + offset;
     }
     return m;
+}
+
+/**
+ * Generates mesh with provided dims with random values in range [0, 1] * multiplier + offset
+ * @param dim - dimension of generated mesh
+ * @param multiplier
+ * @param offset
+ * @param useIdxNumbers - instead of random values put values from 0..sizeof(mesh)-1
+ * @return
+ */
+template <typename T>
+inline PixelData<T> getRandInitializedMesh(PixelDataDim dim, float multiplier = 2.0f, float offset=0.0, bool useIdxNumbers = false) {
+    return getRandInitializedMesh<T>(dim.y, dim.x, dim.z, multiplier, offset, useIdxNumbers);
+}
+
+/**
+ * Generate mesh with square blob in the center of it with values randomly chosen from [20,40] range. Zero values outside.
+ * @tparam T
+ * @param y
+ * @param x
+ * @param z
+ * @return
+ */
+template <typename T>
+inline PixelData<T> getMeshWithBlobInMiddle(int y, int x, int z) {
+    PixelData<T> m(y, x, z, 0);
+
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+    for (int yi = (1.0/3 * y); yi < (2.0/3 * y); yi++) {
+        for (int xi = (1.0/3 * x); xi < (2.0/3 * x); xi++) {
+            for (int zi = (1.0/3 * z); zi < (2.0/3 * z); zi++) {
+                m(yi, xi, zi) = 30 + dist(mt) * 10;
+            }
+        }
+    }
+
+    return m;
+}
+
+/**
+ * Generate mesh with square blob in the center of it with values randomly chosen from [20,40] range. Zero values outside.
+ * @tparam T
+ * @param dim
+ * @return
+ */
+template <typename T>
+inline PixelData<T> getMeshWithBlobInMiddle(const PixelDataDim &dim) {
+    return getMeshWithBlobInMiddle<T>(dim.y, dim.x, dim.z);
 }
 
 struct TestBenchStats{

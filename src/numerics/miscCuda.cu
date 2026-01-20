@@ -201,8 +201,9 @@ __global__ void count_ne_rows_cuda(const uint64_t* level_xz_vec,
     }
 }
 
-
-__device__ unsigned int count = 0;
+namespace {
+    __device__ unsigned int count = 0;
+}
 __global__ void fill_ne_rows_cuda(const uint64_t* level_xz_vec,
                                   const uint64_t* xz_end_vec,
                                   const int z_num,

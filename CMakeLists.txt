@@ -6,7 +6,7 @@ project(APR DESCRIPTION "Adaptive Particle Representation library")
 
 message(STATUS "CMAKE VERSION ${CMAKE_VERSION}")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(POLICY CMP0135)
@@ -171,17 +171,17 @@ if(WIN32)
 
 
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 ")
 
     if(CMAKE_COMPILER_IS_GNUCC)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O4 -ffast-math")
+        set(CMAKE_CXX_FLAGS_RELEASE "-O4")
         set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Bdynamic")
         if(NOT WIN32)
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl -lz")
         endif()
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3")
         set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g  -Wall -pedantic")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
     endif()
@@ -209,15 +209,29 @@ set_property(TARGET aprObjLib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(APR_USE_CUDA)
     message(STATUS "APR: Building CUDA for APR")
-    set(CMAKE_CUDA_STANDARD 14)
+#    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
+    set(CMAKE_CUDA_STANDARD 17)
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+        set(CMAKE_CUDA_ARCHITECTURES native)
+    endif()
+    set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     set(CMAKE_CUDA_RUNTIME_LIBRARY "Static")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --default-stream per-thread -Xptxas -v -DAPR_USE_CUDA")
-    set(CMAKE_CUDA_FLAGS_RELEASE "-O3 --use_fast_math") # -lineinfo for profiling
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --fmad=false --default-stream per-thread -Wno-deprecated-gpu-targets -Xptxas -v -DAPR_USE_CUDA")
+
+    set(CMAKE_CUDA_FLAGS_RELEASE "-O3") # -lineinfo for profiling
     set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -g -G")
     if(APR_BENCHMARK)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DAPR_BENCHMARK")
     endif()
     enable_language(CUDA)
+
+    if (${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER 13.0.0)
+        # For CUDA versions > 13.0.0 keep compatibility with older CUDAs - new CUDA introduce changes that
+        #  impact ELF visibility and linkage for __global__ functions and device variables
+        set(CMAKE_CUDA_FLAGS "--device-entity-has-hidden-visibility=false -static-global-template-stub=false  ${CMAKE_CUDA_FLAGS}")
+    endif ()
+
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPR_USE_CUDA")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPR_USE_CUDA")
     set(APR_CUDA_SOURCE_FILES
@@ -226,6 +240,7 @@ if(APR_USE_CUDA)
             src/algorithm/LocalIntensityScale.cu
             src/algorithm/OVPC.cu
             src/data_structures/APR/access/GPUAccess.cu
+            src/data_structures/APR/access/LinearAccessCuda.cu
             src/numerics/miscCuda.cu
             src/numerics/APRDownsampleGPU.cu
             src/numerics/PixelNumericsGPU.cu
@@ -241,7 +256,9 @@ if(APR_BUILD_STATIC_LIB)
     # generate static library used as a intermediate step in generating fat lib
     set(STATIC_TARGET_NAME staticLib)
     add_library(${STATIC_TARGET_NAME} STATIC $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SOURCE_FILES})
-    target_compile_features(${STATIC_TARGET_NAME} PUBLIC cxx_std_14)
+    set_property(TARGET ${STATIC_TARGET_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    set_property(TARGET ${STATIC_TARGET_NAME} PROPERTY CUDA_ARCHITECTURES OFF)
+    target_compile_features(${STATIC_TARGET_NAME} PUBLIC cxx_std_17)
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${STATIC_TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
     target_include_directories(${STATIC_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
@@ -262,7 +279,8 @@ if(APR_BUILD_SHARED_LIB)
 # generate fat shared library
     set(SHARED_TARGET_NAME sharedLib)
     add_library(${SHARED_TARGET_NAME} SHARED $<TARGET_OBJECTS:aprObjLib> ${APR_CUDA_SOURCE_FILES})
-
+    set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY CUDA_ARCHITECTURES OFF)
+    set_property(TARGET ${SHARED_TARGET_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     target_include_directories(${SHARED_TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES OUTPUT_NAME ${LIBRARY_NAME})
     set_target_properties(${SHARED_TARGET_NAME} PROPERTIES LIBRARY_OUTPUT_NAME ${LIBRARY_NAME})

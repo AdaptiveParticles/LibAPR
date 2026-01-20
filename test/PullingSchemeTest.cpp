@@ -4,109 +4,509 @@
 
 #include <gtest/gtest.h>
 #include "data_structures/Mesh/PixelData.hpp"
-//TODO: only APRAccess.hpp should be included here but currently because of dependencies it does not work :(
-#include "data_structures/APR/APR.hpp"
-#include "algorithm/APRConverter.hpp"
-//#include "data_structures/APR/APRAccess.hpp"
+#include "data_structures/APR/access/APRAccessStructures.hpp"
 #include "algorithm/PullingScheme.hpp"
+#include "algorithm/OVPC.h"
 #include "TestTools.hpp"
-#ifdef APR_USE_CUDA
-#include "algorithm/ComputeGradientCuda.hpp"
-#endif
+#include "algorithm/LocalParticleCellSet.hpp"
+
 
 namespace {
+
+    // =================================================================================================================
+    // ======== Some test helpers
+    // =================================================================================================================
+
+    /**
+     * Prints PCT
+     * @param particleCellTree
+     */
     template <typename T>
-    PixelData<float> generateLevels(const PixelData<T> &dimsMesh, int maxLevel) {
-        PixelData<float> levels(dimsMesh, false);
-        for (size_t i = 0; i < levels.mesh.size(); ++i) {
-            levels.mesh[i] = ( i/2 ) % (maxLevel + 2);
+    void printParticleCellTree(const std::vector<PixelData<T>> &particleCellTree) {
+        for (uint64_t  l = 0; l < particleCellTree.size(); ++l) {
+            auto &tree = particleCellTree[l];
+//            std::cout << "-- level = " << l << ",  " << tree << std::endl;
+            tree.printMeshT(3,0);
         }
-//        std::cout << "LEVELS: " << std::endl;
-        levels.printMesh(3, 0);
-        return levels;
     }
 
-//    void printParticleCellTree(const std::vector<PixelData<uint8_t>> &particleCellTree) {
-//        for (int l = 0; l < particleCellTree.size(); ++l) {
-//            auto &tree = particleCellTree[l];
-//            std::cout << "------ 1level=" << l << " " << tree << std::endl;
-//            tree.printMesh(3,0);
-//        }
-//    }
+    // Class for storing expected values for one element of Particle Cell Tree (output of Pulling Scheme)
+    class LevelData  {
+    public:
+        int level;
+        int y;
+        int x;
+        int z;
+        uint8_t expectedType; // seed, boundary, filler...
+    };
 
-    TEST(PullingSchemeTest, Init) {
+    /**
+     * Verify computed Particle Cell Tree (PCT) vs expected values
+     * Expected values should list all data for types=1,2,3 (seed, boundary filler) which are used to generate particles:
+     * {levels, y,x,z(position), type}
+     * All other values are ignored (and used by Pulling Scheme (PS) only for intermediate calculations)
+     * @param aPCT - PCT produces by PS (note: values in PCT will be changed during verification!)
+     * @param expectedValues expected values
+     * @return true if correct, false otherwise
+     */
+     template<typename ElementType>
+    bool verifyParticleCellTree(std::vector<PixelData<ElementType>> &aPCT, const std::vector<LevelData> &expectedValues) {
 
-        GenInfo aprInfo;
+        const uint8_t AlreadyCheckedMark = 255;
+        const uint8_t MaxValueOfImportantType = FILLER_TYPE; // All types above are used by PS during computation phase only
 
-        aprInfo.l_max = 4;
-        aprInfo.l_min = 2;
-        aprInfo.org_dims[0] = 8;
-        aprInfo.org_dims[1] = 16;
-        aprInfo.org_dims[2] = 1;
+        for (const auto &r : expectedValues) {
+            // std::cout << r.level << " " << r.y << "," << r.x << "," << r.z << " " << (int)r.expectedType << std::endl;
 
-        PullingScheme ps;
-        ps.initialize_particle_cell_tree(aprInfo);
-        std::vector<PixelData<uint8_t>> &pctree = ps.getParticleCellTree();
-
-        // TEST: check if zeroed and correct number of levels
-        ASSERT_EQ(aprInfo.l_max, pctree.size()); // all levels [0, access.level_max - 1]
-        for (size_t l = 0; l < pctree.size(); ++l) {
-            auto &tree = pctree[l];
-            for (auto &e : tree.mesh) {
-                ASSERT_EQ(0, e);
+            auto &v = aPCT[r.level](r.y, r.x, r.z);
+            // Add dim. checks for accessing pct
+            if (v == r.expectedType) {
+                v = AlreadyCheckedMark;
+            }
+            else {
+                std::cout << "Error! Data on level=" << r.level << " at (" << r.y << "," << r.x << "," << r.z << ") expected=" << (int)r.expectedType << " got=" << (int)v << std::endl;
+                return false;
             }
         }
 
-        // Generate mesh with test levels
-        PixelData<float> levels = generateLevels(pctree[aprInfo.l_max - 1], aprInfo.l_max);
+        for (size_t level = 0; level < aPCT.size(); level++) {
+            auto &d = aPCT[level];
+            auto y_num = d.y_num;
+            auto x_num = d.x_num;
+            auto z_num = d.z_num;
 
-        // Fill particle cell tree with levels
-        int l_max = aprInfo.l_max - 1;
-        int l_min = aprInfo.l_min;
-        ps.fill(l_max, levels);
-
-        PixelData<float> levelsDS;
-        for(int l_ = l_max - 1; l_ >= l_min; l_--){
-            //down sample the resolution level k, using a max reduction
-            downsample(levels, levelsDS,
-                       [](const float &x, const float &y) -> float { return std::max(x, y); },
-                       [](const float &x) -> float { return x; }, true);
-            ps.fill(l_,levelsDS);
-            levels.swap(levelsDS);
+            for (int j = 0; j < z_num; j++) {
+                for (int i = 0; i < x_num; i++) {
+                    for (int k = 0; k < y_num; k++) {
+                        const auto &v = d(k, i, j);
+                        if (v != AlreadyCheckedMark && v <= MaxValueOfImportantType && v > 0) {
+                            std::cout << "Error! Data on level = " << level << " at (" << k << "," << i << "," << j << ") with value = " << (int)v << " not verified or bad!" << std::endl;
+                            return false;
+                        }
+                    }
+                }
+            }
         }
-//
-//        printParticleCellTree(pctree);
-//        ps.fill_neighbours(l_max);
-//        pctree[l_max].printMesh(3, 0);
-//        ps.pulling_scheme_main();
-//        printParticleCellTree(pctree);
+
+        return true;
     }
-#ifdef APR_USE_CUDA
-    TEST(PullingSchemeTest, computeLevels) {
-        using ImgType = float;
-        const int maxLevel = 3;
-        const float relError = 0.1;
 
-        PixelData<ImgType> grad = getRandInitializedMesh<ImgType>(10, 20, 33);
-        PixelData<float> localIntensityScaleCpu = getRandInitializedMesh<float>(10, 20, 33);
-
-        PixelData<float> localIntensityScaleGpu(localIntensityScaleCpu, true);
-        PixelData<float> elo(localIntensityScaleCpu, true);
-        APRTimer timer(true);
-
-        LocalParticleCellSet localParticleCellSet;
-
-        timer.start_timer("CPU PS FULL");
-        localParticleCellSet.computeLevels(grad, localIntensityScaleCpu, maxLevel, relError,1,1,1);
-        timer.stop_timer();
-
-        timer.start_timer("GPU PS FULL");
-        computeLevelsCuda(grad, localIntensityScaleGpu, maxLevel, relError);
-        timer.stop_timer();
-
-        EXPECT_EQ(compareMeshes(localIntensityScaleCpu, localIntensityScaleGpu), 0);
+    template<typename DataType>
+    void fillPS(PullingScheme &aPS, PixelData<DataType> &levels) {
+        PixelData<DataType> levelsDS(ceil(levels.y_num/2.0), ceil(levels.x_num/2.0), ceil(levels.z_num/2.0));
+        LocalParticleCellSet().get_local_particle_cell_set(aPS, levels, levelsDS, APRParameters());
     }
-#endif
+
+    // =================================================================================================================
+    // ======== Pulling Scheme algorithm tests
+    // =================================================================================================================
+    TEST(PullingSchemeTest, PullingScheme1D_Ydir) {
+        // Prepare input data for PS
+        int values[] = {9,0,0,0, 0,0,0,0};
+        int len = sizeof(values)/sizeof(int);
+        PixelData<int> levels(len, 1, 1);  // <-- Y-dir
+        initFromZYXarray(levels, values); // <-- Y-dir
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(2 * dim.y, dim.x, dim.z); // <-- Y-dir
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("PS - initialize with data");
+        PullingScheme ps;
+        ps.initialize_particle_cell_tree(gi);
+        fillPS(ps, levels);
+        t.stop_timer();
+
+        t.start_timer("PS - compute");
+        ps.pulling_scheme_main();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {3, 0,0,0, 1},
+                {3, 1,0,0, 2},
+                {3, 2,0,0, 3},
+                {3, 3,0,0, 3},
+
+                {2, 2,0,0, 3},
+                {2, 3,0,0, 3}
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+    TEST(PullingSchemeTest, PullingScheme1D_Xdir) {
+        // Prepare input data for PS
+        int values[] = {9,0,0,0, 0,0,0,0};
+        int len = sizeof(values)/sizeof(int);
+        PixelData<int> levels(1, len, 1);  // <-- X-dir
+        initFromZYXarray(levels, values);
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(dim.y, 2 * dim.x, dim.z); // <-- X-dir
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("PS - initialize with data");
+        PullingScheme ps;
+        ps.initialize_particle_cell_tree(gi);
+        fillPS(ps, levels);
+        t.stop_timer();
+
+        t.start_timer("PS - compute");
+        ps.pulling_scheme_main();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {3, 0,0,0, 1},
+                {3, 0,1,0, 2},
+                {3, 0,2,0, 3},
+                {3, 0,3,0, 3}  ,
+
+                {2, 0,2,0, 3},
+                {2, 0,3,0, 3}
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+    TEST(PullingSchemeTest, PullingScheme1D_Zdir) {
+        // Prepare input data for PS
+        int values[] = {9,0,0,0, 0,0,0,0};
+        int len = sizeof(values)/sizeof(int);
+        PixelData<int> levels(1, 1, len);  // <-- Z-dir
+        initFromZYXarray(levels, values);
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(dim.y, dim.x, 2 * dim.z); // <-- Z-dir
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("PS - initialize with data");
+        PullingScheme ps;
+        ps.initialize_particle_cell_tree(gi);
+        fillPS(ps, levels);
+        t.stop_timer();
+
+        t.start_timer("PS - compute");
+        ps.pulling_scheme_main();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {3, 0,0,0, 1},
+                {3, 0,0,1, 2},
+                {3, 0,0,2, 3},
+                {3, 0,0,3, 3}  ,
+
+                {2, 0,0,2, 3},
+                {2, 0,0,3, 3}
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+    TEST(PullingSchemeTest, PullingScheme3D_smallCube) {
+        // Prepare input data for PS
+        PixelData<int> levels(3, 3, 3, 0);
+        levels(2, 2, 2) = 3;
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(2 * dim.y, 2 * dim.x, 2 * dim.z);
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("PS - initialize with data");
+        PullingScheme ps;
+        ps.initialize_particle_cell_tree(gi);
+        fillPS(ps, levels);
+        t.stop_timer();
+
+        t.start_timer("PS - compute");
+        ps.pulling_scheme_main();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {2, 0,0,0, 3},
+                {2, 0,1,0, 3},
+                {2, 0,2,0, 3},
+                {2, 1,0,0, 3},
+                {2, 1,1,0, 3},
+                {2, 1,2,0, 3},
+                {2, 2,0,0, 3},
+                {2, 2,1,0, 3},
+                {2, 2,2,0, 3},
+
+                {2, 0,0,1, 3},
+                {2, 0,1,1, 3},
+                {2, 0,2,1, 3},
+                {2, 1,0,1, 3},
+                {2, 1,1,1, 2},
+                {2, 1,2,1, 2},
+                {2, 2,0,1, 3},
+                {2, 2,1,1, 2},
+                {2, 2,2,1, 2},
+
+                {2, 0,0,2, 3},
+                {2, 0,1,2, 3},
+                {2, 0,2,2, 3},
+                {2, 1,0,2, 3},
+                {2, 1,1,2, 2},
+                {2, 1,2,2, 2},
+                {2, 2,0,2, 3},
+                {2, 2,1,2, 2},
+                {2, 2,2,2, 1},
+
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+    // =================================================================================================================
+    // ======== OVPC - Optimal Valid Particle Cell - alternative version of original Pulling Scheme algorithm
+    // =================================================================================================================
+    TEST(PullingSchemeTest, OVPC_Ydir) {
+        // Prepare input data for PS
+        int values[] = {9,0,0,0, 0,0,0,0};
+        int len = sizeof(values)/sizeof(int);
+        PixelData<int> levels(len, 1, 1);  // <-- Y-dir
+        initFromZYXarray(levels, values); // <-- Y-dir
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(2 * dim.y, dim.x, dim.z); // <-- Y-dir
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("OVPC - initialize");
+        OVPC ps(gi, levels);
+        t.stop_timer();
+        t.start_timer("OVPC - compute");
+        ps.generateTree();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {3, 0,0,0, 1},
+                {3, 1,0,0, 2},
+                {3, 2,0,0, 3},
+                {3, 3,0,0, 3},
+
+                {2, 2,0,0, 3},
+                {2, 3,0,0, 3}
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+    TEST(PullingSchemeTest, OVPC_Xdir) {
+        // Prepare input data for PS
+        int values[] = {9,0,0,0, 0,0,0,0};
+        int len = sizeof(values)/sizeof(int);
+        PixelData<int> levels(1, len, 1);  // <-- X-dir
+        initFromZYXarray(levels, values);
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(dim.y, 2 * dim.x, dim.z); // <-- X-dir
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("OVPC - initialize");
+        OVPC ps(gi, levels);
+        t.stop_timer();
+        t.start_timer("OVPC - compute");
+        ps.generateTree();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {3, 0,0,0, 1},
+                {3, 0,1,0, 2},
+                {3, 0,2,0, 3},
+                {3, 0,3,0, 3}  ,
+
+                {2, 0,2,0, 3},
+                {2, 0,3,0, 3}
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+    TEST(PullingSchemeTest, OVPC_Zdir) {
+        // Prepare input data for PS
+        int values[] = {9,0,0,0, 0,0,0,0};
+        int len = sizeof(values)/sizeof(int);
+        PixelData<int> levels(1, 1, len);  // <-- Z-dir
+        initFromZYXarray(levels, values);
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(dim.y, dim.x, 2 * dim.z); // <-- Z-dir
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("OVPC - initialize");
+        OVPC ps(gi, levels);
+        t.stop_timer();
+        t.start_timer("OVPC - compute");
+        ps.generateTree();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {3, 0,0,0, 1},
+                {3, 0,0,1, 2},
+                {3, 0,0,2, 3},
+                {3, 0,0,3, 3}  ,
+
+                {2, 0,0,2, 3},
+                {2, 0,0,3, 3}
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+    TEST(PullingSchemeTest, OVPC_smallCube) {
+        // Prepare input data for PS
+        PixelData<int> levels(3, 3, 3, 0);
+        levels(2, 2, 2) = 3;
+
+        // Prepare GenInfo structure -
+        // remember: data for PS is downsampled so is representing image twice bigger so Y-dir size need to be multiplied by 2
+        GenInfo gi;
+        const PixelDataDim dim = levels.getDimension();
+        gi.init(2 * dim.y, 2 * dim.x, 2 * dim.z);
+
+        // Initialize all needed objects
+        APRTimer t(false);
+
+        t.start_timer("OVPC - initialize");
+        OVPC ps(gi, levels);
+        t.stop_timer();
+        t.start_timer("OVPC - compute");
+        ps.generateTree();
+        t.stop_timer();
+
+        // List of expected types
+        std::vector<LevelData> ev = {
+                {2, 0,0,0, 3},
+                {2, 0,1,0, 3},
+                {2, 0,2,0, 3},
+                {2, 1,0,0, 3},
+                {2, 1,1,0, 3},
+                {2, 1,2,0, 3},
+                {2, 2,0,0, 3},
+                {2, 2,1,0, 3},
+                {2, 2,2,0, 3},
+
+                {2, 0,0,1, 3},
+                {2, 0,1,1, 3},
+                {2, 0,2,1, 3},
+                {2, 1,0,1, 3},
+                {2, 1,1,1, 2},
+                {2, 1,2,1, 2},
+                {2, 2,0,1, 3},
+                {2, 2,1,1, 2},
+                {2, 2,2,1, 2},
+
+                {2, 0,0,2, 3},
+                {2, 0,1,2, 3},
+                {2, 0,2,2, 3},
+                {2, 1,0,2, 3},
+                {2, 1,1,2, 2},
+                {2, 1,2,2, 2},
+                {2, 2,0,2, 3},
+                {2, 2,1,2, 2},
+                {2, 2,2,2, 1},
+
+        };
+
+        // -------------- Verify result
+        EXPECT_TRUE(verifyParticleCellTree(ps.getParticleCellTree(), ev));
+    }
+
+
+    // =================================================================================================================
+    // ======== PS vs OVPC
+    // =================================================================================================================
+
+    TEST(PullingSchemeTest, PSvsOVPC) {
+        // Generates random levels in a 3D cube and then compares generated output levels in PS and OVPC
+        GenInfo gi;
+        gi.init(255, 257, 199);
+
+        // Generate random levels for PS and OVPC
+        PixelData<int> levels(std::ceil(gi.org_dims[0]/2.0),
+                              std::ceil(gi.org_dims[1]/2.0),
+                              std::ceil(gi.org_dims[2]/2.0),
+                              0);
+        // Add a few particles only - it will end up with Pulling Scheme generate particles on (almost) all
+        // levels - good case to compare with OVPC
+        const int numOfParticles = 3;
+        std::srand(std::time(nullptr));
+        for (int i = 0; i < numOfParticles; ++i) {
+            levels(std::rand() % levels.y_num, std::rand() % levels.x_num, std::rand() % levels.z_num) = gi.l_max;
+        }
+        PixelData<int> levelsOVPC(levels, true); // just copy 'levels'
+        APRTimer t(false);
+
+        // Run test methods and compare results
+        t.start_timer("OVPC - init");
+        OVPC nps(gi, levelsOVPC);
+        t.stop_timer();
+        t.start_timer("OVPC compute");
+        nps.generateTree();
+        t.stop_timer();
+
+
+        t.start_timer("PS - init");
+        PullingScheme ps;
+        ps.initialize_particle_cell_tree(gi);
+        fillPS(ps, levels);
+        t.stop_timer();
+        t.start_timer("PS - compute");
+        ps.pulling_scheme_main();
+        t.stop_timer();
+
+        ASSERT_EQ(compareParticleCellTrees(ps.getParticleCellTree(), nps.getParticleCellTree()), 0);
+    }
+
 }
 
 int main(int argc, char **argv) {

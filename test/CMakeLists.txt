@@ -1,5 +1,6 @@
 macro(buildTarget TARGET SRC)
     add_executable(${TARGET} ${SRC})
+    set_property(TARGET ${TARGET} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${GTEST_LIBRARIES} ${APR_BUILD_LIBRARY} Threads::Threads ${OPENMP_LINK})
     add_test( ${TARGET} ${TARGET} )
 endmacro(buildTarget)
@@ -11,12 +12,17 @@ buildTarget(testComputeGradient ComputeGradientTest.cpp)
 buildTarget(testLocalIntensityScale LocalIntensityScaleTest.cpp)
 buildTarget(testPullingScheme PullingSchemeTest.cpp)
 buildTarget(testAPRParameters APRParametersTest.cpp)
+buildTarget(testLinearAccess LinearAccessTest.cpp)
 
 #APR GPU Tests
 if(APR_USE_CUDA)
    buildTarget(testAPRCuda APRTestCuda.cpp)
+   buildTarget(testComputeGradientCuda ComputeGradientCudaTest.cpp)
+   buildTarget(testLocalIntensityScaleCuda LocalIntensityScaleCudaTest.cpp)
+   buildTarget(testFullPipelineCuda FullPipelineCudaTest.cpp)
+   buildTarget(testPullingSchemeCuda PullingSchemeCudaTest.cpp)
+   buildTarget(testLinearAccessCuda LinearAccessCudaTest.cpp)
 endif()
-
 
 if(APR_BUILD_EXAMPLES)
     buildTarget(testExamples ExamplesTest.cpp)

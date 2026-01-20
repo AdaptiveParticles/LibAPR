@@ -1,5 +1,6 @@
 macro(buildTarget TARGET)
     add_executable(${TARGET} ${TARGET}.cpp)
+    set_property(TARGET ${TARGET} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     target_link_libraries(${TARGET} ${HDF5_LIBRARIES} ${TIFF_LIBRARIES} ${APR_BUILD_LIBRARY} Threads::Threads ${OPENMP_LINK})
 endmacro(buildTarget)
 
@@ -14,6 +15,11 @@ buildTarget(Example_apr_filter)
 buildTarget(Example_apr_deconvolution)
 buildTarget(Example_random_access)
 buildTarget(Example_lazy_access)
+
+#APR GPU Tests
+if(APR_USE_CUDA)
+    buildTarget(Example_get_multiapr)
+endif()
 
 #buildTarget(Example_reconstruct_patch)  #The way this is working is going to be re-designed.
 buildTarget(Example_apr_tree)

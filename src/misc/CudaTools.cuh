@@ -5,18 +5,25 @@
 #ifndef LIBAPR_CUDATOOLS_HPP
 #define LIBAPR_CUDATOOLS_HPP
 
-
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-//#include <math_functions.h>
 #include <cuda_runtime_api.h>
-//#include <cuda_runtime.h>
-
-
 #include <iostream>
 #include <chrono>
-#include "data_structures/Mesh/PixelData.hpp"
+#include <cassert>
 
+#define checkCuda(ans) { cudaAssert((ans), __FILE__, __LINE__); }
+inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"GPUassert: (%d) (%s) %s %d\n", code, cudaGetErrorString(code), file, line);
+        assert(code == cudaSuccess); // If debugging it helps to see call tree somehow
+        if (abort) exit(code);
+    }
+#endif
+}
 
 inline void waitForCuda() {
     cudaDeviceSynchronize();
@@ -27,12 +34,6 @@ inline void waitForCuda() {
 inline void printCudaDims(const dim3 &threadsPerBlock, const dim3 &numBlocks) {
     std::cout << "Number of blocks  (x/y/z):  " << numBlocks.x << "/" << numBlocks.y << "/" << numBlocks.z << std::endl;
     std::cout << "Number of threads (x/y/z): " << threadsPerBlock.x << "/" << threadsPerBlock.y << "/" << threadsPerBlock.z << std::endl;
-}
-
-template<typename ImgType>
-inline void getDataFromKernel(PixelData<ImgType> &input, size_t inputSize, ImgType *cudaInput) {
-    cudaMemcpy(input.mesh.get(), cudaInput, inputSize, cudaMemcpyDeviceToHost);
-    cudaFree(cudaInput);
 }
 
 class CudaTimer {
@@ -85,11 +86,17 @@ public:
 
 
 // Useful type for keeping CUDA allocated memory (which is released with cudaFree)
-template <typename T, typename D=decltype(&cudaFree)>
+static cudaError_t CUDARTAPI deleter(void *devPtr) {
+    //std::cout << "cudaFree() called...\n";
+    return cudaFree(devPtr);
+}
+
+template <typename T, typename D=decltype(&deleter)>
 struct CudaMemoryUniquePtr : public std::unique_ptr<T[], D> {
     using std::unique_ptr<T[],D>::unique_ptr; // inheriting other constructors
-    explicit CudaMemoryUniquePtr(T *aMemory = nullptr) : std::unique_ptr<T[], D>(aMemory, &cudaFree) {}
+    explicit CudaMemoryUniquePtr(T *aMemory = nullptr) : std::unique_ptr<T[], D>(aMemory, &deleter) {}
 };
+
 
 /**
  * Directions for sending data between Host and Device
@@ -102,6 +109,8 @@ enum CopyDir : CopyDirType {
     INVALID = 4     // Just wrong/last value keeper for validating settings
 };
 
+template <typename T>
+class PixelData;
 
 /**
  * Checks if provided type is a PixelData container
@@ -211,6 +220,17 @@ public:
         initialize();
     }
 
+    ScopedCudaMemHandler (ScopedCudaMemHandler &&obj) {
+        iData = obj.iData;
+        obj.iData = nullptr;
+        iSize = obj.iSize;
+        obj.iSize = 0;
+        iBytes = obj.iBytes;
+        obj.iBytes = 0;
+        iStream = obj.iStream;
+        obj.iStream = nullptr;
+        iCudaMemory = std::move(obj.iCudaMemory);
+    }
 
     ~ScopedCudaMemHandler() {
         if (DIRECTION & D2H) {
@@ -223,15 +243,21 @@ public:
     size_t getNumOfBytes() const {return iBytes; }
 
     void copyH2D() {
-        cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream);
+        if (iData != nullptr) {
+            checkCuda(cudaMemcpyAsync(iCudaMemory.get(), iData, iBytes, cudaMemcpyHostToDevice, iStream));
+        }
     }
 
     void copyH2D(const size_t numElements) {
-        cudaMemcpyAsync(iCudaMemory.get(), iData, numElements*DataSize, cudaMemcpyHostToDevice, iStream);
+        if (iData != nullptr) {
+            checkCuda(cudaMemcpyAsync(iCudaMemory.get(), iData, numElements*DataSize, cudaMemcpyHostToDevice, iStream));
+        }
     }
 
     void copyD2H() {
-        cudaMemcpyAsync((void*)iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream);
+        if (iData != nullptr) {
+            checkCuda(cudaMemcpyAsync((void *) iData, iCudaMemory.get(), iBytes, cudaMemcpyDeviceToHost, iStream));
+        }
     }
 
 private:
@@ -240,7 +266,7 @@ private:
 
     void initialize() {
         ElementType *mem = nullptr;
-        cudaMalloc(&mem, iBytes);
+        checkCuda(cudaMalloc(&mem, iBytes));
         iCudaMemory.reset(mem);
         if (DIRECTION & H2D) {
             copyH2D();
